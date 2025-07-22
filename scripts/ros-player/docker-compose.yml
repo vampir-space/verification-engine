@@ -1,0 +1,10 @@
+services:
+  ros-player:
+    container_name: ros-player
+    build: server
+    image: ros-player
+    volumes:
+      - ./bags:/bags:ro
+    ports:
+      - "9090:9090"
+      - "4000:4000"
