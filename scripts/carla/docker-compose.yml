@@ -10,25 +10,18 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
     volumes:
       - ./start.sh:/start.sh:ro
-    privileged: true
-    healthcheck:
-      test: ["CMD", "python3", "-c", "import carla; c=carla.Client('localhost',2000); c.set_timeout(2.0); c.get_server_version(); print('CARLA OK')"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 60s
 
-  carla-vizualiser:
-    image: mjxu96/carlaviz
-    depends_on:
-      carla-simulator:
-        condition: service_healthy
-    ports:
-      - "5001:8080" # frontend ui
-      - "5002:8081" # backend websocket stream
-      - "5003:8089" # backend rest api cli
-    environment:
-      - CARLAVIZ_HOST_IP=0.0.0.0
-      - CARLA_SERVER_IP=carla-simulator
-      - CARLA_SERVER_PORT=2000
-    restart: unless-stopped
+#  carla-vizualiser:
+#    image: mjxu96/carlaviz
+#    depends_on:
+#      carla-simulator:
+#        condition: service_healthy
+#    ports:
+#      - "5001:8080" # frontend ui
+#      - "5002:8081" # backend websocket stream
+#      - "5003:8089" # backend rest api cli
+#    environment:
+#      - CARLAVIZ_HOST_IP=0.0.0.0
+#      - CARLA_SERVER_IP=carla-simulator
+#      - CARLA_SERVER_PORT=2000
+#    restart: unless-stopped
