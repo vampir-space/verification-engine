@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+  <head>
+    <title>ROS2 Bag Player</title>
+    <style>
+      body { font-family: sans-serif; margin: 2rem; }
+      details { margin-bottom: 1rem; }
+      pre { background: #f0f0f0; padding: 1rem; overflow-x: auto; }
+      button { margin-top: 0.5rem; }
+    </style>
+  </head>
+  <body>
+    <h1>Available Bags</h1>
+    {% for bag in bags %}
+    <details>
+      <summary>{{ bag.path }}</summary>
+      <pre>{{ bag.info }}</pre>
+      <button onclick="play('{{ bag.path }}')">Play</button>
+    </details>
+    {% endfor %}
+
+    <script>
+      function play(bag) {
+        fetch('/play', {
+          method: 'POST',
+          headers: {'Content-Type':'application/x-www-form-urlencoded'},
+          body: 'bag=' + encodeURIComponent(bag)
+        })
+        .then(r => r.json())
+        .then(res => {
+          alert('Playing ' + res.bag);
+        })
+        .catch(console.error);
+      }
+    </script>
+  </body>
+</html>
