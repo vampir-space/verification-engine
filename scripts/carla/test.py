@@ -11,7 +11,7 @@ def main():
     try:
         # Connect to CARLA Docker container
         print("Connecting to CARLA Docker container...")
-        client = carla.Client('localhost', 2000)
+        client = carla.Client('carla', 2000)
         client.set_timeout(10.0)
         
         # Test connection
