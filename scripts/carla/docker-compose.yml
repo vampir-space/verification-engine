@@ -10,21 +10,23 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
     command: bash CarlaUnreal.sh -RenderOffScreen -nosound
+
   carla-visualizer:
     image: mjxu96/carlaviz
-    network_mode: host
-    # ports:
-    #   - "10301:8080"  # Frontend UI
-    #   - "10302:8081"  # Backend websocket stream
-    #   - "10303:8089"  # Backend REST API
-    command: ["/bin/bash", "./docker/run.sh", "--simulator_host", "localhost", "--simulator_port", "2000"]
+    ports:
+      - "10301:8080"   # Frontend UI
+      - "8081:8081"    # Backend websocket stream
+      - "10303:8089"   # Backend REST API
+    entrypoint: ["/bin/bash", "./docker/run.sh", "--simulator_host", "carla"]
     restart: unless-stopped
     depends_on:
       - carla
+
   carla-test-client:
     build:
       context: .
     volumes:
       - ./autodrive.py:/app/autodrive.py
+    restart: unless-stopped
     depends_on:
       - carla
