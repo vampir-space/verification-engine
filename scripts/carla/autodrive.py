@@ -8,20 +8,20 @@ import time
 
 def main():
     try:
-        # Keep trying to connect until successful
-        client = carla.Client('localhost', 2000)
-        client.set_timeout(10.0)
-        
         print("⏳ Waiting for CARLA to start...")
         while True:
             try:
+                client = carla.Client('localhost', 2000)
+                client.set_timeout(10.0)
                 version = client.get_server_version()
                 print(f"✅ Connected to CARLA version: {version}")
                 break
-            except Exception:
-                print("⏳ Connection failed, retrying in 10 seconds...")
+            except Exception as e:
+                print(f"⏳ Connection failed, {e}, retrying in 10 seconds...")
                 time.sleep(10)
+
         world = client.get_world()
+        print(f"Map: {world.get_map().name}")
         
         # Spawn a vehicle
         blueprint_library = world.get_blueprint_library()
@@ -40,7 +40,7 @@ def main():
         while True:
             time.sleep(1)
             location = vehicle.get_location()
-            print(f"📍 x={location.x:.1f}, y={location.y:.1f}, z={location.z:.1f}", end='\r')
+            print(f"📍 x={location.x:.1f}, y={location.y:.1f}, z={location.z:.1f}")
             
     except KeyboardInterrupt:
         print("\n🛑 Stopping...")
