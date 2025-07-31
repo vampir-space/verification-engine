@@ -11,7 +11,7 @@ def main():
         print("⏳ Waiting for CARLA to start...")
         while True:
             try:
-                client = carla.Client('localhost', 2000)
+                client = carla.Client('carla', 2000)
                 client.set_timeout(10.0)
                 version = client.get_server_version()
                 print(f"✅ Connected to CARLA version: {version}")

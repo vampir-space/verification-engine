@@ -3,10 +3,9 @@ services:
     image: carlasim/carla:0.10.0
     restart: unless-stopped
     runtime: nvidia
-    network_mode: host
-    # ports:
-    #   - "10200:2000"  # CARLA RPC port
-    #   - "10201:2001"  # CARLA streaming port
+    ports:
+      - "10200:2000"  # CARLA RPC port
+      - "10201:2001"  # CARLA streaming port
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
@@ -25,6 +24,7 @@ services:
   carla-test-client:
     build:
       context: .
-    network_mode: host
+    volumes:
+      - ./autodrive.py:/app/autodrive.py
     depends_on:
       - carla
