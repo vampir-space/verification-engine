@@ -20,3 +20,8 @@ services:
     restart: unless-stopped
     depends_on:
       - carla
+  carla-test-client:
+    build:
+      context: .
+    depends_on:
+      - carla
