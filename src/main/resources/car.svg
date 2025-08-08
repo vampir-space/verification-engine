@@ -1,0 +1,14 @@
+<svg width="15.815pt" height="34.334pt" version="1.1" viewBox="0 0 15.815 34.334" xmlns="http://www.w3.org/2000/svg" xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+ <g transform="translate(-638.6 -403.4)">
+  <g transform="rotate(-90 646.51 420.57)">
+   <path d="m663.18 427.98v-14.815h-33.334v14.815z" clip-path="url(#pa6b6215e6d)" fill="#828282" stroke="#828282"/>
+   <path d="m654.84 420.57-16.667-3.7038v7.4075z" clip-path="url(#pa6b6215e6d)" fill="#fff"/>
+   <path d="m654.84 420.57-16.667-3.7038v7.4075l16.667-3.7038" clip-path="url(#pa6b6215e6d)" fill="none" stroke="#000" stroke-linecap="square"/>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="pa6b6215e6d">
+   <rect x="172.8" y="126.21" width="1071.4" height="450.79"/>
+  </clipPath>
+ </defs>
+</svg>
