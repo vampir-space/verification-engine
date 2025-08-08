@@ -1,4 +1,4 @@
-package space.vampir.engine;
+package space.vampir.engine.communication;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;

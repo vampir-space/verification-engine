@@ -1,4 +1,4 @@
-package space.vampir.engine;
+package space.vampir.engine.communication;
 
 import java.util.HashMap;
 import java.util.Map;

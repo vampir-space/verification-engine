@@ -1,4 +1,4 @@
-package space.vampir.engine;
+package space.vampir.engine.communication;
 
 
 import okhttp3.OkHttpClient;
