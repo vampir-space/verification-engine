@@ -10,10 +10,6 @@ public class ObjectRender {
     final SVGDocument background;
     double size, x, y, theta;
 
-    /**
-     *    x1       x2
-     * y +---------+
-     */
     public ObjectRender(URL mapURL,
                      double size, double x, double y, double theta) {
         SVGLoader loader = new SVGLoader();
