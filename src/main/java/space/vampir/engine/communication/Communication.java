@@ -22,7 +22,7 @@ public class Communication {
                 "/ground_truth/imu",
                 "/ground_truth/odometry");
 
-        StateRecorder stateRecorder = new StateRecorder();
+        StateRecorder stateRecorder = new StateRecorder(recorder -> {});
 
         WebSocket ws = client.newWebSocket(request, new ROSListener(stateRecorder, latch, relevantTopics));
 

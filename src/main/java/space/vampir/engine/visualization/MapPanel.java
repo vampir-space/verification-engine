@@ -9,36 +9,29 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.AffineTransform;
 
-class MapPanel extends JPanel {
+public class MapPanel extends JPanel {
     MapRender map;
     JLabel label = new JLabel();
+    JSlider time = new JSlider();
 
-    MapPanel(MapRender mapRender) {
+    public MapPanel(MapRender mapRender) {
         this.map = mapRender;
 
         ToolTipManager.sharedInstance().registerComponent(this);
 
-        this.add(label);
-        label.setVisible(true);
+        this.setLayout(new FlowLayout());
+
         setLabel();
+        label.setVisible(true);
+        this.add(label);
 
-        final var panel = this;
-        this.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseMoved(MouseEvent e) {
-                super.mouseMoved(e);
-                setLabel(e.getX(),e.getY());
-                label.invalidate();
-            }
+        time.setMaximum(1);
+        time.setMinimum(0);
+        time.setValue(0);
+        time.setEnabled(false);
 
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                var o = map.getObjects().get(0);
-                o.setTheta(o.getTheta()+0.2);
-                o.setX(o.x+1);
-                panel.updateUI();
-            }
-        });
+        time.setVisible(true);
+        //this.add(time);
     }
 
     @Override
@@ -96,25 +89,8 @@ class MapPanel extends JPanel {
         g2d.setTransform(new AffineTransform());
     }
 
-    public void setLabel(int x, int y) {
-        double centerX = map.mapXStart + map.mapXSize/2;
-        double centerY = map.mapYStart + map.mapYSize/2;
-
-        double scale = Math.max(
-                map.mapXSize / getWidth(),
-                map.mapYSize / getHeight());
-        double posx = centerX + scale*(x-getWidth()/2.0);
-        double posy = centerY - scale*(y-getHeight()/2.0);
-
-        this.setLabel(String.format("→%.2fm↑%.2fm",posx,posy));
-    }
-
     public void setLabel() {
-        setLabel("→?m↑?m");
-    }
-
-    public void setLabel(String coords) {
-        this.label.setText(String.format("%s | C:%s",map.getName(),coords));
+        this.label.setText(String.format("%s",map.getName()));
     }
 
     @Override
@@ -125,7 +101,7 @@ class MapPanel extends JPanel {
         double scale = Math.max(
                 map.mapXSize / getWidth(),
                 map.mapYSize / getHeight());
-        double posx = centerX + scale*(event.getY()-getWidth()/2.0);
+        double posx = centerX + scale*(event.getX()-getWidth()/2.0);
         double posy = centerY - scale*(event.getY()-getHeight()/2.0);
 
         return String.format("→%.2fm↑%.2fm",posx,posy);

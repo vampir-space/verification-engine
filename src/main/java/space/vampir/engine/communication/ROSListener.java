@@ -23,7 +23,7 @@ public class ROSListener extends WebSocketListener {
     final Set<String> relevantTopics;
     final Set<String> seenTopics = ConcurrentHashMap.newKeySet();
 
-    ROSListener(StateRecorder stateRecorder, CountDownLatch latch, Set<String> relevantTopics) {
+    public ROSListener(StateRecorder stateRecorder, CountDownLatch latch, Set<String> relevantTopics) {
         this.stateRecorder = stateRecorder;
         this.latch = latch;
         this.relevantTopics = relevantTopics;
@@ -102,7 +102,7 @@ public class ROSListener extends WebSocketListener {
         // just print
         String topic = (String) m.get("topic");
         Object msg = m.get("msg");
-        System.out.println("▶ Message recieved: " + topic);
+        //System.out.println("▶ Message recieved: " + topic);
         stateRecorder.messageReceived(topic,msg);
 //        try {
 //            System.out.printf("▶ [%s] %s%n", topic, mapper.writeValueAsString(msg));

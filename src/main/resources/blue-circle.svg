@@ -14,7 +14,7 @@
   <g
      id="layer1">
     <circle
-       style="fill:none;stroke:#1f78b4;stroke-width:1;stroke-linecap:square;stroke-miterlimit:10;stroke-dasharray:1,2;stroke-opacity:1;paint-order:stroke fill markers;stroke-dashoffset:0"
+       style="fill:none;stroke:#0000ff;stroke-width:0.1;stroke-linecap:square;stroke-miterlimit:10;stroke-dasharray:1,1;stroke-opacity:1;paint-order:stroke fill markers;stroke-dashoffset:0"
        id="path1"
        cx="10"
        cy="10"
