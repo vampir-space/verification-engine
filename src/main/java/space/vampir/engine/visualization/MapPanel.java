@@ -3,9 +3,7 @@ package space.vampir.engine.visualization;
 import com.github.weisj.jsvg.view.ViewBox;
 
 import javax.swing.*;
-import javax.swing.event.MouseInputListener;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.AffineTransform;
 
@@ -56,7 +54,8 @@ public class MapPanel extends JPanel {
     }
 
     private void renderObject(ObjectRender object, Graphics2D g2d) {
-        // Move to center (in pixels)
+        AffineTransform old = g2d.getTransform();
+        // Move to center to place (in pixels)
         double mapScale = Math.min(
                 getWidth() / map.mapXSize,
                 getHeight() / map.mapYSize);
@@ -68,25 +67,29 @@ public class MapPanel extends JPanel {
         g2d.transform(AffineTransform.getTranslateInstance(
                 getWidth() / 2.0 + xOffset*mapScale,
                 getHeight() / 2.0 - yOffset*mapScale));
+
+        // Rotate
+        g2d.transform(AffineTransform.getRotateInstance(object.theta));
+
         // Resize from svg to pixels
         double svgToRenderScale = Math.min(
                 getHeight() / map.background.size().height,
                 getWidth() / map.background.size().width);
-        double objectBackgroundSize = Math.max(
-                object.background.size().width,
-                object.background.size().height);
-        double svgScale = objectBackgroundSize / map.background.size().width;
-        double sizeScale = object.size / map.mapXSize;
-        double scale = sizeScale*svgToRenderScale/svgScale;
-        g2d.transform(AffineTransform.getScaleInstance(scale, scale));
-        // Rotate
-        g2d.transform(AffineTransform.getRotateInstance(object.theta));
+
+        double svgXScale = object.background.size().width / map.background.size().width;
+        double svgYScale = object.background.size().height / map.background.size().height;
+        double sizeXScale = object.getSizeX() / map.mapXSize;
+        double sizeYScale = object.getSizeY() / map.mapYSize;
+        double xScale = sizeXScale*svgToRenderScale/svgXScale;
+        double yScale = sizeYScale*svgToRenderScale/svgYScale;
+        g2d.transform(AffineTransform.getScaleInstance(xScale, yScale));
+
         // move center to 0,0
         g2d.transform(AffineTransform.getTranslateInstance(-object.getBackground().size().getWidth() / 2, -object.getBackground().size().getHeight() / 2));
 
         object.getBackground().render(this, g2d);
         // Reset
-        g2d.setTransform(new AffineTransform());
+        g2d.setTransform(old);
     }
 
     public void setLabel() {

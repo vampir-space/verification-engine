@@ -13,13 +13,13 @@ public class RenderExample {
 
             map.addObject(
                     new ObjectRender(RenderExample.class.getResource("/car.svg"),
-                        5,0,0,3));
+                        5,3,0,0,3));
             map.addObject(
                     new ObjectRender(RenderExample.class.getResource("/blue-circle.svg"),
-                            25,0,5,0));
+                            25, 25, 0,5,0));
             map.addObject(
                     new ObjectRender(RenderExample.class.getResource("/red-square.svg"),
-                            2,1,3,0));
+                            2,2,1,3,0));
 
             JFrame frame = new JFrame();
             frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);

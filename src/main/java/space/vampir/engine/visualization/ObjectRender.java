@@ -8,13 +8,14 @@ import java.util.Objects;
 
 public class ObjectRender {
     final SVGDocument background;
-    double size, x, y, theta;
+    double x, y, sizeX, sizeY, theta;
 
     public ObjectRender(URL mapURL,
-                     double size, double x, double y, double theta) {
+                     double sizeX, double sizeY, double x, double y, double theta) {
         SVGLoader loader = new SVGLoader();
         background = loader.load(Objects.requireNonNull(mapURL, "SVG file not found"));
-        this.size = size;
+        this.sizeX = sizeX;
+        this.sizeY = sizeY;
         this.x=x;
         this.y=y;
         this.theta=theta;
@@ -24,12 +25,20 @@ public class ObjectRender {
         return background;
     }
 
-    public double getSize() {
-        return size;
+    public void setSizeX(double sizeX) {
+        this.sizeX = sizeX;
     }
 
-    public void setSize(double size) {
-        this.size = size;
+    public double getSizeX() {
+        return sizeX;
+    }
+
+    public void setSizeY(double sizeY) {
+        this.sizeY = sizeY;
+    }
+
+    public double getSizeY() {
+        return sizeY;
     }
 
     public double getX() {
