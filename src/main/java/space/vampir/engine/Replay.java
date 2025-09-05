@@ -12,6 +12,7 @@ import space.vampir.engine.visualization.*;
 import javax.swing.*;
 import java.awt.*;
 import java.net.URL;
+import java.util.HashSet;
 import java.util.concurrent.CountDownLatch;
 
 public class Replay {
@@ -39,7 +40,9 @@ public class Replay {
         OkHttpClient client = new OkHttpClient();
         CountDownLatch latch = new CountDownLatch(1);
         Request request = new Request.Builder().url(url).build();
-        var relevantTopics = StateRecorder.messageTopics;
+        var relevantTopics = new HashSet<>(StateRecorder.messageTopics);
+        //relevantTopics.addAll(StateRecorder.extraTopics);
+
         client.newWebSocket(request, new ROSListener(recorder, latch, relevantTopics));
 
         // Start
