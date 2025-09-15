@@ -2,10 +2,13 @@ package space.vampir.engine.visualization;
 
 import com.github.weisj.jsvg.view.ViewBox;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.geom.AffineTransform;
+import java.awt.image.BufferedImage;
+import java.io.File;
 
 public class MapPanel extends JPanel {
     MapRender map;
@@ -108,5 +111,26 @@ public class MapPanel extends JPanel {
         double posy = centerY - scale*(event.getY()-getHeight()/2.0);
 
         return String.format("→%.2fm↑%.2fm",posx,posy);
+    }
+
+    public void saveImage(File file, int width, int height) {
+        this.setSize(width, height);
+        this.setPreferredSize(new Dimension(width, height));
+        BufferedImage bi = new BufferedImage(this.getSize().width, this.getSize().height, BufferedImage.TYPE_INT_ARGB);
+        Graphics g = bi.createGraphics();
+        this.doLayout();
+        this.paint(g);
+        g.dispose();
+        try {
+            String name = file.getName();
+            String format = "";
+            int lastIndexOf = name.lastIndexOf(".");
+            if (lastIndexOf > -1) {
+                format = name.substring(lastIndexOf + 1);
+            }
+            ImageIO.write(bi,format,file);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

@@ -8,6 +8,7 @@ import space.vampir.engine.visualization.*;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.File;
 import java.util.List;
 
 public class DisplayScene {
@@ -43,12 +44,15 @@ public class DisplayScene {
 
         SceneVisualization visualization = new SceneVisualization(map);
         visualization.show(scenario);
+        MapPanel mapPanel = new MapPanel(map);
+
+        mapPanel.saveImage(new File("scene.png"), 1000, 400);
         SwingUtilities.updateComponentTreeUI(frame);
 
         SwingUtilities.invokeLater(() -> {
             frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
             frame.setPreferredSize(new Dimension(400, 400));
-            frame.setContentPane(new MapPanel(map));
+            frame.setContentPane(mapPanel);
             frame.pack();
             frame.setLocationRelativeTo(null);
             frame.setVisible(true);
