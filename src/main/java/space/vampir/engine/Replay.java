@@ -19,9 +19,13 @@ public class Replay {
     public static void main(String[] args) {
         // Map
         final MapRender map = new MapRender(RenderExample.class.getResource("/CrossWalk_6_vis.svg"),
-                293.64313-145.75468,1143.4985-145.75468,522.96765-165.92186,
+                147.488,997.344,356.646,
                 -100,100,-40,
                 47.478824, 19.056313);
+//        final MapRender map = new MapRender(RenderExample.class.getResource("/Town10HD.svg"),
+//                158.327,683.330,642.063,
+//                -100,100,-150,
+//                0.0, 0.0);
 
         JFrame frame = new JFrame();
         SceneVisualization visualization = new SceneVisualization(map);
