@@ -22,8 +22,8 @@ public class MapRender {
     final double mapXSize;
     final double mapYSize;
 
-    final double geoX;
-    final double geoY;
+    final double geoRefLatRad;
+    final double geoRefLonRad;
 
     List<ObjectRender> objects = new ArrayList<>();
 
@@ -32,9 +32,9 @@ public class MapRender {
      * y +---------+
      */
     public MapRender(URL mapURL,
-                     double backgroundX1, double backgroundX2, double backgroundY1,
-                     double mapX1, double mapX2, double mapY1,
-                     double geoRefLat, double geoRefLon) {
+                        double backgroundX1, double backgroundX2, double backgroundY1,
+                        double mapX1, double mapX2, double mapY1,
+                        double geoRefLat, double geoRefLon) {
         SVGLoader loader = new SVGLoader();
         background = Objects.requireNonNull(loader.load(Objects.requireNonNull(mapURL, "SVG file not found")));
         name = mapURL.getFile();
@@ -46,9 +46,8 @@ public class MapRender {
         mapXSize = (background.viewBox().getMaxX() - background.viewBox().getMinX())*background2MapScale;
         mapYSize = (background.viewBox().getMaxY() - background.viewBox().getMinX())*background2MapScale;
 
-        var mapCoord = transform(geoRefLat,geoRefLon);
-        this.geoX = mapCoord[0];
-        this.geoY = mapCoord[1];
+        this.geoRefLatRad = Math.toRadians(geoRefLat);
+        this.geoRefLonRad = Math.toRadians(geoRefLon);
     }
 
     public SVGDocument getBackground() {
@@ -59,19 +58,15 @@ public class MapRender {
         return name;
     }
 
-    private static double[] transform(double lat, double lon) {
-        double EARTH_RADIUS_EQUA = 6378137.0;
-        double latScale = Math.cos(Math.toRadians(lat));
-        double x = latScale * Math.toRadians(lon) * EARTH_RADIUS_EQUA;
-        double y = latScale * EARTH_RADIUS_EQUA * lat * Math.log(
-                Math.tan(Math.toRadians(90.0 + lat) * Math.PI / 360.0)
-        );
-        return new double[]{x,y};
-    }
-
     public double[] toMapCoord(double lat, double lon) {
-        var r = transform(lat,lon);
-        return new double[]{r[0]-this.geoX, this.geoY-r[1]};
+        double EARTH_RADIUS_EQUA = 6378137.0;
+        var latRad = Math.toRadians(lat);
+        var lonRad = Math.toRadians(lon);
+        var dLat = latRad - geoRefLatRad;
+        var dLon = lonRad - geoRefLonRad;
+        var x = dLon * Math.cos(geoRefLatRad) * EARTH_RADIUS_EQUA;
+        var y = dLat * EARTH_RADIUS_EQUA;
+        return new double[]{x,y};
     }
 
     public void addObject(ObjectRender object) {
