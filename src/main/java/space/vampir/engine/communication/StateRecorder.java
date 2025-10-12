@@ -8,7 +8,7 @@ public class StateRecorder {
     public static final String odometryTopic = "/ground_truth/odometry";
     public static final String pointPillarsTopic = "/detections/pointpillars";
     public static final String yoloTopic = "/detections/yolo";
-    public static final Set<String> messageTopics = Set.of(odometryTopic/*,pointPillarsTopic*/,yoloTopic);
+    public static final Set<String> messageTopics = Set.of(odometryTopic, pointPillarsTopic, yoloTopic);
 
     //public static final String imageTopic = "/sensor/image";
     //public static final Set<String> extraTopics = Set.of(imageTopic);

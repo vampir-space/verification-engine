@@ -24,9 +24,13 @@ public class PointPillars extends Message {
             var position = readMap(center, "position");
             double posX = (double) readMap(position, "y");
             double posY = (double) readMap(position, "x");
-
-            var orientation = readMap(center, "orientation");
-            var theta = ((double) readMap(orientation, "z")) * Math.PI + Math.PI / 2;
+            var quat = readMap(center,"orientation");
+            var euler = MathUtility.quaternionToEuler(
+                    (double) readMap(quat,"x"),
+                    (double) readMap(quat,"y"),
+                    (double) readMap(quat,"z"),
+                    (double) readMap(quat,"w"));
+            double theta = Math.toRadians(euler[2]) + Math.PI/2;
 
             var size = readMap(bbox, "size");
             var sizeX = (double) readMap(size, "x");

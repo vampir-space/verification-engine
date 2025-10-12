@@ -64,19 +64,9 @@ public class SceneVisualization {
                         carImage,
                         detection.sizeY(),
                         detection.sizeX(),
-                        ego.getX() + detection.posX()*cosT + detection.posY()*sinT,
-                        ego.getY() + detection.posX()*sinT - detection.posY()*cosT,
-                        detection.theta()+ ego.getTheta());
-
-//                var o = new ObjectRender(
-//                        carImage,
-//                        detection.sizeY(),
-//                        detection.sizeX(),
-//                        detection.posY(),
-//                        detection.posX(),
-//
-//                        detection.theta()
-//                );
+                        ego.getX() - detection.posX() * cosT + detection.posY() * sinT,
+                        ego.getY() + detection.posX() * sinT + detection.posY() * cosT,
+                        detection.theta() + ego.getTheta());
                 map.addObject(o);
             }
         }
