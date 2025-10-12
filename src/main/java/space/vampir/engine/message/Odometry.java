@@ -19,7 +19,13 @@ public class Odometry extends Message{
         var coords = readMap(pose,"position");
         double x = (double) readMap(coords,"x");
         double y = (double) readMap(coords,"y");
-        double theta = ((double) readMap(readMap(pose,"orientation"),"z"))*Math.PI + Math.PI/2;
+        var quat = readMap(pose,"orientation");
+        var euler = MathUtility.quaternionToEuler(
+                (double) readMap(quat,"x"),
+                (double) readMap(quat,"y"),
+                (double) readMap(quat,"z"),
+                (double) readMap(quat,"w"));
+        double theta = Math.toRadians(euler[2]) + Math.PI/2;
 
 
         return new Odometry(time,x,y,theta);
