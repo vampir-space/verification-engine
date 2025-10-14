@@ -3,6 +3,8 @@ package space.vampir.engine.communication;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
@@ -11,10 +13,17 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ROSListener extends WebSocketListener {
+    final String synchronizedURL = "ws://localhost:9091";
+    final boolean synchronizeMessages = true;
+
     final StateRecorder stateRecorder;
     final ObjectMapper mapper = new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL);
     final AtomicInteger idCounter = new AtomicInteger(1);
@@ -35,8 +44,15 @@ public class ROSListener extends WebSocketListener {
         System.out.println("▶ Connected, starting topic polling...");
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
         scheduler.scheduleAtFixedRate(() -> {
-            if(this.seenTopics.containsAll(relevantTopics)) {
+            if (this.seenTopics.containsAll(relevantTopics)) {
                 System.out.println("▶ All topics discovered, stop polling");
+                if (synchronizeMessages) {
+                    System.out.println("▶ Connecting to synchronizer node...");
+                    OkHttpClient client = new OkHttpClient();
+                    CountDownLatch latch = new CountDownLatch(1);
+                    Request request = new Request.Builder().url(synchronizedURL).build();
+                    client.newWebSocket(request, new ROSSyncListener(stateRecorder, latch, relevantTopics));
+                }
                 scheduler.shutdown();
             } else {
                 System.out.println("↻ Polling topics...");
@@ -44,11 +60,7 @@ public class ROSListener extends WebSocketListener {
                 ROSCallServiceMessage poll = new ROSCallServiceMessage(
                         "call_service", "/rosapi/topics", Map.of(), reqId
                 );
-                try {
-                    ws.send(mapper.writeValueAsString(poll));
-                } catch (JsonProcessingException e) {
-                    System.err.println("Error serializing poll message: " + e.getMessage());
-                }
+                send(ws, poll);
             }
         }, 0, 2, TimeUnit.SECONDS);
     }
@@ -80,19 +92,11 @@ public class ROSListener extends WebSocketListener {
             String type = types.get(i);
             if (seenTopics.add(topic)) {
                 boolean toSubscribe = this.relevantTopics.contains(topic);
-                System.out.println("\uD83D\uDEC8 New topic: " + topic + ", subscribe: " + toSubscribe);
-                if(toSubscribe){
-                    // new topic → subscribe
+                System.out.println("\uD83D\uDEC8 New topic: " + topic + ", type: " + type + ", subscribe: " + toSubscribe);
+                if (toSubscribe && !synchronizeMessages) {
                     String subId = String.valueOf(idCounter.getAndIncrement());
-                    ROSSubscribeMessage sub = new ROSSubscribeMessage(
-                            "subscribe", topic, type, subId
-                    );
-                    try {
-                        ws.send(mapper.writeValueAsString(sub));
-                        System.out.println("▶ Subscribed to new topic: " + topic);
-                    } catch (JsonProcessingException e) {
-                        System.err.println("Error serializing subscribe message: " + e.getMessage());
-                    }
+                    ROSSubscribeMessage sub = new ROSSubscribeMessage(topic, type, subId);
+                    send(ws, sub);
                 }
             }
         }
@@ -103,7 +107,7 @@ public class ROSListener extends WebSocketListener {
         String topic = (String) m.get("topic");
         Object msg = m.get("msg");
         //System.out.println("▶ Message recieved: " + topic);
-        stateRecorder.messageReceived(topic,msg);
+        stateRecorder.messageReceived(topic, msg);
 //        try {
 //            System.out.printf("▶ [%s] %s%n", topic, mapper.writeValueAsString(msg));
 //        } catch (JsonProcessingException e) {
@@ -123,5 +127,14 @@ public class ROSListener extends WebSocketListener {
     public void onClosed(WebSocket webSocket, int code, String reason) {
         System.out.println("◼ Disconnected: " + reason);
         latch.countDown();
+    }
+
+    private void send(@NotNull WebSocket ws, Object message) {
+        try {
+            System.out.println("Sending: " + mapper.writeValueAsString(message));
+            ws.send(mapper.writeValueAsString(message));
+        } catch (JsonProcessingException e) {
+            System.err.println("Error serializing message: " + e.getMessage());
+        }
     }
 }

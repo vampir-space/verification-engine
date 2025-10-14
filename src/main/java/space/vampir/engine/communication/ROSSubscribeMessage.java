@@ -1,14 +1,13 @@
 package space.vampir.engine.communication;
 
 public class ROSSubscribeMessage {
-    public String op;
-    public String id;
-    public String topic;     // for subscribe/publish
-    public String type;      // for subscribe
+    public final String op = "subscribe";
+    public final String id;
+    public final String topic;     // for subscribe/publish
+    public final String type;      // for subscribe
 
     // constructor for subscribe
-    public ROSSubscribeMessage(String op, String topic, String type, String id) {
-        this.op = op;
+    public ROSSubscribeMessage(String topic, String type, String id) {
         this.topic = topic;
         this.type = type;
         this.id = id;

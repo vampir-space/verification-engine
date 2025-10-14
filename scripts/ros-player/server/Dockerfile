@@ -12,6 +12,12 @@ RUN echo 'export AMENT_PREFIX_PATH="/opt/ros/custom:$AMENT_PREFIX_PATH"' >> "/op
 RUN echo "source /opt/ros/setup.bash" >> ~/.bashrc
 EXPOSE 9090
 
+# Syncronizer setup
+RUN apt install -y python3-pip
+RUN pip3 install websockets --break-system-packages
+COPY ./sync /opt/sync
+EXPOSE 9091
+
 # Web setup
 RUN apt install -y python3-flask python3-watchdog
 COPY ./web /opt/web
