@@ -3,38 +3,35 @@ package space.vampir.engine.geometry;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Single test: one ray from origin at 45°, one location point at (4, 0).
- * Expected solution: (3, 1).
- */
 public class GeometryTest {
 
     @Test
-    void oneRayOnePoint() {
+    void oneRayOneOdometry() {
         GeometrySolver solver = new GeometrySolver();
         double delta = 1e-9;
 
-        // Ray direction at 45 degrees
+        // Ray from origin at 45°
         double vx = Math.sqrt(0.5);
         double vy = Math.sqrt(0.5);
         solver.addRay(0.0, 0.0, vx, vy);
 
-        // Location (point) constraint
-        solver.addPoint(4.0, 0.0);
+        // Odometry point with weight c = 0.5 (others scaled by 1 - c)
+        // With c=0.5 this recovers the previous expected (3,1).
+        solver.setOdometry(4.0, 0.0, 0.5);
 
         double[] xy = solver.solve(10);
 
-        // Expected closed-form for this setup is (3, 1)
+        // Expected (same as old test)
         assertEquals(3.0, xy[0], delta, "x should be ~3.0");
         assertEquals(1.0, xy[1], delta, "y should be ~1.0");
 
-        // Additionally, the projection parameter on the ray should be non-negative
-        double t = vx * (xy[0] - 0.0) + vy * (xy[1] - 0.0);
+        // Ray should be active (t >= 0)
+        double t = vx * xy[0] + vy * xy[1];
         assertTrue(t >= -delta, "projection must lie on the ray (t >= 0)");
     }
 
     @Test
-    void twoRaysOnePoint() {
+    void twoRaysOneOdometry_integerSolutionWith60_120() {
         GeometrySolver solver = new GeometrySolver();
         double delta = 1e-9;
 
@@ -47,21 +44,19 @@ public class GeometryTest {
         double vy2 = Math.sin(Math.toRadians(120.0));
         solver.addRay(12.0, 0.0, vx2, vy2);
 
-        // Target integer solution (m,n) = (6,12)
-
-        // Point constraint
-        double qx = 6;
-        double qy = 18.0-3.0*Math.sqrt(3);
-        solver.addPoint(qx, qy);
+        // Choose odometry with c = 0.5 so the optimum is the integer (6,12)
+        // Derived: odometry = (6, 18 - 3√3)
+        solver.setOdometry(6.0, 18.0 - 3.0*Math.sqrt(3.0), 0.5);
 
         double[] xy = solver.solve(10);
+
         assertEquals(6.0,  xy[0], delta);
         assertEquals(12.0, xy[1], delta);
 
-        // Both rays active
-        double t1 = vx1*(xy[0])        + vy1*(xy[1]);
-        double t2 = vx2*(xy[0] - 12.0) + vy2*(xy[1]);
-        assertTrue(t1 >= -delta && t2 >= -delta);
+        // Both rays active (t >= 0)
+        double t1 = vx1 * (xy[0] - 0.0)  + vy1 * (xy[1] - 0.0);
+        double t2 = vx2 * (xy[0] - 12.0) + vy2 * (xy[1] - 0.0);
+        assertTrue(t1 >= -delta, "ray1 should be active (t1 >= 0)");
+        assertTrue(t2 >= -delta, "ray2 should be active (t2 >= 0)");
     }
-
 }
