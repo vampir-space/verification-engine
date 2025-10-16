@@ -13,19 +13,30 @@ public class GeometryTest {
         // Ray from origin at 45°
         double vx = Math.sqrt(0.5);
         double vy = Math.sqrt(0.5);
+
+        // Van egy tábla a (0,0) koordinátában
+        // és a 45 fok azt jelenti, hogy a tábla szemszögéből 45 fokba állok én
+        // vagyis én az autó, vagyis a táblát én 180+45 fokban látom.
+        // Igen Oszkár örülök hogy olvastad.
+        // Ne sírj.
         solver.addRay(0.0, 0.0, vx, vy);
 
         // Odometry point with weight c = 0.5 (others scaled by 1 - c)
+        // Beállítom, ezt tudja Oszkár.
         solver.setOdometry(4.0, 0.0, 0.5);
 
-        solver.setOdometryOrientation(Math.cos(225.0), Math.sin(225.0));
+        // Ez amúgy radián nem fok.
+        solver.setOdometryOrientation(Math.cos(Math.toRadians(225)), Math.sin(Math.toRadians(225)));
 
+        // És akkor megoldod.
         double[] xy = solver.solve(10);
 
+        // Na és tudjuk hogy ez a megoldás.
         // Expected (same as old test)
         assertEquals(3.0, xy[0], delta, "x should be ~3.0");
         assertEquals(1.0, xy[1], delta, "y should be ~1.0");
 
+        // igen.
         // Ray should be active (t >= 0)
         double t = vx * xy[0] + vy * xy[1];
         assertTrue(t >= -delta, "projection must lie on the ray (t >= 0)");
@@ -47,7 +58,7 @@ public class GeometryTest {
 
         // Choose odometry with c = 0.5 so the optimum is the integer (6,12)
         solver.setOdometry(6.0, 18.0 - 3.0 * Math.sqrt(3.0), 0.5);
-        solver.setOdometryOrientation(Math.cos(225.0), Math.sin(225.0));
+        solver.setOdometryOrientation(Math.cos(Math.toRadians(225.0)), Math.sin(Math.toRadians(225.0)));
 
         double[] xy = solver.solve(10);
 
@@ -67,7 +78,7 @@ public class GeometryTest {
         double vx = Math.sqrt(0.5), vy = Math.sqrt(0.5);
         solver.addRay(0.0, 0.0, vx, vy);
         solver.setOdometry(4.0, 0.0, 0.1);
-        solver.setOdometryOrientation(Math.cos(225.0), Math.sin(225.0));
+        solver.setOdometryOrientation(Math.cos(Math.toRadians(225.0)), Math.sin(Math.toRadians(225.0)));
 
         GeometryVisualizer.render(solver, "oneRayOneOdo.png",
                 800, 600,
@@ -88,7 +99,7 @@ public class GeometryTest {
         solver.addRay(12.0, 0.0, vx2, vy2);
 
         solver.setOdometry(6.0, 18.0 - 3.0 * Math.sqrt(3.0), 0.1);
-        solver.setOdometryOrientation(Math.cos(225.0), Math.sin(225.0));
+        solver.setOdometryOrientation(Math.cos(Math.toRadians(225.0)), Math.sin(Math.toRadians(225.0)));
 
         GeometryVisualizer.render(solver, "twoRaysOneOdo.png",
                 900, 700,
