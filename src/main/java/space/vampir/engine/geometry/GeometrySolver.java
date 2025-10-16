@@ -63,7 +63,7 @@ public class GeometrySolver {
 
         // Rays
         for (int i = 0; i < rays.size(); i++) {
-            Ray2D r = rays.get(i);
+            Ray r = rays.get(i);
             if (active[i]) {
                 // Line projector A = I - v v^T
                 double vv11 = r.vx*r.vx;
