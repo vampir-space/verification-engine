@@ -91,10 +91,74 @@ public class GeometryVisualizer {
             fillDot(g, xo, yo, 7, new Color(200,0,0));
         }
 
+        // 8b) Odometry orientation (RED ARROW)
+        GeometrySolver.OrientationPriorView odoOrient = solver.getOdometryOrientation();
+        if (odo != null && odoOrient != null) {
+            double arrowLenWorld = 0.1 * Math.hypot(xMax - xMin, yMax - yMin);
+            double ex = odo.x + odoOrient.cosF * arrowLenWorld;
+            double ey = odo.y + odoOrient.sinF * arrowLenWorld;
+            int xo = (int)Math.round(X.applyAsDouble(odo.x));
+            int yo = (int)Math.round(Y.applyAsDouble(odo.y));
+            int xe = (int)Math.round(X.applyAsDouble(ex));
+            int ye = (int)Math.round(Y.applyAsDouble(ey));
+
+            g.setStroke(new BasicStroke(2f));
+            g.setColor(new Color(200, 0, 0));
+            g.drawLine(xo, yo, xe, ye);
+
+            // arrowhead
+            double headSize = 8;
+            double ang = Math.atan2(ye - yo, xe - xo);
+            int xh1 = (int)Math.round(xe - headSize * Math.cos(ang - Math.PI / 6));
+            int yh1 = (int)Math.round(ye - headSize * Math.sin(ang - Math.PI / 6));
+            int xh2 = (int)Math.round(xe - headSize * Math.cos(ang + Math.PI / 6));
+            int yh2 = (int)Math.round(ye - headSize * Math.sin(ang + Math.PI / 6));
+            g.drawLine(xe, ye, xh1, yh1);
+            g.drawLine(xe, ye, xh2, yh2);
+
+            g.setColor(Color.DARK_GRAY);
+            g.drawString(String.format("Odo θ = %.2f°",
+                            Math.toDegrees(Math.atan2(odoOrient.sinF, odoOrient.cosF))),
+                    10, 60);
+        }
+
         // 9) Solution (BLACK)
         int xs = (int)Math.round(X.applyAsDouble(sx));
         int ys = (int)Math.round(Y.applyAsDouble(sy));
         fillDot(g, xs, ys, 7, Color.BLACK);
+
+        // 10) Orientation estimate (ARROW)
+        GeometrySolver.OrientationEstimate orient = solver.estimateOrientation(maxIter);
+        if (orient != null && Double.isFinite(orient.fx) && Double.isFinite(orient.fy)) {
+            double arrowLenWorld = 0.1 * Math.hypot(xMax - xMin, yMax - yMin); // 10% of plot size
+            double ex = sx + orient.fx * arrowLenWorld;
+            double ey = sy + orient.fy * arrowLenWorld;
+            int xe = (int)Math.round(X.applyAsDouble(ex));
+            int ye = (int)Math.round(Y.applyAsDouble(ey));
+
+            // confidence shading: low → gray, high → black
+            float conf = (float)Math.max(0.0, Math.min(1.0, orient.confidence));
+            g.setColor(Color.BLACK);
+
+            g.setStroke(new BasicStroke(3f));
+            g.drawLine(xs, ys, xe, ye);
+
+            // simple arrowhead
+            double headSize = 10;
+            double ang = Math.atan2(ye - ys, xe - xs);
+            int xh1 = (int)Math.round(xe - headSize * Math.cos(ang - Math.PI/6));
+            int yh1 = (int)Math.round(ye - headSize * Math.sin(ang - Math.PI/6));
+            int xh2 = (int)Math.round(xe - headSize * Math.cos(ang + Math.PI/6));
+            int yh2 = (int)Math.round(ye - headSize * Math.sin(ang + Math.PI/6));
+            g.drawLine(xe, ye, xh1, yh1);
+            g.drawLine(xe, ye, xh2, yh2);
+
+            // label
+            g.setColor(Color.DARK_GRAY);
+            g.drawString(String.format("θ = %.2f° conf=%.2f",
+                            Math.toDegrees(orient.theta), orient.confidence),
+                    10, 40);
+        }
 
         // Label
         g.setColor(Color.DARK_GRAY);

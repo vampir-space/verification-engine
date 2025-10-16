@@ -16,8 +16,9 @@ public class GeometryTest {
         solver.addRay(0.0, 0.0, vx, vy);
 
         // Odometry point with weight c = 0.5 (others scaled by 1 - c)
-        // With c=0.5 this recovers the previous expected (3,1).
         solver.setOdometry(4.0, 0.0, 0.5);
+        // Odometry orientation facing along +X
+        solver.setOdometryOrientation(Math.cos(0.0), Math.sin(0.0));
 
         double[] xy = solver.solve(10);
 
@@ -45,16 +46,17 @@ public class GeometryTest {
         solver.addRay(12.0, 0.0, vx2, vy2);
 
         // Choose odometry with c = 0.5 so the optimum is the integer (6,12)
-        // Derived: odometry = (6, 18 - 3√3)
-        solver.setOdometry(6.0, 18.0 - 3.0*Math.sqrt(3.0), 0.5);
+        solver.setOdometry(6.0, 18.0 - 3.0 * Math.sqrt(3.0), 0.5);
+        // Odometry orientation facing straight up (90°)
+        solver.setOdometryOrientation(Math.cos(Math.toRadians(90.0)), Math.sin(Math.toRadians(90.0)));
 
         double[] xy = solver.solve(10);
 
-        assertEquals(6.0,  xy[0], delta);
+        assertEquals(6.0, xy[0], delta);
         assertEquals(12.0, xy[1], delta);
 
-        // Both rays active (t >= 0)
-        double t1 = vx1 * (xy[0] - 0.0)  + vy1 * (xy[1] - 0.0);
+        // Both rays active
+        double t1 = vx1 * (xy[0] - 0.0) + vy1 * (xy[1] - 0.0);
         double t2 = vx2 * (xy[0] - 12.0) + vy2 * (xy[1] - 0.0);
         assertTrue(t1 >= -delta, "ray1 should be active (t1 >= 0)");
         assertTrue(t2 >= -delta, "ray2 should be active (t2 >= 0)");
@@ -66,12 +68,13 @@ public class GeometryTest {
         double vx = Math.sqrt(0.5), vy = Math.sqrt(0.5);
         solver.addRay(0.0, 0.0, vx, vy);
         solver.setOdometry(4.0, 0.0, 0.5);
+        solver.setOdometryOrientation(Math.cos(0.0), Math.sin(0.0));
 
         GeometryVisualizer.render(solver, "oneRayOneOdo.png",
-                800, 600,   // image size
-                -2, 6,      // x bounds
-                -1, 4,      // y bounds
-                10);        // maxIter
+                800, 600,
+                -2, 6,
+                -1, 4,
+                10);
     }
 
     @Test
@@ -85,7 +88,8 @@ public class GeometryTest {
         double vy2 = Math.sin(Math.toRadians(120.0));
         solver.addRay(12.0, 0.0, vx2, vy2);
 
-        solver.setOdometry(6.0, 18.0 - 3.0*Math.sqrt(3.0), 0.5);
+        solver.setOdometry(6.0, 18.0 - 3.0 * Math.sqrt(3.0), 0.5);
+        solver.setOdometryOrientation(Math.cos(Math.toRadians(90.0)), Math.sin(Math.toRadians(90.0)));
 
         GeometryVisualizer.render(solver, "twoRaysOneOdo.png",
                 900, 700,
