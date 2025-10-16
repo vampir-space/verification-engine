@@ -17,8 +17,8 @@ public class GeometryTest {
 
         // Odometry point with weight c = 0.5 (others scaled by 1 - c)
         solver.setOdometry(4.0, 0.0, 0.5);
-        // Odometry orientation facing along +X
-        solver.setOdometryOrientation(Math.cos(0.0), Math.sin(0.0));
+
+        solver.setOdometryOrientation(Math.cos(225.0), Math.sin(225.0));
 
         double[] xy = solver.solve(10);
 
@@ -47,8 +47,7 @@ public class GeometryTest {
 
         // Choose odometry with c = 0.5 so the optimum is the integer (6,12)
         solver.setOdometry(6.0, 18.0 - 3.0 * Math.sqrt(3.0), 0.5);
-        // Odometry orientation facing straight up (90°)
-        solver.setOdometryOrientation(Math.cos(Math.toRadians(90.0)), Math.sin(Math.toRadians(90.0)));
+        solver.setOdometryOrientation(Math.cos(225.0), Math.sin(225.0));
 
         double[] xy = solver.solve(10);
 
@@ -67,8 +66,8 @@ public class GeometryTest {
         GeometrySolver solver = new GeometrySolver();
         double vx = Math.sqrt(0.5), vy = Math.sqrt(0.5);
         solver.addRay(0.0, 0.0, vx, vy);
-        solver.setOdometry(4.0, 0.0, 0.5);
-        solver.setOdometryOrientation(Math.cos(0.0), Math.sin(0.0));
+        solver.setOdometry(4.0, 0.0, 0.1);
+        solver.setOdometryOrientation(Math.cos(225.0), Math.sin(225.0));
 
         GeometryVisualizer.render(solver, "oneRayOneOdo.png",
                 800, 600,
@@ -88,8 +87,8 @@ public class GeometryTest {
         double vy2 = Math.sin(Math.toRadians(120.0));
         solver.addRay(12.0, 0.0, vx2, vy2);
 
-        solver.setOdometry(6.0, 18.0 - 3.0 * Math.sqrt(3.0), 0.5);
-        solver.setOdometryOrientation(Math.cos(Math.toRadians(90.0)), Math.sin(Math.toRadians(90.0)));
+        solver.setOdometry(6.0, 18.0 - 3.0 * Math.sqrt(3.0), 0.1);
+        solver.setOdometryOrientation(Math.cos(225.0), Math.sin(225.0));
 
         GeometryVisualizer.render(solver, "twoRaysOneOdo.png",
                 900, 700,
