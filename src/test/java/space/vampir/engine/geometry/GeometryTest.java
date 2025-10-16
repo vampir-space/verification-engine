@@ -59,4 +59,38 @@ public class GeometryTest {
         assertTrue(t1 >= -delta, "ray1 should be active (t1 >= 0)");
         assertTrue(t2 >= -delta, "ray2 should be active (t2 >= 0)");
     }
+
+    @Test
+    void visualize_oneRayOneOdometry() {
+        GeometrySolver solver = new GeometrySolver();
+        double vx = Math.sqrt(0.5), vy = Math.sqrt(0.5);
+        solver.addRay(0.0, 0.0, vx, vy);
+        solver.setOdometry(4.0, 0.0, 0.5);
+
+        GeometryVisualizer.render(solver, "oneRayOneOdo.png",
+                800, 600,   // image size
+                -2, 6,      // x bounds
+                -1, 4,      // y bounds
+                10);        // maxIter
+    }
+
+    @Test
+    void visualize_twoRaysOneOdometry() {
+        GeometrySolver solver = new GeometrySolver();
+        double vx1 = Math.cos(Math.toRadians(60.0));
+        double vy1 = Math.sin(Math.toRadians(60.0));
+        solver.addRay(0.0, 0.0, vx1, vy1);
+
+        double vx2 = Math.cos(Math.toRadians(120.0));
+        double vy2 = Math.sin(Math.toRadians(120.0));
+        solver.addRay(12.0, 0.0, vx2, vy2);
+
+        solver.setOdometry(6.0, 18.0 - 3.0*Math.sqrt(3.0), 0.5);
+
+        GeometryVisualizer.render(solver, "twoRaysOneOdo.png",
+                900, 700,
+                -2, 14,
+                -2, 16,
+                10);
+    }
 }

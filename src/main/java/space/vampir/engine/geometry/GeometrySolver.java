@@ -74,6 +74,24 @@ public class GeometrySolver {
         return new double[]{x, y};
     }
 
+    public List<PointView> getPoints() {
+        List<PointView> out = new ArrayList<>(points.size());
+        for (Point p : points) out.add(new PointView(p.x, p.y));
+        return out;
+    }
+
+    public List<RayView> getRays() {
+        List<RayView> out = new ArrayList<>(rays.size());
+        for (Ray r : rays) out.add(new RayView(r.px, r.py, r.vx, r.vy));
+        return out;
+    }
+
+    public PointView getOdometry() {
+        return (odometry == null) ? null : new PointView(odometry.x, odometry.y);
+    }
+
+    public double getOdometryWeight() { return c; }
+
     // Build & solve the 2x2 normal equations for the current active set.
     private double[] solveMixed(boolean[] active) {
         double a11 = 0, a12 = 0, a22 = 0; // Symmetric matrix M
@@ -150,6 +168,18 @@ public class GeometrySolver {
             double n = Math.hypot(vx, vy);
             if (n == 0) throw new IllegalArgumentException("Ray direction cannot be zero");
             this.px = px; this.py = py; this.vx = vx / n; this.vy = vy / n;
+        }
+    }
+
+    public static final class PointView {
+        public final double x, y;
+        public PointView(double x, double y) { this.x = x; this.y = y; }
+    }
+
+    public static final class RayView {
+        public final double px, py, vx, vy;
+        public RayView(double px, double py, double vx, double vy) {
+            this.px = px; this.py = py; this.vx = vx; this.vy = vy;
         }
     }
 }
