@@ -1,5 +1,11 @@
 import java.util.ArrayList;
 import java.util.List;
+import java.awt.*;
+import java.awt.geom.*;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
+import java.io.File;
+import java.io.IOException;
 
 /**
  * GeometrySolver estimates a vehicle's 2D position and orientation using:
@@ -403,6 +409,318 @@ public class GeometrySolver {
     }
     
     /**
+     * Solve with visualization output
+     */
+    public static Solution solveWithVisualization(
+            OdometryPrior odometry,
+            List<LocationDetection> locationDetections,
+            List<YoloDetection> yoloDetections,
+            String outputFilePath) throws IOException {
+        
+        // First solve normally
+        Solution solution = solve(odometry, locationDetections, yoloDetections);
+        
+        // Generate visualization
+        generateVisualization(solution, odometry, locationDetections, yoloDetections, outputFilePath);
+        
+        return solution;
+    }
+    
+    /**
+     * Generate PNG visualization of the solver results
+     */
+    private static void generateVisualization(
+            Solution solution,
+            OdometryPrior odometry,
+            List<LocationDetection> locationDetections,
+            List<YoloDetection> yoloDetections,
+            String outputFilePath) throws IOException {
+        
+        // Image dimensions
+        int width = 1200;
+        int height = 1200;
+        int margin = 100;
+        
+        // Calculate bounds for all points
+        double minX = odometry.x;
+        double maxX = odometry.x;
+        double minY = odometry.y;
+        double maxY = odometry.y;
+        
+        for (LocationDetection loc : locationDetections) {
+            minX = Math.min(minX, loc.x - loc.radius);
+            maxX = Math.max(maxX, loc.x + loc.radius);
+            minY = Math.min(minY, loc.y - loc.radius);
+            maxY = Math.max(maxY, loc.y + loc.radius);
+        }
+        
+        for (YoloDetection yolo : yoloDetections) {
+            minX = Math.min(minX, yolo.landmarkX);
+            maxX = Math.max(maxX, yolo.landmarkX);
+            minY = Math.min(minY, yolo.landmarkY);
+            maxY = Math.max(maxY, yolo.landmarkY);
+        }
+        
+        minX = Math.min(minX, solution.x);
+        maxX = Math.max(maxX, solution.x);
+        minY = Math.min(minY, solution.y);
+        maxY = Math.max(maxY, solution.y);
+        
+        // Add padding
+        double padding = Math.max(maxX - minX, maxY - minY) * 0.2;
+        minX -= padding;
+        maxX += padding;
+        minY -= padding;
+        maxY += padding;
+        
+        // Scale factor
+        double scaleX = (width - 2 * margin) / (maxX - minX);
+        double scaleY = (height - 2 * margin) / (maxY - minY);
+        double scale = Math.min(scaleX, scaleY);
+        
+        // Create image
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = image.createGraphics();
+        
+        // Enable anti-aliasing
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        
+        // White background
+        g.setColor(Color.WHITE);
+        g.fillRect(0, 0, width, height);
+        
+        // Helper function to transform coordinates
+        class CoordTransform {
+            int toScreenX(double x) {
+                return margin + (int)((x - minX) * scale);
+            }
+            int toScreenY(double y) {
+                return height - margin - (int)((y - minY) * scale);
+            }
+            double toScreenScale(double dist) {
+                return dist * scale;
+            }
+        }
+        CoordTransform ct = new CoordTransform();
+        
+        // Draw grid
+        g.setColor(new Color(230, 230, 230));
+        g.setStroke(new BasicStroke(1));
+        for (int i = 0; i < 10; i++) {
+            double x = minX + (maxX - minX) * i / 10;
+            double y = minY + (maxY - minY) * i / 10;
+            g.drawLine(ct.toScreenX(x), ct.toScreenY(minY), ct.toScreenX(x), ct.toScreenY(maxY));
+            g.drawLine(ct.toScreenX(minX), ct.toScreenY(y), ct.toScreenX(maxX), ct.toScreenY(y));
+        }
+        
+        // Draw location detections (blue dots and circles)
+        for (LocationDetection loc : locationDetections) {
+            int sx = ct.toScreenX(loc.x);
+            int sy = ct.toScreenY(loc.y);
+            int radius = (int)ct.toScreenScale(loc.radius);
+            
+            // Transparent circle
+            g.setColor(new Color(0, 0, 255, 50));
+            g.fillOval(sx - radius, sy - radius, radius * 2, radius * 2);
+            
+            // Circle outline
+            g.setColor(new Color(0, 0, 255, 150));
+            g.setStroke(new BasicStroke(2));
+            g.drawOval(sx - radius, sy - radius, radius * 2, radius * 2);
+            
+            // Center dot
+            g.setColor(Color.BLUE);
+            g.fillOval(sx - 5, sy - 5, 10, 10);
+        }
+        
+        // Draw YOLO detections (green dots with numbers and cones)
+        g.setFont(new Font("Arial", Font.BOLD, 14));
+        for (int i = 0; i < yoloDetections.size(); i++) {
+            YoloDetection yolo = yoloDetections.get(i);
+            int sx = ct.toScreenX(yolo.landmarkX);
+            int sy = ct.toScreenY(yolo.landmarkY);
+            
+            // Green dot
+            g.setColor(new Color(0, 180, 0));
+            g.fillOval(sx - 6, sy - 6, 12, 12);
+            
+            // Number label
+            g.setColor(Color.BLACK);
+            String label = String.valueOf(i + 1);
+            FontMetrics fm = g.getFontMetrics();
+            int labelWidth = fm.stringWidth(label);
+            g.drawString(label, sx - labelWidth / 2, sy - 12);
+            
+            // Draw cone from solution to landmark
+            double dx = yolo.landmarkX - solution.x;
+            double dy = yolo.landmarkY - solution.y;
+            double dist = Math.sqrt(dx * dx + dy * dy);
+            
+            if (dist > 0.01) {
+                // Base angle from solution to landmark
+                double angleToLandmark = Math.atan2(dy, dx);
+                
+                // Expected angle based on bearing measurement
+                double bearingRad = yolo.bearing * Math.PI / 180.0;
+                double expectedAngle = solution.alpha + bearingRad;
+                
+                // Cone half-angle
+                double coneHalfAngle = yolo.angularUncertainty * Math.PI / 180.0;
+                
+                // Draw cone
+                int solX = ct.toScreenX(solution.x);
+                int solY = ct.toScreenY(solution.y);
+                
+                double coneLength = ct.toScreenScale(dist);
+                
+                // Create cone polygon
+                Path2D.Double conePath = new Path2D.Double();
+                conePath.moveTo(solX, solY);
+                
+                double angle1 = expectedAngle + coneHalfAngle;
+                double angle2 = expectedAngle - coneHalfAngle;
+                
+                // Draw arc
+                int numSegments = 20;
+                for (int j = 0; j <= numSegments; j++) {
+                    double angle = angle1 + (angle2 - angle1) * j / numSegments;
+                    double cx = solX + coneLength * Math.cos(angle);
+                    double cy = solY - coneLength * Math.sin(angle);
+                    conePath.lineTo(cx, cy);
+                }
+                conePath.closePath();
+                
+                // Fill cone (transparent green)
+                g.setColor(new Color(0, 255, 0, 40));
+                g.fill(conePath);
+                
+                // Draw cone outline
+                g.setColor(new Color(0, 180, 0, 120));
+                g.setStroke(new BasicStroke(2));
+                g.draw(conePath);
+                
+                // Draw center ray
+                g.setStroke(new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 
+                           10, new float[]{5, 5}, 0));
+                double centerX = solX + coneLength * Math.cos(expectedAngle);
+                double centerY = solY - coneLength * Math.sin(expectedAngle);
+                g.drawLine(solX, solY, (int)centerX, (int)centerY);
+                
+                // Draw cone number at the edge
+                g.setColor(new Color(0, 120, 0));
+                g.setFont(new Font("Arial", Font.BOLD, 12));
+                int labelX = (int)(solX + coneLength * 0.95 * Math.cos(expectedAngle));
+                int labelY = (int)(solY - coneLength * 0.95 * Math.sin(expectedAngle));
+                g.drawString(String.valueOf(i + 1), labelX, labelY);
+            }
+        }
+        
+        // Draw odometry prior (red dot, circle, and arrow)
+        int odoX = ct.toScreenX(odometry.x);
+        int odoY = ct.toScreenY(odometry.y);
+        
+        // Odometry uncertainty circle (use a reasonable default radius for visualization)
+        double odoRadius = (maxX - minX) * 0.05;  // 5% of range
+        int odoRadiusPx = (int)ct.toScreenScale(odoRadius);
+        g.setColor(new Color(255, 0, 0, 50));
+        g.fillOval(odoX - odoRadiusPx, odoY - odoRadiusPx, odoRadiusPx * 2, odoRadiusPx * 2);
+        
+        g.setColor(new Color(255, 0, 0, 150));
+        g.setStroke(new BasicStroke(2));
+        g.drawOval(odoX - odoRadiusPx, odoY - odoRadiusPx, odoRadiusPx * 2, odoRadiusPx * 2);
+        
+        // Red dot
+        g.setColor(Color.RED);
+        g.fillOval(odoX - 6, odoY - 6, 12, 12);
+        
+        // Odometry orientation arrow
+        drawArrow(g, odoX, odoY, odometry.alpha, (int)ct.toScreenScale(odoRadius * 0.8), Color.RED);
+        
+        // Draw solution (black dot and arrow)
+        int solX = ct.toScreenX(solution.x);
+        int solY = ct.toScreenY(solution.y);
+        
+        g.setColor(Color.BLACK);
+        g.fillOval(solX - 7, solY - 7, 14, 14);
+        
+        // Solution orientation arrow
+        drawArrow(g, solX, solY, solution.alpha, (int)ct.toScreenScale(odoRadius * 0.8), Color.BLACK);
+        
+        // Draw legend
+        g.setFont(new Font("Arial", Font.PLAIN, 12));
+        int legendX = 20;
+        int legendY = 30;
+        int lineHeight = 25;
+        
+        g.setColor(Color.BLACK);
+        g.drawString("Legend:", legendX, legendY);
+        
+        g.setColor(Color.RED);
+        g.fillOval(legendX, legendY + lineHeight - 5, 10, 10);
+        g.setColor(Color.BLACK);
+        g.drawString("Odometry Prior", legendX + 20, legendY + lineHeight);
+        
+        g.setColor(Color.BLUE);
+        g.fillOval(legendX, legendY + 2 * lineHeight - 5, 10, 10);
+        g.setColor(Color.BLACK);
+        g.drawString("Location Detection", legendX + 20, legendY + 2 * lineHeight);
+        
+        g.setColor(new Color(0, 180, 0));
+        g.fillOval(legendX, legendY + 3 * lineHeight - 5, 10, 10);
+        g.setColor(Color.BLACK);
+        g.drawString("YOLO Landmark", legendX + 20, legendY + 3 * lineHeight);
+        
+        g.setColor(Color.BLACK);
+        g.fillOval(legendX, legendY + 4 * lineHeight - 5, 10, 10);
+        g.drawString("Solution", legendX + 20, legendY + 4 * lineHeight);
+        
+        // Draw solution info
+        int infoY = height - 100;
+        g.setFont(new Font("Arial", Font.BOLD, 14));
+        g.drawString(String.format("Solution: (%.2f, %.2f)", solution.x, solution.y), legendX, infoY);
+        g.drawString(String.format("Orientation: %.1f°", solution.alpha * 180 / Math.PI), legendX, infoY + 20);
+        g.drawString(String.format("Iterations: %d | Converged: %s", 
+                    solution.iterations, solution.converged ? "Yes" : "No"), legendX, infoY + 40);
+        g.drawString(String.format("Orientation confidence: %.3f (±%.1f°)", 
+                    solution.orientationConcentration, solution.orientationUncertainty), legendX, infoY + 60);
+        
+        // Cleanup
+        g.dispose();
+        
+        // Save to file
+        ImageIO.write(image, "PNG", new File(outputFilePath));
+    }
+    
+    /**
+     * Draw an arrow at given position with specified angle
+     */
+    private static void drawArrow(Graphics2D g, int x, int y, double angle, int length, Color color) {
+        g.setColor(color);
+        g.setStroke(new BasicStroke(3));
+        
+        // Arrow end point
+        int endX = x + (int)(length * Math.cos(angle));
+        int endY = y - (int)(length * Math.sin(angle));  // minus because screen Y is inverted
+        
+        // Draw main line
+        g.drawLine(x, y, endX, endY);
+        
+        // Draw arrowhead
+        double arrowAngle = 0.5;  // radians
+        int arrowLength = length / 4;
+        
+        int arrow1X = endX - (int)(arrowLength * Math.cos(angle - arrowAngle));
+        int arrow1Y = endY + (int)(arrowLength * Math.sin(angle - arrowAngle));
+        
+        int arrow2X = endX - (int)(arrowLength * Math.cos(angle + arrowAngle));
+        int arrow2Y = endY + (int)(arrowLength * Math.sin(angle + arrowAngle));
+        
+        g.drawLine(endX, endY, arrow1X, arrow1Y);
+        g.drawLine(endX, endY, arrow2X, arrow2Y);
+    }
+    
+    /**
      * Normalize angle to [-pi, pi]
      */
     private static double normalizeAngle(double angle) {
@@ -415,27 +733,33 @@ public class GeometrySolver {
      * Example usage
      */
     public static void main(String[] args) {
-        // Odometry prior: position (10, 10), heading 45°, confidence 0.5
-        OdometryPrior odometry = new OdometryPrior(10, 10, Math.PI / 4, 0.5);
-        
-        // Location detections
-        List<LocationDetection> locations = new ArrayList<>();
-        locations.add(new LocationDetection(12, 11, 1.0));  // radius 1m
-        
-        // YOLO detections
-        List<YoloDetection> yolos = new ArrayList<>();
-        yolos.add(new YoloDetection(20, 20, 30, 2.0));   // landmark at (20,20), bearing 30°, ±2°
-        yolos.add(new YoloDetection(5, 15, -45, 3.0));   // landmark at (5,15), bearing -45°, ±3°
-        
-        // Solve
-        Solution solution = solve(odometry, locations, yolos);
-        
-        System.out.println("=== GeometrySolver Results ===");
-        System.out.printf("Position: (%.3f, %.3f)%n", solution.x, solution.y);
-        System.out.printf("Orientation: %.2f degrees%n", solution.alpha * 180 / Math.PI);
-        System.out.printf("Iterations: %d%n", solution.iterations);
-        System.out.printf("Converged: %b%n", solution.converged);
-        System.out.printf("Orientation confidence: %.3f (±%.1f°)%n", 
-                solution.orientationConcentration, solution.orientationUncertainty);
+        try {
+            // Odometry prior: position (10, 10), heading 45°, confidence 0.5
+            OdometryPrior odometry = new OdometryPrior(10, 10, Math.PI / 4, 0.5);
+            
+            // Location detections
+            List<LocationDetection> locations = new ArrayList<>();
+            locations.add(new LocationDetection(12, 11, 1.0));  // radius 1m
+            
+            // YOLO detections
+            List<YoloDetection> yolos = new ArrayList<>();
+            yolos.add(new YoloDetection(20, 20, 30, 2.0));   // landmark at (20,20), bearing 30°, ±2°
+            yolos.add(new YoloDetection(5, 15, -45, 3.0));   // landmark at (5,15), bearing -45°, ±3°
+            
+            // Solve with visualization
+            Solution solution = solveWithVisualization(odometry, locations, yolos, "geometry_solution.png");
+            
+            System.out.println("=== GeometrySolver Results ===");
+            System.out.printf("Position: (%.3f, %.3f)%n", solution.x, solution.y);
+            System.out.printf("Orientation: %.2f degrees%n", solution.alpha * 180 / Math.PI);
+            System.out.printf("Iterations: %d%n", solution.iterations);
+            System.out.printf("Converged: %b%n", solution.converged);
+            System.out.printf("Orientation confidence: %.3f (±%.1f°)%n", 
+                    solution.orientationConcentration, solution.orientationUncertainty);
+            System.out.println("Visualization saved to: geometry_solution.png");
+        } catch (IOException e) {
+            System.err.println("Error generating visualization: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }
