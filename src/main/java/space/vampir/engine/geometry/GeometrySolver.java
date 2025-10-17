@@ -428,6 +428,18 @@ public class GeometrySolver {
         return solution;
     }
 
+    /** Strongly-typed coordinate transform (replaces reflection hacks) */
+    private static final class CoordTransform {
+        final double minX, minY, scale;
+        final int margin, height;
+        CoordTransform(double minX, double minY, double scale, int margin, int height) {
+            this.minX = minX; this.minY = minY; this.scale = scale; this.margin = margin; this.height = height;
+        }
+        int toScreenX(double x) { return margin + (int)((x - minX) * scale); }
+        int toScreenY(double y) { return height - margin - (int)((y - minY) * scale); }
+        double toScreenScale(double d) { return d * scale; }
+    }
+
     /**
      * Generate PNG visualization of the solver results
      */
@@ -495,32 +507,15 @@ public class GeometrySolver {
         g.setColor(Color.WHITE);
         g.fillRect(0, 0, width, height);
 
-        // Helper class to transform coordinates
-        final double finalMinX = minX;
-        final double finalMinY = minY;
-        final double finalScale = scale;
-        final int finalMargin = margin;
-        final int finalHeight = height;
-
-        class CoordTransform {
-            int toScreenX(double x) {
-                return finalMargin + (int)((x - finalMinX) * finalScale);
-            }
-            int toScreenY(double y) {
-                return finalHeight - finalMargin - (int)((y - finalMinY) * finalScale);
-            }
-            double toScreenScale(double dist) {
-                return dist * finalScale;
-            }
-        }
-        CoordTransform ct = new CoordTransform();
+        // Coordinate transform
+        CoordTransform ct = new CoordTransform(minX, minY, scale, margin, height);
 
         // Draw grid
         g.setColor(new Color(230, 230, 230));
         g.setStroke(new BasicStroke(1));
         for (int i = 0; i < 10; i++) {
-            double x = minX + (maxX - minX) * i / 10;
-            double y = minY + (maxY - minY) * i / 10;
+            double x = minX + (maxX - minX) * i / 10.0;
+            double y = minY + (maxY - minY) * i / 10.0;
             g.drawLine(ct.toScreenX(x), ct.toScreenY(minY), ct.toScreenX(x), ct.toScreenY(maxY));
             g.drawLine(ct.toScreenX(minX), ct.toScreenY(y), ct.toScreenX(maxX), ct.toScreenY(y));
         }
@@ -658,49 +653,186 @@ public class GeometrySolver {
         // Solution orientation arrow
         drawArrow(g, solX, solY, solution.alpha, (int)ct.toScreenScale(odoRadius * 0.8), Color.BLACK);
 
-        // Draw legend
+        // === NEW: Location confidence ellipse (black, semi-transparent, ~95%) ===
+        drawLocationConfidenceEllipse(g, ct, solution);
+
+        // === NEW: Orientation confidence cone (black, semi-transparent) ===
+        drawOrientationConfidenceCone(g, ct, solution, minX, maxX, minY, maxY);
+
+        // ===== UPDATED LEGEND =====
         g.setFont(new Font("Arial", Font.PLAIN, 12));
         int legendX = 20;
         int legendY = 30;
-        int lineHeight = 25;
+        int lineHeight = 22;
+        int row = 0;
 
         g.setColor(Color.BLACK);
-        g.drawString("Legend:", legendX, legendY);
+        g.drawString("Legend:", legendX, legendY + row * lineHeight); row++;
 
-        g.setColor(Color.RED);
-        g.fillOval(legendX, legendY + lineHeight - 5, 10, 10);
+        // 1) Solution: location & orientation
         g.setColor(Color.BLACK);
-        g.drawString("Odometry Prior", legendX + 20, legendY + lineHeight);
-
-        g.setColor(Color.BLUE);
-        g.fillOval(legendX, legendY + 2 * lineHeight - 5, 10, 10);
+        g.fillOval(legendX, legendY + row * lineHeight - 6, 12, 12);
         g.setColor(Color.BLACK);
-        g.drawString("Location Detection", legendX + 20, legendY + 2 * lineHeight);
+        g.drawString(String.format("Solution: (%.2f, %.2f), orientation %.1f°",
+                        solution.x, solution.y, solution.alpha * 180.0 / Math.PI),
+                legendX + 22, legendY + row * lineHeight);
+        row++;
 
-        g.setColor(new Color(0, 180, 0));
-        g.fillOval(legendX, legendY + 3 * lineHeight - 5, 10, 10);
+        // 2) Confidence: location ellipse
+        // small ellipse icon
+        g.setColor(new Color(0, 0, 0, 50));
+        g.fillOval(legendX, legendY + row * lineHeight - 8, 16, 16);
+        g.setColor(new Color(0, 0, 0, 140));
+        g.drawOval(legendX, legendY + row * lineHeight - 8, 16, 16);
         g.setColor(Color.BLACK);
-        g.drawString("YOLO Landmark", legendX + 20, legendY + 3 * lineHeight);
+        g.drawString("Confidence (location): covariance ellipse (~95%)", legendX + 22, legendY + row * lineHeight);
+        row++;
 
+        // 2) Confidence: orientation cone (mini wedge)
+        drawMiniConeKey(g, legendX, legendY + row * lineHeight - 12);
         g.setColor(Color.BLACK);
-        g.fillOval(legendX, legendY + 4 * lineHeight - 5, 10, 10);
-        g.drawString("Solution", legendX + 20, legendY + 4 * lineHeight);
+        g.drawString(String.format("Confidence (orientation): ±%.1f° cone",
+                        solution.orientationUncertainty),
+                legendX + 22, legendY + row * lineHeight);
+        row++;
 
-        // Draw solution info
-        int infoY = height - 100;
-        g.setFont(new Font("Arial", Font.BOLD, 14));
-        g.drawString(String.format("Solution: (%.2f, %.2f)", solution.x, solution.y), legendX, infoY);
-        g.drawString(String.format("Orientation: %.1f°", solution.alpha * 180 / Math.PI), legendX, infoY + 20);
-        g.drawString(String.format("Iterations: %d | Converged: %s",
-                solution.iterations, solution.converged ? "Yes" : "No"), legendX, infoY + 40);
-        g.drawString(String.format("Orientation confidence: %.3f (±%.1f°)",
-                solution.orientationConcentration, solution.orientationUncertainty), legendX, infoY + 60);
+        // 3) Convergence: converged? and steps
+        g.setColor(Color.BLACK);
+        g.drawString(String.format("Convergence: %s, steps: %d",
+                        solution.converged ? "Yes" : "No", solution.iterations),
+                legendX, legendY + row * lineHeight);
+        row++;
+
+        // Keep context for inputs (optional, below the requested items)
+        row++;
+        g.setColor(Color.RED); g.fillOval(legendX, legendY + row*lineHeight - 6, 12, 12);
+        g.setColor(Color.BLACK); g.drawString("Odometry Prior", legendX + 22, legendY + row*lineHeight); row++;
+        g.setColor(Color.BLUE); g.fillOval(legendX, legendY + row*lineHeight - 6, 12, 12);
+        g.setColor(Color.BLACK); g.drawString("Location Detection", legendX + 22, legendY + row*lineHeight); row++;
+        g.setColor(new Color(0, 180, 0)); g.fillOval(legendX, legendY + row*lineHeight - 6, 12, 12);
+        g.setColor(Color.BLACK); g.drawString("YOLO Landmark", legendX + 22, legendY + row*lineHeight);
+
+        // Footer stats (compact)
+        int infoY = height - 80;
+        g.setFont(new Font("Arial", Font.BOLD, 13));
+        g.setColor(Color.BLACK);
+        g.drawString(String.format("Solution: (%.2f, %.2f) | %.1f°",
+                solution.x, solution.y, solution.alpha * 180.0 / Math.PI), 20, infoY);
+        g.drawString(String.format("Confidence: ellipse ~95%% | ±%.1f°",
+                solution.orientationUncertainty), 20, infoY + 20);
+        g.drawString(String.format("Convergence: %s | Steps: %d",
+                solution.converged ? "Yes" : "No", solution.iterations), 20, infoY + 40);
 
         // Cleanup
         g.dispose();
 
         // Save to file
         ImageIO.write(image, "PNG", new File(outputFilePath));
+    }
+
+    // === NEW HELPERS ===
+
+    /** Draw the position covariance ellipse (~95%): scale = sqrt(chi2_2,0.95) ≈ 2.4477 */
+    private static void drawLocationConfidenceEllipse(Graphics2D g, CoordTransform ct, Solution solution) {
+        double[][] C = solution.positionCovariance;
+        double a = C[0][0], b = C[0][1], c = C[1][1];
+
+        // Eigen-decomposition for symmetric 2x2
+        double trace = a + c;
+        double det = a * c - b * b;
+        double tmp = Math.sqrt(Math.max(0.0, trace * trace / 4.0 - det));
+        double l1 = trace / 2.0 + tmp;  // larger eigenvalue
+        double l2 = trace / 2.0 - tmp;
+
+        // Eigenvector for l1
+        double vx = (Math.abs(b) > 1e-12) ? (l1 - c) : 1.0;
+        double vy = (Math.abs(b) > 1e-12) ? b : 0.0;
+        double n = Math.hypot(vx, vy);
+        if (n < 1e-12) { vx = 1; vy = 0; n = 1; }
+        vx /= n; vy /= n;
+
+        double angle = Math.atan2(vy, vx); // math angle
+
+        // 95% scaling for 2D Gaussian
+        final double SCALE95 = Math.sqrt(5.991464547107979); // ≈ 2.4477
+        double rx = SCALE95 * Math.sqrt(Math.max(l1, 0));
+        double ry = SCALE95 * Math.sqrt(Math.max(l2, 0));
+
+        // Convert to pixels
+        double rxPx = ct.toScreenScale(rx);
+        double ryPx = ct.toScreenScale(ry);
+
+        double cx = ct.toScreenX(solution.x);
+        double cy = ct.toScreenY(solution.y);
+
+        Shape ellipse = new Ellipse2D.Double(-rxPx, -ryPx, 2 * rxPx, 2 * ryPx);
+        AffineTransform at = new AffineTransform();
+        at.translate(cx, cy);
+        at.rotate(-angle); // invert because screen Y increases downward
+        Shape transformed = at.createTransformedShape(ellipse);
+
+        // Fill + stroke in semi-transparent black
+        g.setColor(new Color(0, 0, 0, 50));
+        g.fill(transformed);
+        g.setColor(new Color(0, 0, 0, 140));
+        g.setStroke(new BasicStroke(2f));
+        g.draw(transformed);
+    }
+
+    /** Draw an orientation confidence cone in black, centered at solution heading with ±uncertainty */
+    private static void drawOrientationConfidenceCone(Graphics2D g, CoordTransform ct, Solution solution,
+                                                      double minX, double maxX, double minY, double maxY) {
+
+        int solX = ct.toScreenX(solution.x);
+        int solY = ct.toScreenY(solution.y);
+
+        // Make the cone length a fraction of scene size for clarity
+        double scene = Math.max(maxX - minX, maxY - minY);
+        double length = 0.35 * scene; // 35% of the larger span
+        double L = ct.toScreenScale(length);
+
+        double alpha = solution.alpha;
+        double half = Math.toRadians(solution.orientationUncertainty);
+
+        double a1 = alpha + half;
+        double a2 = alpha - half;
+
+        Path2D.Double cone = new Path2D.Double();
+        cone.moveTo(solX, solY);
+
+        int segments = 36;
+        for (int j = 0; j <= segments; j++) {
+            double ang = a1 + (a2 - a1) * j / segments;
+            double px = solX + L * Math.cos(ang);
+            double py = solY - L * Math.sin(ang);
+            cone.lineTo(px, py);
+        }
+        cone.closePath();
+
+        g.setColor(new Color(0, 0, 0, 40));
+        g.fill(cone);
+        g.setColor(new Color(0, 0, 0, 140));
+        g.setStroke(new BasicStroke(2f));
+        g.draw(cone);
+
+        // Center ray (dashed)
+        Stroke old = g.getStroke();
+        g.setStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10, new float[]{6, 6}, 0));
+        int cx = (int) (solX + L * Math.cos(alpha));
+        int cy = (int) (solY - L * Math.sin(alpha));
+        g.drawLine(solX, solY, cx, cy);
+        g.setStroke(old);
+    }
+
+    /** Tiny wedge for legend entry of orientation confidence */
+    private static void drawMiniConeKey(Graphics2D g, int x, int y) {
+        Path2D.Double p = new Path2D.Double();
+        p.moveTo(x, y + 7);
+        p.lineTo(x + 18, y);
+        p.lineTo(x + 18, y + 14);
+        p.closePath();
+        g.setColor(new Color(0, 0, 0, 40)); g.fill(p);
+        g.setColor(new Color(0, 0, 0, 140)); g.setStroke(new BasicStroke(2f)); g.draw(p);
     }
 
     /**
