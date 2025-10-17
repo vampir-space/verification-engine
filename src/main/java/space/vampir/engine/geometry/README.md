@@ -24,9 +24,9 @@ $$
 (x_i, y_i)
 $$
 
-with uncertainty radius $r_i$.
+with an uncertainty radius $r_i$.
 
-These act as **point constraints** that pull the estimated position toward the detected locations.
+These act as **point constraints** that pull the estimated position toward the detected locations within a circular confidence region of radius $r_i$.
 
 ---
 
@@ -62,6 +62,30 @@ r_i = -R(\beta_i) \, d
 $$
 
 Each YOLO detection therefore provides a **ray constraint**, indicating that the car should lie somewhere along this ray extending outward from the detected landmark.
+
+To model visual uncertainty, each ray is also assigned an **angular confidence cone** with half-angle $\sigma_{\beta_i}$ (in degrees).  
+This cone represents the possible deviation of the measured bearing $\beta_i$ due to perception noise or pixel quantization:
+
+$$
+\beta_i \pm \sigma_{\beta_i}
+$$
+
+A smaller $\sigma_{\beta_i}$ implies a sharper, more confident detection.
+
+---
+
+## **Estimation Procedure**
+
+The solver estimates both the position $(x, y)$ and orientation $\alpha$ that best satisfy all constraints using an **iterative least-squares refinement**:
+
+1. **Fix the orientation** $\alpha$ and solve for position $(x, y)$ based on geometric intersections of the YOLO-derived rays and point detections (with respective uncertainties $r_i$ and $\sigma_{\beta_i}$).  
+2. **Fix the position** $(x, y)$ and update the orientation $\alpha$ using the bearings toward all visible landmarks (from YOLO detections).  
+3. Repeat until the pose $(x, y, \alpha)$ converges.
+
+---
+
+This alternating optimization produces a consistent estimate of the car’s position and facing direction by combining  
+**landmark geometry** (from YOLO detections), **point measurements**, and **odometry priors** into a unified geometric solution.
 
 ---
 
