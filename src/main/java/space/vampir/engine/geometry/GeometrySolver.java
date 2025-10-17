@@ -1,308 +1,441 @@
-package space.vampir.engine.geometry;
-
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
-/** Minimize sum of squared distances from Points and Rays.
- *  Non-negativity on rays enforced via active-set.
- *  Adds a single Odometry point with weight c, and scales all other terms by (1-c).
- *  Also estimates facing orientation from ray bearings + odometry orientation.
+/**
+ * GeometrySolver estimates a vehicle's 2D position and orientation using:
+ * 1. Odometry prior
+ * 2. Location detections (point constraints)
+ * 3. YOLO landmark detections (ray constraints)
  */
 public class GeometrySolver {
-    private final List<Point> points = new ArrayList<>();
-    private final List<Ray> rays = new ArrayList<>();
-
-    // Optional odometry pose prior
-    private Point odometry = null;
-    private double c = 0.0; // weight on odometry terms in [0,1]
-
-    // Optional odometry orientation prior (unit vector)
-    private double odoCos = Double.NaN, odoSin = Double.NaN;
-
-    public void clear() {
-        rays.clear();
-        points.clear();
-        odometry = null;
-        c = 0.0;
-        odoCos = odoSin = Double.NaN;
-    }
-
-    /** Add a regular point (location) constraint (goes into the (1-c) group). */
-    public void addPoint(double x, double y) { points.add(new Point(x, y)); }
-
-    /** Add a ray constraint (direction auto-normalized). */
-    public void addRay(double px, double py, double vx, double vy) {
-        rays.add(new Ray(px, py, vx, vy, 0)); // no bearing info
-    }
-
-    /** Add a ray constraint with a car-relative bearing (radians, CCW). */
-    public void addRay(double px, double py, double vx, double vy, double betaRad) {
-        rays.add(new Ray(px, py, vx, vy, betaRad));
-    }
-
-    /** Set (or replace) the odometry point and its weight c in [0,1]. */
-    public void setOdometry(double x, double y, double c) {
-        if (Double.isNaN(c) || c < 0.0 || c > 1.0)
-            throw new IllegalArgumentException("Weight c must be in [0,1]");
-        this.odometry = new Point(x, y);
-        this.c = c;
-    }
-
-    /** Set odometry facing direction (unit). */
-    public void setOdometryOrientation(double cosF, double sinF) {
-        double n = Math.hypot(cosF, sinF);
-        if (n == 0) throw new IllegalArgumentException("Odometry orientation cannot be zero");
-        this.odoCos = cosF / n;
-        this.odoSin = sinF / n;
-    }
-
+    
+    // Convergence thresholds
+    private static final double EPSILON_POS = 0.01;      // meters
+    private static final double EPSILON_ANGLE = 0.1;     // degrees
+    private static final int MAX_ITERATIONS = 100;
+    
+    // Regularization constants
+    private static final double EPSILON_LOC = 0.01;      // m^2
+    private static final double EPSILON_YOLO = 3e-6;     // rad^2
+    private static final double LAMBDA_REG = 1e-12;      // numerical stability
+    
+    // Confidence visualization parameter
+    private static final double ORIENTATION_CONE_SCALE = 0.5;
+    
     /**
-     * Solve for (x,y) using active-set least squares for rays (t>=0) + point constraints,
-     * with odometry weighted by c and all other terms scaled by (1-c).
-     * @param maxIter maximum active-set iterations (e.g. 10)
-     * @return [x,y] solution
+     * Odometry prior: position, orientation, and confidence
      */
-    public double[] solve(int maxIter) {
-        double x = 0.0, y = 0.0;
-
-        // All rays are active (treat as infinite lines) initially
-        boolean[] active = new boolean[rays.size()];
-        Arrays.fill(active, true);
-
-        // First mixed solve using initial active set
-        double[] xy = solveMixed(active);
-        x = xy[0]; y = xy[1];
-
-        for (int it = 0; it < maxIter; it++) {
-            boolean changed = false;
-            // Update activity based on current (x,y)
-            for (int i = 0; i < rays.size(); i++) {
-                Ray r = rays.get(i);
-                double t = r.vx * (x - r.px) + r.vy * (y - r.py);
-                boolean shouldBeActive = (t >= 0); // Projection falls on the ray
-                if (shouldBeActive != active[i]) { active[i] = shouldBeActive; changed = true; }
-            }
-            if (!changed) break; // Active set stabilized
-            xy = solveMixed(active);
-            x = xy[0]; y = xy[1];
+    public static class OdometryPrior {
+        public double x;
+        public double y;
+        public double alpha;  // radians
+        public double confidence;  // [0, 1]
+        
+        public OdometryPrior(double x, double y, double alpha, double confidence) {
+            this.x = x;
+            this.y = y;
+            this.alpha = alpha;
+            this.confidence = Math.max(0, Math.min(1, confidence));
         }
+    }
+    
+    /**
+     * Location detection: direct position observation with uncertainty radius
+     */
+    public static class LocationDetection {
+        public double x;
+        public double y;
+        public double radius;  // uncertainty radius
+        
+        public LocationDetection(double x, double y, double radius) {
+            this.x = x;
+            this.y = y;
+            this.radius = radius;
+        }
+        
+        public double getWeight() {
+            return 1.0 / (radius * radius + EPSILON_LOC);
+        }
+    }
+    
+    /**
+     * YOLO landmark detection: bearing to known landmark
+     */
+    public static class YoloDetection {
+        public double landmarkX;
+        public double landmarkY;
+        public double bearing;  // degrees, relative to vehicle forward direction
+        public double angularUncertainty;  // degrees, half-angle of confidence cone
+        
+        public YoloDetection(double landmarkX, double landmarkY, double bearing, double angularUncertainty) {
+            this.landmarkX = landmarkX;
+            this.landmarkY = landmarkY;
+            this.bearing = bearing;
+            this.angularUncertainty = angularUncertainty;
+        }
+        
+        public double getWeight() {
+            double sigmaRad = angularUncertainty * Math.PI / 180.0;
+            return 1.0 / (sigmaRad * sigmaRad + EPSILON_YOLO);
+        }
+    }
+    
+    /**
+     * Solution: estimated pose and confidence measures
+     */
+    public static class Solution {
+        public double x;
+        public double y;
+        public double alpha;  // radians
+        public int iterations;
+        public boolean converged;
+        
+        // Position confidence (covariance matrix)
+        public double[][] positionCovariance = new double[2][2];
+        
+        // Orientation confidence
+        public double orientationConcentration;  // [0, 1]
+        public double orientationUncertainty;    // degrees, half-angle
+        
+        public Solution(double x, double y, double alpha) {
+            this.x = x;
+            this.y = y;
+            this.alpha = alpha;
+        }
+    }
+    
+    /**
+     * Solve for vehicle pose given constraints
+     */
+    public static Solution solve(
+            OdometryPrior odometry,
+            List<LocationDetection> locationDetections,
+            List<YoloDetection> yoloDetections) {
+        
+        // Initialize with odometry prior
+        double x = odometry.x;
+        double y = odometry.y;
+        double alpha = odometry.alpha;
+        
+        Solution solution = new Solution(x, y, alpha);
+        
+        // Iterative optimization
+        for (int iter = 0; iter < MAX_ITERATIONS; iter++) {
+            double oldX = x;
+            double oldY = y;
+            double oldAlpha = alpha;
+            
+            // Step 1: Estimate position (fix orientation)
+            double[] position = estimatePosition(x, y, alpha, odometry, locationDetections, yoloDetections);
+            x = position[0];
+            y = position[1];
+            
+            // Step 2: Estimate orientation (fix position)
+            alpha = estimateOrientation(x, y, alpha, odometry, yoloDetections);
+            
+            // Check convergence
+            double posDelta = Math.sqrt((x - oldX) * (x - oldX) + (y - oldY) * (y - oldY));
+            double angleDelta = Math.abs(normalizeAngle(alpha - oldAlpha)) * 180.0 / Math.PI;
+            
+            solution.iterations = iter + 1;
+            
+            if (posDelta < EPSILON_POS && angleDelta < EPSILON_ANGLE) {
+                solution.converged = true;
+                break;
+            }
+        }
+        
+        solution.x = x;
+        solution.y = y;
+        solution.alpha = alpha;
+        
+        // Compute confidence measures
+        computeConfidence(solution, odometry, locationDetections, yoloDetections);
+        
+        return solution;
+    }
+    
+    /**
+     * Estimate position using weighted least squares (orientation fixed)
+     */
+    private static double[] estimatePosition(
+            double x, double y, double alpha,
+            OdometryPrior odometry,
+            List<LocationDetection> locationDetections,
+            List<YoloDetection> yoloDetections) {
+        
+        // Normal equations: M * [x, y]^T = b
+        double[][] M = new double[2][2];
+        double[] b = new double[2];
+        
+        double totalWeight = 0;
+        double c = odometry.confidence;
+        double wOdo = c;
+        
+        // Compute total non-odometry weight for normalization
+        for (LocationDetection loc : locationDetections) {
+            totalWeight += loc.getWeight();
+        }
+        for (YoloDetection yolo : yoloDetections) {
+            totalWeight += yolo.getWeight();
+        }
+        
+        // Odometry constraint
+        addPointConstraint(M, b, odometry.x, odometry.y, wOdo);
+        
+        // Location detection constraints
+        for (LocationDetection loc : locationDetections) {
+            double w = loc.getWeight() * (1 - c);
+            addPointConstraint(M, b, loc.x, loc.y, w);
+        }
+        
+        // YOLO ray constraints
+        double cosA = Math.cos(alpha);
+        double sinA = Math.sin(alpha);
+        
+        for (YoloDetection yolo : yoloDetections) {
+            double w = yolo.getWeight() * (1 - c);
+            
+            // Rotate forward direction by bearing angle
+            double betaRad = yolo.bearing * Math.PI / 180.0;
+            double cosBeta = Math.cos(betaRad);
+            double sinBeta = Math.sin(betaRad);
+            
+            // Ray direction: -R(beta) * d
+            double rx = -(cosBeta * cosA - sinBeta * sinA);
+            double ry = -(sinBeta * cosA + cosBeta * sinA);
+            
+            // Check if point is in front of or behind landmark
+            double dx = x - yolo.landmarkX;
+            double dy = y - yolo.landmarkY;
+            double t = dx * rx + dy * ry;  // projection along ray
+            
+            if (t >= 0) {
+                // Active ray constraint
+                addRayConstraint(M, b, yolo.landmarkX, yolo.landmarkY, rx, ry, w);
+            } else {
+                // Inactive: treat as point constraint at landmark
+                addPointConstraint(M, b, yolo.landmarkX, yolo.landmarkY, w);
+            }
+        }
+        
+        // Add regularization
+        M[0][0] += LAMBDA_REG;
+        M[1][1] += LAMBDA_REG;
+        
+        // Solve M * p = b
+        return solve2x2(M, b);
+    }
+    
+    /**
+     * Estimate orientation using weighted circular mean (position fixed)
+     */
+    private static double estimateOrientation(
+            double x, double y, double alpha,
+            OdometryPrior odometry,
+            List<YoloDetection> yoloDetections) {
+        
+        double Sx = 0;
+        double Sy = 0;
+        double totalWeight = 0;
+        
+        // Odometry orientation
+        double wOdo = odometry.confidence;
+        Sx += wOdo * Math.cos(odometry.alpha);
+        Sy += wOdo * Math.sin(odometry.alpha);
+        totalWeight += wOdo;
+        
+        // YOLO-derived orientations
+        for (YoloDetection yolo : yoloDetections) {
+            double w = yolo.getWeight() * (1 - odometry.confidence);
+            
+            // Angle from vehicle to landmark
+            double dx = yolo.landmarkX - x;
+            double dy = yolo.landmarkY - y;
+            double theta = Math.atan2(dy, dx);
+            
+            // Vehicle heading that would produce this bearing
+            double betaRad = yolo.bearing * Math.PI / 180.0;
+            double alphaEst = theta - betaRad;
+            
+            Sx += w * Math.cos(alphaEst);
+            Sy += w * Math.sin(alphaEst);
+            totalWeight += w;
+        }
+        
+        // Weighted circular mean
+        return Math.atan2(Sy, Sx);
+    }
+    
+    /**
+     * Add point constraint to normal equations
+     */
+    private static void addPointConstraint(double[][] M, double[] b, double px, double py, double w) {
+        // A = I, so A^T A = I
+        M[0][0] += w;
+        M[1][1] += w;
+        b[0] += w * px;
+        b[1] += w * py;
+    }
+    
+    /**
+     * Add ray constraint to normal equations
+     * Ray starts at (lx, ly) in direction (rx, ry)
+     */
+    private static void addRayConstraint(double[][] M, double[] b, 
+            double lx, double ly, double rx, double ry, double w) {
+        
+        // Normalize ray direction
+        double norm = Math.sqrt(rx * rx + ry * ry);
+        double vx = rx / norm;
+        double vy = ry / norm;
+        
+        // Projection operator: A = I - v*v^T
+        // A^T A = A (since A is symmetric and idempotent for projection)
+        double a00 = 1 - vx * vx;
+        double a01 = -vx * vy;
+        double a11 = 1 - vy * vy;
+        
+        M[0][0] += w * a00;
+        M[0][1] += w * a01;
+        M[1][0] += w * a01;
+        M[1][1] += w * a11;
+        
+        // b = A^T A p, where p is the landmark position
+        b[0] += w * (a00 * lx + a01 * ly);
+        b[1] += w * (a01 * lx + a11 * ly);
+    }
+    
+    /**
+     * Solve 2x2 linear system
+     */
+    private static double[] solve2x2(double[][] M, double[] b) {
+        double det = M[0][0] * M[1][1] - M[0][1] * M[1][0];
+        
+        if (Math.abs(det) < 1e-15) {
+            // Singular matrix, return zero
+            return new double[]{0, 0};
+        }
+        
+        double invDet = 1.0 / det;
+        double x = invDet * (M[1][1] * b[0] - M[0][1] * b[1]);
+        double y = invDet * (-M[1][0] * b[0] + M[0][0] * b[1]);
+        
         return new double[]{x, y};
     }
-
-    /** Estimate facing orientation from bearings + odometry orientation using the same weight c. */
-    public OrientationEstimate estimateOrientation(int maxIter) {
-        double[] xy = solve(maxIter);
-        double x = xy[0], y = xy[1];
-
-        // Build active flags at the solution
-        boolean[] active = new boolean[rays.size()];
-        for (int i = 0; i < rays.size(); i++) {
-            Ray r = rays.get(i);
-            double t = r.vx * (x - r.px) + r.vy * (y - r.py);
-            active[i] = (t >= 0);
+    
+    /**
+     * Compute confidence measures
+     */
+    private static void computeConfidence(
+            Solution solution,
+            OdometryPrior odometry,
+            List<LocationDetection> locationDetections,
+            List<YoloDetection> yoloDetections) {
+        
+        // Recompute M matrix for position covariance
+        double[][] M = new double[2][2];
+        double[] dummy = new double[2];
+        
+        double c = odometry.confidence;
+        double wOdo = c;
+        
+        addPointConstraint(M, dummy, odometry.x, odometry.y, wOdo);
+        
+        for (LocationDetection loc : locationDetections) {
+            double w = loc.getWeight() * (1 - c);
+            addPointConstraint(M, dummy, loc.x, loc.y, w);
         }
-
-        // Aggregate f_raw = c*f_odo + (1-c)*sum_i w_i * R(-beta_i) * s_i
-        double fx = 0.0, fy = 0.0;
-        double weightSum = 0.0;
-
-        // detections block (1-c)
-        double detectionsWeight = 1.0 - (odometry != null ? c : 0.0); // same policy as for position
-        double innerSumX = 0.0, innerSumY = 0.0;
-        double innerW = 0.0;
-
-        for (int i = 0; i < rays.size(); i++) {
-            Ray r = rays.get(i);
-            if (!active[i]) continue;             // use only active rays
-            if (Double.isNaN(r.betaRad)) continue; // skip if no bearing info
-
-            // sight vector s_i = (p_i - x*) / ||...||
-            double sx = r.px - x;
-            double sy = r.py - y;
-            double n = Math.hypot(sx, sy);
-            if (n < 1e-12) continue;
-            sx /= n; sy /= n;
-
-            // rotate by -beta: [cos -sin; sin cos] * s
-            double cB = Math.cos(-r.betaRad);
-            double sB = Math.sin(-r.betaRad);
-            double fix = cB * sx - sB * sy;
-            double fiy = sB * sx + cB * sy;
-
-            // weight: simple 1.0 (you may plug quality/t here)
-            innerSumX += fix;
-            innerSumY += fiy;
-            innerW += 1.0;
-        }
-
-        if (innerW > 0.0 && detectionsWeight > 0.0) {
-            fx += detectionsWeight * innerSumX;
-            fy += detectionsWeight * innerSumY;
-            weightSum += detectionsWeight * innerW; // for confidence scaling
-        }
-
-        // odometry orientation prior (same c block)
-        boolean hasOdoDir = !(Double.isNaN(odoCos) || Double.isNaN(odoSin));
-        if (hasOdoDir && odometry != null && c > 0.0) {
-            fx += c * odoCos;
-            fy += c * odoSin;
-            weightSum += c;
-        }
-
-        double norm = Math.hypot(fx, fy);
-        if (norm < 1e-12) {
-            return new OrientationEstimate(Double.NaN, Double.NaN, Double.NaN, 0.0);
-        }
-        double ux = fx / norm, uy = fy / norm;
-        double theta = Math.atan2(uy, ux);
-
-        // confidence: mean resultant length normalized to [0,1]
-        // denominator ~= ( (1-c)*innerW + c ) when both present
-        double denom = 0.0;
-        if (innerW > 0.0 && detectionsWeight > 0.0) denom += detectionsWeight * innerW;
-        if (hasOdoDir && odometry != null && c > 0.0) denom += c;
-        double confidence = (denom > 0.0) ? (norm / denom) : 0.0;
-
-        return new OrientationEstimate(ux, uy, theta, confidence);
-    }
-
-    // ---------- READ-ONLY GETTERS (Views) ----------
-
-    public List<PointView> getPoints() {
-        List<PointView> out = new ArrayList<>(points.size());
-        for (Point p : points) out.add(new PointView(p.x, p.y));
-        return out;
-    }
-
-    public List<RayView> getRays() {
-        List<RayView> out = new ArrayList<>(rays.size());
-        for (Ray r : rays) out.add(new RayView(r.px, r.py, r.vx, r.vy, r.betaRad));
-        return out;
-    }
-
-    public PointView getOdometry() {
-        return (odometry == null) ? null : new PointView(odometry.x, odometry.y);
-    }
-
-    public double getOdometryWeight() { return c; }
-
-    public OrientationPriorView getOdometryOrientation() {
-        if (Double.isNaN(odoCos) || Double.isNaN(odoSin)) return null;
-        return new OrientationPriorView(odoCos, odoSin);
-    }
-
-    // ---------- Internals ----------
-
-    // Build & solve the 2x2 normal equations for the current active set.
-    private double[] solveMixed(boolean[] active) {
-        double a11 = 0, a12 = 0, a22 = 0; // Symmetric matrix M
-        double b1  = 0, b2  = 0;          // Right-hand side b
-
-        // Weights
-        final double wOdo  = (odometry != null ? c : 0.0);
-        final double wRest = 1.0 - wOdo;  // scales every non-odometry term
-
-        // Rays (scaled by wRest)
-        for (int i = 0; i < rays.size(); i++) {
-            Ray r = rays.get(i);
-            if (active[i]) {
-                // Line projector A = I - v v^T
-                double vv11 = r.vx * r.vx;
-                double vv12 = r.vx * r.vy;
-                double vv22 = r.vy * r.vy;
-
-                double a11i = wRest * (1 - vv11);
-                double a12i = wRest * (-vv12);
-                double a22i = wRest * (1 - vv22);
-
-                a11 += a11i; a12 += a12i; a22 += a22i;
-                b1  += a11i * r.px + a12i * r.py;
-                b2  += a12i * r.px + a22i * r.py;
+        
+        double cosA = Math.cos(solution.alpha);
+        double sinA = Math.sin(solution.alpha);
+        
+        for (YoloDetection yolo : yoloDetections) {
+            double w = yolo.getWeight() * (1 - c);
+            
+            double betaRad = yolo.bearing * Math.PI / 180.0;
+            double cosBeta = Math.cos(betaRad);
+            double sinBeta = Math.sin(betaRad);
+            
+            double rx = -(cosBeta * cosA - sinBeta * sinA);
+            double ry = -(sinBeta * cosA + cosBeta * sinA);
+            
+            double dx = solution.x - yolo.landmarkX;
+            double dy = solution.y - yolo.landmarkY;
+            double t = dx * rx + dy * ry;
+            
+            if (t >= 0) {
+                addRayConstraint(M, dummy, yolo.landmarkX, yolo.landmarkY, rx, ry, w);
             } else {
-                // Blocked ray behaves like a point at (px,py)
-                a11 += wRest; a22 += wRest;
-                b1  += wRest * r.px; b2 += wRest * r.py;
+                addPointConstraint(M, dummy, yolo.landmarkX, yolo.landmarkY, w);
             }
         }
-
-        // Regular points (scaled by wRest)
-        for (Point p : points) {
-            a11 += wRest; a22 += wRest;
-            b1  += wRest * p.x; b2 += wRest * p.y;
+        
+        M[0][0] += LAMBDA_REG;
+        M[1][1] += LAMBDA_REG;
+        
+        // Position covariance = M^{-1}
+        double det = M[0][0] * M[1][1] - M[0][1] * M[1][0];
+        if (Math.abs(det) > 1e-15) {
+            double invDet = 1.0 / det;
+            solution.positionCovariance[0][0] = invDet * M[1][1];
+            solution.positionCovariance[0][1] = -invDet * M[0][1];
+            solution.positionCovariance[1][0] = -invDet * M[1][0];
+            solution.positionCovariance[1][1] = invDet * M[0][0];
         }
-
-        // Odometry point (own weight c)
-        if (odometry != null && wOdo > 0) {
-            a11 += wOdo; a22 += wOdo;
-            b1  += wOdo * odometry.x; b2 += wOdo * odometry.y;
+        
+        // Orientation confidence
+        double Sx = 0, Sy = 0, totalWeight = 0;
+        
+        Sx += wOdo * Math.cos(odometry.alpha);
+        Sy += wOdo * Math.sin(odometry.alpha);
+        totalWeight += wOdo;
+        
+        for (YoloDetection yolo : yoloDetections) {
+            double w = yolo.getWeight() * (1 - c);
+            totalWeight += w;
         }
-
-        // Small regularization to avoid singularity in degenerate cases
-        double reg = 1e-12;
-        a11 += reg; a22 += reg;
-
-        // Solve 2x2 system M x = b
-        double det = a11 * a22 - a12 * a12;
-        if (Math.abs(det) < 1e-18) {
-            double boost = 1e-8 * (Math.abs(a11) + Math.abs(a22) + 1.0);
-            a11 += boost; a22 += boost;
-            det = a11 * a22 - a12 * a12;
-        }
-
-        double inv11 =  a22 / det;
-        double inv12 = -a12 / det;
-        double inv22 =  a11 / det;
-        double solX  = inv11 * b1 + inv12 * b2;
-        double solY  = inv12 * b1 + inv22 * b2;
-        return new double[]{solX, solY};
+        
+        // Concentration measure
+        double r = Math.sqrt(Sx * Sx + Sy * Sy) / totalWeight;
+        solution.orientationConcentration = r;
+        solution.orientationUncertainty = ORIENTATION_CONE_SCALE * (1 - r) * 180.0;
     }
-
-    // --------- Internal storage (private), plus public 'views' ---------
-
-    private static final class Point {
-        final double x, y;
-        Point(double x, double y) { this.x = x; this.y = y; }
+    
+    /**
+     * Normalize angle to [-pi, pi]
+     */
+    private static double normalizeAngle(double angle) {
+        while (angle > Math.PI) angle -= 2 * Math.PI;
+        while (angle < -Math.PI) angle += 2 * Math.PI;
+        return angle;
     }
-
-    private static final class Ray {
-        final double px, py;   // origin (landmark)
-        final double vx, vy;   // unit direction (world)
-        final double betaRad;  // relative bearing (car frame), CCW; NaN if unknown
-        Ray(double px, double py, double vx, double vy, double betaRad) {
-            double n = Math.hypot(vx, vy);
-            if (n == 0) throw new IllegalArgumentException("Ray direction cannot be zero");
-            this.px = px; this.py = py;
-            this.vx = vx / n; this.vy = vy / n;
-            this.betaRad = betaRad;
-        }
-    }
-
-    public static final class PointView {
-        public final double x, y;
-        public PointView(double x, double y) { this.x = x; this.y = y; }
-    }
-
-    public static final class RayView {
-        public final double px, py, vx, vy, betaRad;
-        public RayView(double px, double py, double vx, double vy, double betaRad) {
-            this.px = px; this.py = py; this.vx = vx; this.vy = vy; this.betaRad = betaRad;
-        }
-    }
-
-    /** Immutable orientation estimate. */
-    public static final class OrientationEstimate {
-        public final double fx, fy;       // unit forward vector
-        public final double theta;        // atan2(fy, fx)
-        public final double confidence;   // 0..1
-        OrientationEstimate(double fx, double fy, double theta, double confidence) {
-            this.fx = fx; this.fy = fy; this.theta = theta; this.confidence = confidence;
-        }
-    }
-
-    /** View of odometry prior orientation. */
-    public static final class OrientationPriorView {
-        public final double cosF, sinF;
-        public OrientationPriorView(double cosF, double sinF) { this.cosF = cosF; this.sinF = sinF; }
+    
+    /**
+     * Example usage
+     */
+    public static void main(String[] args) {
+        // Odometry prior: position (10, 10), heading 45°, confidence 0.5
+        OdometryPrior odometry = new OdometryPrior(10, 10, Math.PI / 4, 0.5);
+        
+        // Location detections
+        List<LocationDetection> locations = new ArrayList<>();
+        locations.add(new LocationDetection(12, 11, 1.0));  // radius 1m
+        
+        // YOLO detections
+        List<YoloDetection> yolos = new ArrayList<>();
+        yolos.add(new YoloDetection(20, 20, 30, 2.0));   // landmark at (20,20), bearing 30°, ±2°
+        yolos.add(new YoloDetection(5, 15, -45, 3.0));   // landmark at (5,15), bearing -45°, ±3°
+        
+        // Solve
+        Solution solution = solve(odometry, locations, yolos);
+        
+        System.out.println("=== GeometrySolver Results ===");
+        System.out.printf("Position: (%.3f, %.3f)%n", solution.x, solution.y);
+        System.out.printf("Orientation: %.2f degrees%n", solution.alpha * 180 / Math.PI);
+        System.out.printf("Iterations: %d%n", solution.iterations);
+        System.out.printf("Converged: %b%n", solution.converged);
+        System.out.printf("Orientation confidence: %.3f (±%.1f°)%n", 
+                solution.orientationConcentration, solution.orientationUncertainty);
     }
 }
