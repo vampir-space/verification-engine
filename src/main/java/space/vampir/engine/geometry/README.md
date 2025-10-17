@@ -32,16 +32,16 @@ These act as **point constraints** that pull the estimated position toward the d
 
 ### **3. YOLO detections**
 
-Each **YOLO detection** comes from a visual model that identifies a known **landmark** in the camera view.  
-The landmark's **world position** is known:
+Each **YOLO detection** comes from a visual model that identifies a known **landmark** in the camera view.
+The landmark’s **world position** is known:
 
 $$
 (l_{x,i}, l_{y,i})
 $$
 
-and the **bearing angle** $\beta_i$ (in **degrees**) is measured **relative to the car's current forward direction**.
+and the **bearing angle** $\beta_i$ (in **degrees**) is measured **relative to the car’s current forward direction**.
 
-If the car's true facing direction is the unit vector
+If the car’s true facing direction is the unit vector
 
 $$
 d = (\cos \alpha, \sin \alpha),
@@ -50,27 +50,30 @@ $$
 then after rotating this direction by $\beta_i$ degrees, the resulting vector
 
 $$
-d_i = R(\beta_i) \, d
+d_i = R(\beta_i) , d
 $$
 
 points **toward** the detected landmark.
 
-From the **landmark's perspective**, the car must lie somewhere along a **ray** that starts at the landmark and points in the **opposite direction** of that rotated vector:
+From the **landmark’s perspective**, the car must lie somewhere along a **ray** that starts at the landmark and points in the **opposite direction** of that rotated vector:
 
 $$
-r_i = -R(\beta_i) \, d
+r_i = -R(\beta_i) , d
 $$
 
-Each YOLO detection therefore provides a **ray constraint**, indicating that the car should lie somewhere along this ray extending outward from the detected landmark.
+Each YOLO detection therefore provides a **ray constraint**, indicating that the vehicle’s position should lie along this ray extending outward from the detected landmark.
 
-To model visual uncertainty, each ray is also assigned an **angular confidence cone** with half-angle $\sigma_{\beta_i}$ (in degrees).  
-This cone represents the possible deviation of the measured bearing $\beta_i$ due to perception noise or pixel quantization:
+To model perception uncertainty, each ray is assigned an **angular confidence cone** with half-angle $\sigma_{\beta_i}$ (in degrees).
+This cone represents the possible deviation of the measured bearing $\beta_i$ due to pixel quantization, calibration errors, or visual noise:
 
 $$
 \beta_i \pm \sigma_{\beta_i}
 $$
 
-A smaller $\sigma_{\beta_i}$ implies a sharper, more confident detection.
+These detections serve **two complementary roles**:
+
+* **Ray constraints**: geometrically pull the estimated position toward the line of sight from each detected landmark.
+* **Orientation constraints**: inform the vehicle’s heading, since each measured bearing links the car’s orientation $\alpha$ to the known landmark direction.
 
 ---
 
@@ -112,12 +115,17 @@ Start with odometry prior: $(x, y) = (x_o, y_o)$ and $\alpha = \alpha_o$.
 
 #### **Step 1: Position Estimation (fix orientation $\alpha$)**
 
-Given current orientation $\alpha = (\cos \alpha, \sin \alpha)$, compute ray directions for all YOLO detections:
+Given current orientation, define the unit forward direction:
 
+$$
+d = (\cos \alpha, \sin \alpha)
+$$
+
+Compute ray directions for all YOLO detections.
 For each landmark at $(l_{x,i}, l_{y,i})$ with bearing $\beta_i$:
 
 $$
-r_i = -R(\beta_i) \, d
+r_i = -R(\beta_i) d
 $$
 
 This ray direction is now fixed for this iteration.
@@ -127,29 +135,80 @@ This ray direction is now fixed for this iteration.
 Minimize the weighted sum:
 
 $$
-E(x, y) = \sum_{\text{locations}} w_{\text{loc},i} \cdot \left\| (x, y) - (x_i, y_i) \right\|^2 
-+ \sum_{\text{YOLO}} w_{\text{yolo},i} \cdot \text{dist}_{\text{ray}}^2(x, y; l_i, r_i)
-+ w_{\text{odo}} \cdot \left\| (x, y) - (x_o, y_o) \right\|^2
+E(x, y) =
+\sum_{\text{locations}} w_{\text{loc},i} , | (x, y) - (x_i, y_i) |^2
+\cdot \sum_{\text{YOLO}} w_{\text{yolo},i} , \text{dist}_{\text{ray}}^2(x, y; l_i, r_i)
+\cdot w_{\text{odo}} , | (x, y) - (x_o, y_o) |^2
 $$
 
 where:
-- $\text{dist}_{\text{ray}}(x, y; l_i, r_i)$ is the perpendicular distance from point $(x, y)$ to the ray starting at $l_i$ in direction $r_i$
-- $w_{\text{odo}} = c$ is the odometry weight
+
+* $\text{dist}_{\text{ray}}(x, y; l_i, r_i)$ is the perpendicular distance from point $(x, y)$ to the ray starting at $l_i$ in direction $r_i$
+* $w_{\text{odo}} = c$ is the odometry weight
 
 This can be formulated as a linear system:
 
 $$
-M \begin{bmatrix} x \\ y \end{bmatrix} = b
+M \begin{bmatrix} x \ y \end{bmatrix} = b
 $$
 
 where $M$ is a $2 \times 2$ weighted normal equations matrix and $b$ is the weighted right-hand side.
 
+---
+
+### **Computation of (M) and (b)**
+
+Each constraint contributes a quadratic term of the form
+
+$$
+E_i = w_i , |A_i (q - p_i)|^2,
+\quad q = \begin{bmatrix}x \ y\end{bmatrix}.
+$$
+
+The corresponding normal equation components are:
+
+$$
+M = \sum_i w_i , A_i^\top A_i,
+\qquad
+b = \sum_i w_i , A_i^\top A_i , p_i.
+$$
+
+with:
+
+* **Active YOLO rays:**
+  Each ray defines a unit direction vector $v_i = r_i / |r_i|$.
+  The perpendicular projection operator is $A_i = I - v_i v_i^\top$, penalizing distance orthogonal to the ray.
+
+* **Blocked rays (inactive, $t < 0$):**
+  Treated as point constraints: $A_i = I$.
+
+* **Location detections:**
+  $A_i = I$ with $p_i = (x_i, y_i)^\top$.
+
+* **Odometry prior:**
+  $A_i = I$ with weight $w_{\text{odo}} = c$ and $p_i = (x_o, y_o)^\top$.
+
+All non-odometry constraints are scaled by $(1 - c)$ to preserve the relative odometry confidence.
+
+Finally, a small regularization term $\lambda I$ (e.g., $\lambda = 10^{-12}$) is added to $M$ to ensure numerical stability.
+
+Solve the normal equations:
+
+$$
+q = M^{-1} b.
+$$
+
+---
+
 **Active Set Handling:**
-- Rays are half-lines (one-sided constraints)
-- If the projection of $(x, y)$ onto ray $i$ falls behind the landmark, treat it as a point constraint at $(l_{x,i}, l_{y,i})$ instead
-- Iterate until the active/inactive status stabilizes
+
+* Rays are half-lines (one-sided constraints)
+* If the projection of $(x, y)$ onto ray $i$ falls behind the landmark, treat it as a point constraint at $(l_{x,i}, l_{y,i})$ instead
+* Iterate until the active/inactive status stabilizes
 
 Solve: $(x, y) = M^{-1} b$
+
+---
 
 #### **Step 2: Orientation Estimation (fix position $(x, y)$)**
 
