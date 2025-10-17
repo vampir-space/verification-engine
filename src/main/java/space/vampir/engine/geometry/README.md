@@ -1,6 +1,6 @@
 # GeometrySolver
 
-The `GeometrySolver` estimates a vehicle’s **2D position** and **orientation** using three types of information:
+The `GeometrySolver` estimates a vehicle's **2D position** and **orientation** using three types of information:
 
 ---
 
@@ -18,7 +18,7 @@ and an associated confidence weight $c \in [0, 1]$.
 
 ### **2. Location detections**
 
-Direct observations of the vehicle’s position at points
+Direct observations of the vehicle's position at points
 
 $$
 (x_i, y_i)
@@ -33,15 +33,15 @@ These act as **point constraints** that pull the estimated position toward the d
 ### **3. YOLO detections**
 
 Each **YOLO detection** comes from a visual model that identifies a known **landmark** in the camera view.  
-The landmark’s **world position** is known:
+The landmark's **world position** is known:
 
 $$
 (l_{x,i}, l_{y,i})
 $$
 
-and the **bearing angle** $\beta_i$ (in **degrees**) is measured **relative to the car’s current forward direction**.
+and the **bearing angle** $\beta_i$ (in **degrees**) is measured **relative to the car's current forward direction**.
 
-If the car’s true facing direction is the unit vector
+If the car's true facing direction is the unit vector
 
 $$
 d = (\cos \alpha, \sin \alpha),
@@ -55,7 +55,7 @@ $$
 
 points **toward** the detected landmark.
 
-From the **landmark’s perspective**, the car must lie somewhere along a **ray** that starts at the landmark and points in the **opposite direction** of that rotated vector:
+From the **landmark's perspective**, the car must lie somewhere along a **ray** that starts at the landmark and points in the **opposite direction** of that rotated vector:
 
 $$
 r_i = -R(\beta_i) \, d
@@ -74,215 +74,199 @@ A smaller $\sigma_{\beta_i}$ implies a sharper, more confident detection.
 
 ---
 
-## **Estimation Procedure**
+## **Constraint Weighting from Uncertainties**
 
-The solver estimates both the position $(x, y)$ and orientation $\alpha$ that best satisfy all constraints using an **iterative least-squares refinement**:
+To incorporate the uncertainty measures into the least-squares estimation, we derive scalar weights for each constraint:
 
-1. **Fix the orientation** $\alpha$ and solve for position $(x, y)$ based on geometric intersections of the YOLO-derived rays and point detections (with respective uncertainties $r_i$ and $\sigma_{\beta_i}$).  
-2. **Fix the position** $(x, y)$ and update the orientation $\alpha$ using the bearings toward all visible landmarks (from YOLO detections).  
-3. Repeat until the pose $(x, y, \alpha)$ converges.
+### **Location Detection Weights**
 
----
+For each location detection with uncertainty radius $r_i$, the weight is inversely proportional to the variance (radius squared):
 
-This alternating optimization produces a consistent estimate of the car’s position and facing direction by combining  
-**landmark geometry** (from YOLO detections), **point measurements**, and **odometry priors** into a unified geometric solution.
+$
+w_{\text{loc},i} = \frac{1}{r_i^2 + \varepsilon}
+$
 
----
+where $\varepsilon$ is a small regularization constant (e.g., $\varepsilon = 0.01$ m²) to handle perfect measurements where $r_i = 0$. Smaller uncertainty radius → larger weight → stronger constraint.
 
-## **Estimation Procedure**
+### **YOLO Detection Weights**
 
-The solver estimates both the position $(x, y)$ and orientation $\alpha$ that best satisfy all constraints using an **iterative least-squares refinement**:
+For each YOLO detection with angular uncertainty $\sigma_{\beta_i}$ (in degrees), we derive a weight based on the angular precision. Converting to radians and using inverse variance weighting:
 
-1. **Fix the orientation** $\alpha$ and solve for position $(x, y)$ based on geometric intersections of the YOLO-derived rays and point detections.  
-2. **Fix the position** $(x, y)$ and update the orientation $\alpha$ using the bearings toward all visible landmarks (from YOLO detections).  
-3. Repeat until the pose $(x, y, \alpha)$ converges.
+$
+w_{\text{yolo},i} = \frac{1}{(\sigma_{\beta_i} \cdot \pi/180)^2 + \varepsilon}
+$
 
----
-
-This alternating optimization produces a consistent estimate of the car’s position and facing direction by combining **landmark geometry** (from YOLO detections), **point measurements**, and **odometry priors** into a unified geometric solution.
-
+where $\varepsilon$ is a small regularization constant (e.g., $\varepsilon = (0.1 \cdot \pi/180)^2 \approx 3 \times 10^{-6}$) to handle the case where $\sigma_{\beta_i} = 0$ (perfect measurement). This gives a very large but finite weight for highly confident detections.
 
 ---
 
-## 1. Position Estimation
+## **Iterative Estimation Procedure**
 
-### Goal
+The solver alternates between position and orientation estimation until convergence:
 
-We want to find the position `(x, y)` that minimizes how far we are from all the rays and points we “should” be consistent with.
+### **Initialization**
 
-Each ray can be thought of as saying:
+Start with odometry prior: $(x, y) = (x_o, y_o)$ and $\alpha = \alpha_o$.
 
-> “You should be somewhere *along this line* starting from `(px, py)` and going in direction `(vx, vy)`.”
+### **Iteration Loop** (repeat until convergence)
 
-Each point says:
+#### **Step 1: Position Estimation (fix orientation $\alpha$)**
 
-> “You should be *close to this point*.”
+Given current orientation $\alpha = (\cos \alpha, \sin \alpha)$, compute ray directions for all YOLO detections:
 
-Odometry gives us an approximate prior position `(xo, yo)` with a certain weight `c` that says how much to trust it.
+For each landmark at $(l_{x,i}, l_{y,i})$ with bearing $\beta_i$:
 
----
+$$
+r_i = -R(\beta_i) \, d
+$$
 
-### Weighted Least Squares Setup
+This ray direction is now fixed for this iteration.
 
-We minimize a weighted sum of squared distances:
+**Weighted Least Squares for Position:**
 
-```
-E(x, y) = (1 - c) * [sum of ray and point distances²] + c * [distance to odometry²]
-```
+Minimize the weighted sum:
 
-* `c ∈ [0, 1]` controls how strongly we trust the odometry.
-* `(1 - c)` scales how much we trust the external detections.
-
-This is a **least squares** problem that can be written in matrix form:
-
-```
-M * [x, y]^T = b
-```
+$$
+E(x, y) = \sum_{\text{locations}} w_{\text{loc},i} \cdot \left\| (x, y) - (x_i, y_i) \right\|^2 
++ \sum_{\text{YOLO}} w_{\text{yolo},i} \cdot \text{dist}_{\text{ray}}^2(x, y; l_i, r_i)
++ w_{\text{odo}} \cdot \left\| (x, y) - (x_o, y_o) \right\|^2
+$$
 
 where:
+- $\text{dist}_{\text{ray}}(x, y; l_i, r_i)$ is the perpendicular distance from point $(x, y)$ to the ray starting at $l_i$ in direction $r_i$
+- $w_{\text{odo}} = c$ is the odometry weight
 
-* `M` is a 2×2 system derived from all active constraints,
-* `b` is a 2×1 vector pulling towards the measured data.
+This can be formulated as a linear system:
 
-Solving gives:
+$$
+M \begin{bmatrix} x \\ y \end{bmatrix} = b
+$$
 
-```
-[x, y] = M⁻¹ * b
-```
+where $M$ is a $2 \times 2$ weighted normal equations matrix and $b$ is the weighted right-hand side.
 
-The solver uses an **active-set** approach:
+**Active Set Handling:**
+- Rays are half-lines (one-sided constraints)
+- If the projection of $(x, y)$ onto ray $i$ falls behind the landmark, treat it as a point constraint at $(l_{x,i}, l_{y,i})$ instead
+- Iterate until the active/inactive status stabilizes
 
-* Rays can only extend forward (they are *half-lines*).
-* If the projection of `(x, y)` onto a ray would be *behind* it, that ray is treated like a point instead.
-* The algorithm iterates until the active/inactive rays stop changing.
+Solve: $(x, y) = M^{-1} b$
 
----
+#### **Step 2: Orientation Estimation (fix position $(x, y)$)**
 
-## 2. Orientation Estimation
+Given current position $(x, y)$, each YOLO landmark provides a bearing constraint.
 
-### Intuition
+For each landmark at $(l_{x,i}, l_{y,i})$, the vector from the vehicle to the landmark is:
 
-Once we know where we are, we can estimate which direction the robot is facing.
+$$
+v_i = (l_{x,i} - x, l_{y,i} - y)
+$$
 
-Each landmark ray not only tells us *where* we are (geometry), but also *what angle* the robot would have had to face to see that landmark.
+The angle from vehicle to landmark is:
 
-For a ray at direction `(vx, vy)`:
+$$
+\theta_i = \operatorname{atan2}(l_{y,i} - y, l_{x,i} - x)
+$$
 
-* Its **bearing angle** is simply `β = atan2(vy, vx)`.
+Given that the bearing measurement was $\beta_i$ (relative to vehicle heading), the vehicle heading that would produce this bearing is:
 
-If the robot is looking *toward* the landmark, its **facing direction** should be roughly `β + π` (180° rotated).
+$$
+\alpha_i = \theta_i - \beta_i \cdot \pi/180
+$$
 
----
+**Weighted Circular Mean:**
 
-### Averaging Directions
+Each YOLO detection provides an orientation estimate $\alpha_i$ with weight $w_{\text{yolo},i}$.
 
-We form **unit vectors** representing each estimated facing direction and average them together.
+Convert to unit vectors and compute weighted sum:
 
-If `n` rays give facing directions `(fx_i, fy_i)`:
+$$
+S_x = \sum_{\text{YOLO}} w_{\text{yolo},i} \cdot \cos(\alpha_i) + w_{\text{odo}} \cdot \cos(\alpha_o)
+$$
 
-```
-F = sum_i (fx_i, fy_i)
-```
+$$
+S_y = \sum_{\text{YOLO}} w_{\text{yolo},i} \cdot \sin(\alpha_i) + w_{\text{odo}} \cdot \sin(\alpha_o)
+$$
 
-We then blend this with the odometry facing direction `(f_odo_x, f_odo_y)`:
+The updated orientation is:
 
-```
-F_total = (1 - c) * F + c * (f_odo_x, f_odo_y)
-```
+$$
+\alpha = \operatorname{atan2}(S_y, S_x)
+$$
 
-Normalize it to get the unit vector of the estimated heading:
+#### **Convergence Check**
 
-```
-(fx, fy) = F_total / ||F_total||
-θ = atan2(fy, fx)
-```
+Stop when both position and orientation changes fall below thresholds:
 
-Here `θ` is the final estimated orientation.
+$
+\left\| (x_{\text{new}}, y_{\text{new}}) - (x_{\text{old}}, y_{\text{old}}) \right\| < \varepsilon_{\text{pos}}
+$
 
----
+$
+|\alpha_{\text{new}} - \alpha_{\text{old}}| < \varepsilon_{\text{angle}}
+$
 
-## 3. Confidence Measures
-
-### 3.1 Position Confidence — The Ellipse
-
-If the rays and points intersect cleanly, we’re confident in our position.
-If they’re almost parallel or noisy, we’re less sure.
-
-Mathematically, we get this from the same matrix `M` we solved earlier:
-
-```
-Covariance ≈ M⁻¹
-```
-
-This matrix defines an **ellipse** that describes how uncertain we are in different directions:
-
-* The **shape** comes from how the rays intersect (wide angles → round ellipse, shallow angles → flat ellipse).
-* The **size** scales with how much residual error there was in the fit.
-
-We draw it as a 1σ ellipse centered at the solution `(x, y)`.
+Typical values: $\varepsilon_{\text{pos}} = 0.01$ meters, $\varepsilon_{\text{angle}} = 0.1$ degrees.
 
 ---
 
-### 3.2 Orientation Confidence — The Cone
+## **Confidence Estimation**
 
-We also measure how strongly the rays “agree” on the facing direction.
+### **Position Confidence Ellipse**
 
-Before normalization, the length of the summed vector `F_total` gives a natural confidence:
+The covariance of the position estimate is approximated by:
 
-```
-r = ||F_total||
-```
+$$
+\Sigma_{\text{pos}} = M^{-1}
+$$
 
-* If all bearings agree → `r ≈ 1.0` → narrow cone.
-* If bearings conflict → `r` becomes small → wide cone.
+where $M$ is the weighted normal equations matrix from the position step.
 
-We can visualize this as a **cone** (or sector) centered on the estimated heading `θ`, with half-angle proportional to `(1 - r)`.
+Eigenvalue decomposition of $\Sigma_{\text{pos}}$ gives:
+- **Major/minor axes**: eigenvectors scaled by $\sqrt{\lambda_i}$
+- **Ellipse orientation**: angle of largest eigenvector
 
-For example:
+This visualizes the $1\sigma$ confidence region.
 
-```
-half_angle = (1 - r) * 45°  // rough intuitive scaling
-```
+### **Orientation Confidence**
 
----
+The concentration of the weighted orientation estimates is measured by:
 
-## 4. Visualization Summary
+$$
+r = \frac{\sqrt{S_x^2 + S_y^2}}{\sum_{\text{all}} w_i}
+$$
 
-| Element               | Color              | Meaning                               |
-| --------------------- | ------------------ | ------------------------------------- |
-| **Rays**              | Green              | Landmarks with viewing direction      |
-| **Points**            | Blue               | Fixed spatial constraints             |
-| **Odometry point**    | Red                | Prior position from dead reckoning    |
-| **Solution**          | Black              | Estimated position                    |
-| **Odometry heading**  | Red arrow          | Original odometry facing direction    |
-| **Estimated heading** | Gray/Black arrow   | Computed best-fit orientation         |
-| **Position ellipse**  | Light gray outline | Confidence area in position           |
-| **Heading cone**      | Faint gray wedge   | Confidence spread in facing direction |
+This gives a value in $[0, 1]$ where:
+- $r \approx 1$: all bearings agree (high confidence)
+- $r \approx 0$: bearings conflict (low confidence)
 
----
+Visualize as a cone with half-angle:
 
-## 5. Iterative Refinement
+$$
+\sigma_{\alpha} = k \cdot (1 - r) \cdot 180°
+$$
 
-In a full system, we can alternate between updating position and orientation:
-
-1. **Start** with an initial guess of position and orientation.
-2. **Fix orientation**, solve for position (the least-squares step).
-3. **Fix position**, update orientation (average bearings).
-4. Repeat until both stabilize.
-
-This creates a coupled, iterative solution that converges to a consistent `(x, y, θ)`.
+where $k$ is a scaling factor (e.g., $k = 0.5$ gives max 90° half-angle).
 
 ---
 
-## 6. Intuition Recap
+## **Implementation Notes**
 
-* Position = where all geometric constraints best intersect.
-* Orientation = average of all “where I must be facing to see that landmark.”
-* The weights `c` let us smoothly combine odometry and perception.
-* Ellipse and cone show how confident we are in each estimate.
+1. **Normalization**: Consider normalizing all weights to sum to 1 within each constraint type
+2. **Robust estimation**: For outlier rejection, consider using Huber or Tukey weights
+3. **Initialization**: Good initial guess from odometry significantly speeds convergence
+4. **Degenerate cases**: 
+   - Single ray: no position estimate possible
+   - Parallel rays: position poorly constrained in one direction
+   - No YOLO detections: rely purely on location detections and odometry
 
 ---
 
-## References
+## **Summary**
 
-This approach is conceptually similar to pose estimation in robotics and SLAM systems using **least squares** and **bearing-only localization** (see e.g. Thrun, Burgard, Fox *Probabilistic Robotics*), but simplified for implementation in a small, efficient solver.
+The iterative procedure:
+1. Converts uncertainty measures ($r_i$, $\sigma_{\beta_i}$) into scalar weights ($w_i$)
+2. Alternates between weighted least-squares position and orientation estimation
+3. Converges to a consistent pose $(x, y, \alpha)$ that balances all constraints
+4. Provides confidence measures through covariance analysis
+
+This creates a unified geometric solution combining landmark geometry, point measurements, and odometry priors with proper uncertainty handling.
