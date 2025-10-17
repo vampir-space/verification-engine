@@ -332,83 +332,97 @@ public class GeometrySolver {
         return new double[]{x, y};
     }
 
-    /**
-     * Compute confidence measures
-     */
-    private static void computeConfidence(
-            Solution solution,
-            OdometryPrior odometry,
-            List<LocationDetection> locationDetections,
-            List<YoloDetection> yoloDetections) {
+private static void computeConfidence(
+        Solution solution,
+        OdometryPrior odometry,
+        List<LocationDetection> locationDetections,
+        List<YoloDetection> yoloDetections) {
 
-        // Recompute M matrix for position covariance
-        double[][] M = new double[2][2];
-        double[] dummy = new double[2];
+    // Recompute M matrix for position covariance
+    double[][] M = new double[2][2];
+    double[] dummy = new double[2];
 
-        double c = odometry.confidence;
-        double wOdo = c;
+    double c = odometry.confidence;
+    double wOdo = c;
 
-        addPointConstraint(M, dummy, odometry.x, odometry.y, wOdo);
+    addPointConstraint(M, dummy, odometry.x, odometry.y, wOdo);
 
-        for (LocationDetection loc : locationDetections) {
-            double w = loc.getWeight() * (1 - c);
-            addPointConstraint(M, dummy, loc.x, loc.y, w);
-        }
-
-        double cosA = Math.cos(solution.alpha);
-        double sinA = Math.sin(solution.alpha);
-
-        for (YoloDetection yolo : yoloDetections) {
-            double w = yolo.getWeight() * (1 - c);
-
-            double betaRad = yolo.bearing * Math.PI / 180.0;
-            double cosBeta = Math.cos(betaRad);
-            double sinBeta = Math.sin(betaRad);
-
-            double rx = -(cosBeta * cosA - sinBeta * sinA);
-            double ry = -(sinBeta * cosA + cosBeta * sinA);
-
-            double dx = solution.x - yolo.landmarkX;
-            double dy = solution.y - yolo.landmarkY;
-            double t = dx * rx + dy * ry;
-
-            if (t >= 0) {
-                addRayConstraint(M, dummy, yolo.landmarkX, yolo.landmarkY, rx, ry, w);
-            } else {
-                addPointConstraint(M, dummy, yolo.landmarkX, yolo.landmarkY, w);
-            }
-        }
-
-        M[0][0] += LAMBDA_REG;
-        M[1][1] += LAMBDA_REG;
-
-        // Position covariance = M^{-1}
-        double det = M[0][0] * M[1][1] - M[0][1] * M[1][0];
-        if (Math.abs(det) > 1e-15) {
-            double invDet = 1.0 / det;
-            solution.positionCovariance[0][0] = invDet * M[1][1];
-            solution.positionCovariance[0][1] = -invDet * M[0][1];
-            solution.positionCovariance[1][0] = -invDet * M[1][0];
-            solution.positionCovariance[1][1] = invDet * M[0][0];
-        }
-
-        // Orientation confidence
-        double Sx = 0, Sy = 0, totalWeight = 0;
-
-        Sx += wOdo * Math.cos(odometry.alpha);
-        Sy += wOdo * Math.sin(odometry.alpha);
-        totalWeight += wOdo;
-
-        for (YoloDetection yolo : yoloDetections) {
-            double w = yolo.getWeight() * (1 - c);
-            totalWeight += w;
-        }
-
-        // Concentration measure
-        double r = Math.sqrt(Sx * Sx + Sy * Sy) / totalWeight;
-        solution.orientationConcentration = r;
-        solution.orientationUncertainty = ORIENTATION_CONE_SCALE * (1 - r) * 180.0;
+    for (LocationDetection loc : locationDetections) {
+        double w = loc.getWeight() * (1 - c);
+        addPointConstraint(M, dummy, loc.x, loc.y, w);
     }
+
+    double cosA = Math.cos(solution.alpha);
+    double sinA = Math.sin(solution.alpha);
+
+    for (YoloDetection yolo : yoloDetections) {
+        double w = yolo.getWeight() * (1 - c);
+
+        double betaRad = yolo.bearing * Math.PI / 180.0;
+        double cosBeta = Math.cos(betaRad);
+        double sinBeta = Math.sin(betaRad);
+
+        double rx = -(cosBeta * cosA - sinBeta * sinA);
+        double ry = -(sinBeta * cosA + cosBeta * sinA);
+
+        double dx = solution.x - yolo.landmarkX;
+        double dy = solution.y - yolo.landmarkY;
+        double t = dx * rx + dy * ry;
+
+        if (t >= 0) {
+            addRayConstraint(M, dummy, yolo.landmarkX, yolo.landmarkY, rx, ry, w);
+        } else {
+            addPointConstraint(M, dummy, yolo.landmarkX, yolo.landmarkY, w);
+        }
+    }
+
+    M[0][0] += LAMBDA_REG;
+    M[1][1] += LAMBDA_REG;
+
+    // Position covariance = M^{-1}
+    double det = M[0][0] * M[1][1] - M[0][1] * M[1][0];
+    if (Math.abs(det) > 1e-15) {
+        double invDet = 1.0 / det;
+        solution.positionCovariance[0][0] = invDet * M[1][1];
+        solution.positionCovariance[0][1] = -invDet * M[0][1];
+        solution.positionCovariance[1][0] = -invDet * M[1][0];
+        solution.positionCovariance[1][1] = invDet * M[0][0];
+    }
+
+    double Sx = 0, Sy = 0, totalWeight = 0;
+
+    // Odometry orientation contribution
+    Sx += wOdo * Math.cos(odometry.alpha);
+    Sy += wOdo * Math.sin(odometry.alpha);
+    totalWeight += wOdo;
+
+    for (YoloDetection yolo : yoloDetections) {
+        double w = yolo.getWeight() * (1 - c);
+        
+        // Angle from vehicle to landmark
+        double dx = yolo.landmarkX - solution.x;
+        double dy = yolo.landmarkY - solution.y;
+        double theta = Math.atan2(dy, dx);
+        
+        // Vehicle heading that would produce this bearing
+        double betaRad = yolo.bearing * Math.PI / 180.0;
+        double alphaEst = theta - betaRad;
+        
+        // Add to circular mean
+        Sx += w * Math.cos(alphaEst);
+        Sy += w * Math.sin(alphaEst);
+        totalWeight += w;
+    }
+
+    // Concentration measure: length of mean vector
+    double r = Math.sqrt(Sx * Sx + Sy * Sy) / totalWeight;
+    solution.orientationConcentration = r;
+    
+    // Convert concentration to uncertainty (inverse relationship)
+    // When r=1 (perfect agreement), uncertainty should be small
+    // When r=0 (total disagreement), uncertainty should be large
+    solution.orientationUncertainty = ORIENTATION_CONE_SCALE * (1 - r) * 180.0;
+}
 
     /**
      * Solve with visualization output

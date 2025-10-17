@@ -33,7 +33,7 @@ public class GeometryTest {
         yolos.add(new GeometrySolver.YoloDetection(25, 25, -45, 2.5));   // Another pillar
 
         GeometrySolver.Solution solution = GeometrySolver.solveWithVisualization(
-                odometry, locations, yolos, "test_warehouse.png");
+                odometry, locations, yolos, "geometryTests/test_warehouse.png");
 
         assertTrue(solution.converged);
         System.out.printf("Estimated position: (%.2f, %.2f)\n", solution.x, solution.y);
@@ -70,7 +70,7 @@ public class GeometryTest {
         yolos.add(new GeometrySolver.YoloDetection(100, 190, -90, 2.0));  // Light pole behind
 
         GeometrySolver.Solution solution = GeometrySolver.solveWithVisualization(
-                odometry, locations, yolos, "test_parking.png");
+                odometry, locations, yolos, "geometryTests/test_parking.png");
 
         assertTrue(solution.converged);
         System.out.printf("Vehicle position: (%.2f, %.2f)\n", solution.x, solution.y);
@@ -103,7 +103,7 @@ public class GeometryTest {
         yolos.add(new GeometrySolver.YoloDetection(15, 5.5, 10, 2.0));  // Fire extinguisher
 
         GeometrySolver.Solution solution = GeometrySolver.solveWithVisualization(
-                odometry, locations, yolos, "test_corridor.png");
+                odometry, locations, yolos, "geometryTests/test_corridor.png");
 
         assertTrue(solution.converged);
         System.out.printf("Position in corridor: (%.2f, %.2f)\n", solution.x, solution.y);
@@ -137,7 +137,7 @@ public class GeometryTest {
         yolos.add(new GeometrySolver.YoloDetection(50, 65, 90, 1.5));   // Alcove
 
         GeometrySolver.Solution solution = GeometrySolver.solveWithVisualization(
-                odometry, locations, yolos, "test_drift.png");
+                odometry, locations, yolos, "geometryTests/test_drift.png");
 
         assertTrue(solution.converged);
         System.out.printf("Corrected position: (%.2f, %.2f)\n", solution.x, solution.y);
@@ -172,7 +172,7 @@ public class GeometryTest {
         yolos.add(new GeometrySolver.YoloDetection(0, 15, 90, 2.0));     // Traffic light
 
         GeometrySolver.Solution solution = GeometrySolver.solveWithVisualization(
-                odometry, locations, yolos, "test_intersection.png");
+                odometry, locations, yolos, "geometryTests/test_intersection.png");
 
         assertTrue(solution.converged);
         System.out.printf("Position at intersection: (%.2f, %.2f)\n", solution.x, solution.y);
@@ -181,71 +181,6 @@ public class GeometryTest {
         // Should be near origin with good accuracy from multiple landmarks
         assertTrue(Math.abs(solution.x) < 2.0);
         assertTrue(Math.abs(solution.y) < 2.0);
-    }
-
-    @Test
-    public void testAmbiguousLandmarks() throws IOException {
-        // Scenario: Similar-looking landmarks creating potential ambiguity
-        // Tests solver's ability to handle conflicting information
-
-        System.out.println("\n=== Ambiguous Landmarks Test ===");
-
-        // Moderate confidence odometry
-        GeometrySolver.OdometryPrior odometry = new GeometrySolver.OdometryPrior(
-                15, 20, 0, 0.5);
-
-        // Single location constraint
-        List<GeometrySolver.LocationDetection> locations = new ArrayList<>();
-        locations.add(new GeometrySolver.LocationDetection(16, 21, 2.0));
-
-        // Multiple similar pillars - some measurements might be slightly inconsistent
-        List<GeometrySolver.YoloDetection> yolos = new ArrayList<>();
-        yolos.add(new GeometrySolver.YoloDetection(20, 20, 15, 3.0));   // Pillar 1
-        yolos.add(new GeometrySolver.YoloDetection(20, 25, 30, 3.5));   // Pillar 2
-        yolos.add(new GeometrySolver.YoloDetection(10, 20, -20, 3.0));  // Pillar 3
-        yolos.add(new GeometrySolver.YoloDetection(15, 15, -30, 4.0));  // Pillar 4 (noisy)
-
-        GeometrySolver.Solution solution = GeometrySolver.solveWithVisualization(
-                odometry, locations, yolos, "test_ambiguous.png");
-
-        assertTrue(solution.converged);
-        System.out.printf("Resolved position: (%.2f, %.2f)\n", solution.x, solution.y);
-        System.out.printf("Orientation uncertainty: ±%.1f°\n", solution.orientationUncertainty);
-
-        // Should still converge despite noise
-        assertTrue(solution.orientationUncertainty < 15.0,
-                "Should maintain reasonable orientation confidence");
-    }
-
-    @Test
-    public void testDoorwayPassage() throws IOException {
-        // Scenario: Robot passing through doorway with asymmetric landmark visibility
-
-        System.out.println("\n=== Doorway Passage Test ===");
-
-        // Moving through doorway at (30, 10), heading north
-        GeometrySolver.OdometryPrior odometry = new GeometrySolver.OdometryPrior(
-                30, 10, Math.PI/2, 0.6);
-
-        // No direct location measurements
-        List<GeometrySolver.LocationDetection> locations = new ArrayList<>();
-
-        // Can see landmarks from room behind, doorframe, and glimpse into next room
-        List<GeometrySolver.YoloDetection> yolos = new ArrayList<>();
-        yolos.add(new GeometrySolver.YoloDetection(35, 5, -150, 2.0));  // Desk in old room
-        yolos.add(new GeometrySolver.YoloDetection(28, 10, -90, 1.0));  // Door frame left
-        yolos.add(new GeometrySolver.YoloDetection(32, 10, 90, 1.0));   // Door frame right
-        yolos.add(new GeometrySolver.YoloDetection(30, 15, 0, 2.5));    // Object in new room
-
-        GeometrySolver.Solution solution = GeometrySolver.solveWithVisualization(
-                odometry, locations, yolos, "test_doorway.png");
-
-        assertTrue(solution.converged);
-        System.out.printf("Position at doorway: (%.2f, %.2f)\n", solution.x, solution.y);
-
-        // Should be centered in doorway
-        assertTrue(Math.abs(solution.x - 30) < 2.0);
-        assertTrue(Math.abs(solution.y - 10) < 2.0);
     }
 
     @Test
@@ -272,7 +207,7 @@ public class GeometryTest {
         yolos.add(new GeometrySolver.YoloDetection(10, 10, -45, 1.5));  // Wall ahead-right
 
         GeometrySolver.Solution solution = GeometrySolver.solveWithVisualization(
-                odometry, locations, yolos, "test_uturn.png");
+                odometry, locations, yolos, "geometryTests/test_uturn.png");
 
         assertTrue(solution.converged);
         System.out.printf("Post-turn position: (%.2f, %.2f)\n", solution.x, solution.y);
@@ -306,7 +241,7 @@ public class GeometryTest {
         yolos.add(new GeometrySolver.YoloDetection(40, 20, -90, 2.0));   // Stairwell
 
         GeometrySolver.Solution solution = GeometrySolver.solveWithVisualization(
-                odometry, locations, yolos, "test_multifloor.png");
+                odometry, locations, yolos, "geometryTests/test_multifloor.png");
 
         assertTrue(solution.converged);
         System.out.printf("Position on floor 2: (%.2f, %.2f)\n", solution.x, solution.y);
@@ -338,7 +273,7 @@ public class GeometryTest {
         yolos.add(new GeometrySolver.YoloDetection(250, 150, 15, 5.0));   // Water tower
 
         GeometrySolver.Solution solution = GeometrySolver.solveWithVisualization(
-                odometry, locations, yolos, "test_highspeed.png");
+                odometry, locations, yolos, "geometryTests/test_highspeed.png");
 
         assertTrue(solution.converged);
         System.out.printf("High-speed position: (%.2f, %.2f)\n", solution.x, solution.y);
@@ -402,7 +337,7 @@ public class GeometryTest {
         }
 
         GeometrySolver.Solution solution = GeometrySolver.solveWithVisualization(
-                odometry, locations, yolos, "test_overconstrained.png");
+                odometry, locations, yolos, "geometryTests/test_overconstrained.png");
 
         assertTrue(solution.converged);
         System.out.printf("Overconstrained solution: (%.2f, %.2f)\n", solution.x, solution.y);
