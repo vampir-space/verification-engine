@@ -1,10 +1,8 @@
 package space.vampir.engine.geometry;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,7 +41,7 @@ public class GeometryTest {
     }
 
     @Test
-    public void testSolveWithVisualization(@TempDir Path tempDir) throws IOException {
+    public void testSolveWithVisualization() throws IOException {
         System.out.println("Starting GeometrySolver visualization test...");
 
         // Odometry prior: position (10, 10), heading 45°, confidence 0.5
@@ -61,8 +59,8 @@ public class GeometryTest {
         yolos.add(new GeometrySolver.YoloDetection(5, 15, -45, 3.0));   // landmark at (5,15), bearing -45°, ±3°
         System.out.println("Created YOLO detections");
 
-        // Solve with visualization
-        String outputPath = tempDir.resolve("geometry_solution.png").toString();
+        // Solve with visualization - save to current folder
+        String outputPath = "geometry_solution.png";
         System.out.println("Solving with visualization output to: " + outputPath);
         GeometrySolver.Solution solution = GeometrySolver.solveWithVisualization(odometry, locations, yolos, outputPath);
 
@@ -80,7 +78,7 @@ public class GeometryTest {
         System.out.println("Visualization saved to: " + outputPath);
 
         // Verify file was created
-        assertTrue(tempDir.resolve("geometry_solution.png").toFile().exists(),
+        assertTrue(new java.io.File(outputPath).exists(),
                 "Visualization file should be created");
     }
 
