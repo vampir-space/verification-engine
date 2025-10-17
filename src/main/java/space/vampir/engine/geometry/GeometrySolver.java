@@ -1,3 +1,5 @@
+package space.vampir.engine.geometry;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.awt.*;
@@ -436,6 +438,9 @@ public class GeometrySolver {
             List<YoloDetection> yoloDetections,
             String outputFilePath) throws IOException {
 
+        // Set headless mode for environments without display
+        System.setProperty("java.awt.headless", "true");
+
         // Image dimensions
         int width = 1200;
         int height = 1200;
@@ -733,39 +738,5 @@ public class GeometrySolver {
         while (angle > Math.PI) angle -= 2 * Math.PI;
         while (angle < -Math.PI) angle += 2 * Math.PI;
         return angle;
-    }
-
-    /**
-     * Example usage
-     */
-    public static void main(String[] args) {
-        try {
-            // Odometry prior: position (10, 10), heading 45°, confidence 0.5
-            OdometryPrior odometry = new OdometryPrior(10, 10, Math.PI / 4, 0.5);
-
-            // Location detections
-            List<LocationDetection> locations = new ArrayList<>();
-            locations.add(new LocationDetection(12, 11, 1.0));  // radius 1m
-
-            // YOLO detections
-            List<YoloDetection> yolos = new ArrayList<>();
-            yolos.add(new YoloDetection(20, 20, 30, 2.0));   // landmark at (20,20), bearing 30°, ±2°
-            yolos.add(new YoloDetection(5, 15, -45, 3.0));   // landmark at (5,15), bearing -45°, ±3°
-
-            // Solve with visualization
-            Solution solution = solveWithVisualization(odometry, locations, yolos, "geometry_solution.png");
-
-            System.out.println("=== GeometrySolver Results ===");
-            System.out.printf("Position: (%.3f, %.3f)%n", solution.x, solution.y);
-            System.out.printf("Orientation: %.2f degrees%n", solution.alpha * 180 / Math.PI);
-            System.out.printf("Iterations: %d%n", solution.iterations);
-            System.out.printf("Converged: %b%n", solution.converged);
-            System.out.printf("Orientation confidence: %.3f (±%.1f°)%n",
-                    solution.orientationConcentration, solution.orientationUncertainty);
-            System.out.println("Visualization saved to: geometry_solution.png");
-        } catch (IOException e) {
-            System.err.println("Error generating visualization: " + e.getMessage());
-            e.printStackTrace();
-        }
     }
 }
