@@ -1,11 +1,24 @@
 package space.vampir.engine;
 
+import org.jetbrains.annotations.NotNull;
+import space.vampir.engine.message.Odometry;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
+import java.util.ArrayList;
 
 public class ExperimentalEvaluation {
+    private final ArrayList<Odometry> reference = new ArrayList<>();
+    private final ArrayList<Odometry> sensorAndAI = new ArrayList<>();
+    private final ArrayList<Odometry> verificationEngine = new ArrayList<>();
+
+    public void addOdometries(Odometry ref, Odometry sen, Odometry ver){
+        reference.add(ref);
+        sensorAndAI.add(sen);
+        verificationEngine.add(ver);
+    }
 
     /**
      * Entry point to launch the application instance.
@@ -35,7 +48,7 @@ public class ExperimentalEvaluation {
         JPanel leftContentWrapper = new JPanel(new BorderLayout(0, 10));
         leftContentWrapper.add(createTablePanel(), BorderLayout.NORTH);
 
-        JLabel tableLabel = new JLabel("<html><b>Table 1:</b> Experimental data matrix. T/F values represent the distribution following standard conventions in the test phase.</html>");
+        JLabel tableLabel = new JLabel("<html><b>Table 1:</b> TBD</html>");
         tableLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
         leftContentWrapper.add(tableLabel, BorderLayout.SOUTH);
 
@@ -45,7 +58,7 @@ public class ExperimentalEvaluation {
         JPanel rightColumn = new JPanel(new BorderLayout(0, 10));
         rightColumn.add(new HistogramPanel(), BorderLayout.CENTER);
 
-        JLabel graphLabel = new JLabel("<html><b>Figure 1:</b> Frequency distribution of data. The observed asymmetry during sampling is clearly visible.</html>");
+        JLabel graphLabel = new JLabel("<html><b>Figure 1:</b> TBD</html>");
         graphLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
         rightColumn.add(graphLabel, BorderLayout.SOUTH);
 
@@ -67,18 +80,12 @@ public class ExperimentalEvaluation {
 
         // 1. Prepare data (including the first row which acts as a visual header)
         //TODO: 3 féle koordináta (odometry), határ diff, szétválogatás, dont uset kitalálni
-        //referneica
-        //szenzor + ai
-        //verification engine
         //funkciók
         //új odometry adása
         //frissítés (rajz update)
         //írja ki egy fájlba ( az odometrit és a kirjaozlást ) csv fájlba
-        Object[][] data = {
-                {"", "T", "F"},
-                {"T", 1.0, 0.5},
-                {"F", 0.2, 0.8}
-        };
+
+        Object[][] data = getTableContent();
 
         // 2. Initialize column names with empty strings to avoid NullPointerException
         int columnCount = data[0].length;
@@ -108,6 +115,27 @@ public class ExperimentalEvaluation {
         tableContainer.add(table, BorderLayout.CENTER);
 
         return tableContainer;
+    }
+
+    public Object[] @NotNull [] getTableContent() {
+        int tt = 0, ft = 0, tf = 0, ff  = 0;
+
+        for(int i = 0; i < reference.size(); i++){
+            if((sensorAndAI.get(i).getX() - reference.get(i).getX() < 0.5) && (sensorAndAI.get(i).getY() - reference.get(i).getY() < 0.5)){
+                if(verificationEngine.get(i).getX() - reference.get(i).getX() < 0.5) tt++;
+                else tf++;
+            }
+           else{
+               if(verificationEngine.get(i).getX() - reference.get(i).getX() < 0.5) ft++;
+               else ff++;
+            }
+        }
+
+        return new Object[][]{
+                {"", "T", "F"},
+                {"T", tt, tf},
+                {"F", ft, ff}
+        };
     }
 
     /**
