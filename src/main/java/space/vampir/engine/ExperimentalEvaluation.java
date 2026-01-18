@@ -14,6 +14,8 @@ public class ExperimentalEvaluation {
     private final ArrayList<Odometry> sensorAndAI = new ArrayList<>();
     private final ArrayList<Odometry> verificationEngine = new ArrayList<>();
 
+    double diff = 0.5;
+
     public void addOdometries(Odometry ref, Odometry sen, Odometry ver){
         reference.add(ref);
         sensorAndAI.add(sen);
@@ -34,23 +36,41 @@ public class ExperimentalEvaluation {
      * Creates and configures the main application window.
      */
     private JFrame createMainFrame() {
-        JFrame frame = new JFrame("Experimental Evaluation and Analysis");
+        JFrame frame = new JFrame("Experimental Evaluation");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         // Main layout: 1 row, 2 columns with 40px horizontal gap
         frame.setLayout(new GridLayout(1, 2, 40, 0));
         ((JPanel)frame.getContentPane()).setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        // --- LEFT COLUMN: TABLE + TEXT ---
-        // Using BorderLayout here; placing content in NORTH prevents vertical stretching
+        // --- LEFT COLUMN: TABLE + METRICS ---
         JPanel leftColumn = new JPanel(new BorderLayout());
-
         JPanel leftContentWrapper = new JPanel(new BorderLayout(0, 10));
+
+        // Add Table to the top
         leftContentWrapper.add(createTablePanel(), BorderLayout.NORTH);
 
-        JLabel tableLabel = new JLabel("<html><b>Table 1:</b> TBD</html>");
-        tableLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        leftContentWrapper.add(tableLabel, BorderLayout.SOUTH);
+        // --- NEW: Metrics Panel (Precision & Recall) ---
+        // A BoxLayout.Y_AXIS segítségével függőlegesen egymás alá kerülnek
+        JPanel metricsPanel = new JPanel();
+        metricsPanel.setLayout(new BoxLayout(metricsPanel, BoxLayout.Y_AXIS));
+        metricsPanel.setBorder(new EmptyBorder(20, 10, 0, 0)); // Extra margin above and left
+
+        JLabel precisionLabel = new JLabel("Precision: 0.00");
+        JLabel recallLabel = new JLabel("Recall: 0.00");
+
+        // Styling the labels
+        Font metricsFont = new Font("SansSerif", Font.BOLD, 14);
+        precisionLabel.setFont(metricsFont);
+        recallLabel.setFont(metricsFont);
+
+        // Adding components with a small gap between them
+        metricsPanel.add(precisionLabel);
+        metricsPanel.add(Box.createRigidArea(new Dimension(0, 8))); // 8px vertical space
+        metricsPanel.add(recallLabel);
+
+        // Add metrics to the center (below the table)
+        leftContentWrapper.add(metricsPanel, BorderLayout.CENTER);
 
         leftColumn.add(leftContentWrapper, BorderLayout.NORTH);
 
@@ -58,7 +78,7 @@ public class ExperimentalEvaluation {
         JPanel rightColumn = new JPanel(new BorderLayout(0, 10));
         rightColumn.add(new HistogramPanel(), BorderLayout.CENTER);
 
-        JLabel graphLabel = new JLabel("<html><b>Figure 1:</b> TBD</html>");
+        JLabel graphLabel = new JLabel("<html><b>Figure 1:</b> Error Distribution Percentage</html>", JLabel.CENTER);
         graphLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
         rightColumn.add(graphLabel, BorderLayout.SOUTH);
 
@@ -66,7 +86,7 @@ public class ExperimentalEvaluation {
         frame.add(leftColumn);
         frame.add(rightColumn);
 
-        frame.setSize(900, 500);
+        frame.setSize(950, 550); // Increased size slightly for better fit
         frame.setLocationRelativeTo(null);
 
         return frame;
@@ -76,65 +96,89 @@ public class ExperimentalEvaluation {
      * Creates the table panel without a header and with centered content.
      */
     private JPanel createTablePanel() {
-        JPanel tableContainer = new JPanel(new BorderLayout());
+        JPanel mainWrapper = new JPanel(new BorderLayout(10, 10));
 
-        // 1. Prepare data (including the first row which acts as a visual header)
-        //TODO: 3 féle koordináta (odometry), határ diff, szétválogatás, dont uset kitalálni
-        //funkciók
-        //új odometry adása
-        //frissítés (rajz update)
-        //írja ki egy fájlba ( az odometrit és a kirjaozlást ) csv fájlba
-
+        // 1. Data preparation: now using 4 columns
+        // The first row: ["", "T", "F", "Dont Use"]
         Object[][] data = getTableContent();
 
-        // 2. Initialize column names with empty strings to avoid NullPointerException
-        int columnCount = data[0].length;
-        String[] columns = new String[columnCount];
-        for (int i = 0; i < columnCount; i++) {
-            columns[i] = "";
-        }
+        // Increase column names array size to 4
+        String[] columns = {"", "", "", ""};
 
         JTable table = new JTable(data, columns);
-
-        // Disable the actual table header
         table.setTableHeader(null);
 
         // --- VISUAL STYLING ---
-        table.setRowHeight(40);
+        table.setRowHeight(45);
         table.setShowGrid(true);
-        table.setGridColor(Color.LIGHT_GRAY);
+        table.setGridColor(Color.GRAY);
+        table.setFont(new Font("Arial", Font.BOLD, 14));
 
-        // Center-align text in all cells
-        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
-        centerRenderer.setHorizontalAlignment(JLabel.CENTER);
-        for (int i = 0; i < table.getColumnCount(); i++) {
-            table.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
-        }
+        // Custom renderer for header-like appearance
+        table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                                                           boolean isSelected, boolean hasFocus, int row, int column) {
+                JLabel c = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                c.setHorizontalAlignment(JLabel.CENTER);
 
-        table.setBorder(BorderFactory.createLineBorder(Color.GRAY));
-        tableContainer.add(table, BorderLayout.CENTER);
+                // Highlight the first row (including "Dont Use") and the first column
+                if (row == 0 || column == 0) {
+                    c.setBackground(new Color(230, 230, 230)); // Slightly darker gray
+                    c.setForeground(Color.BLACK);
+                    c.setFont(c.getFont().deriveFont(Font.BOLD));
+                } else {
+                    c.setBackground(Color.WHITE);
+                    c.setForeground(Color.DARK_GRAY);
+                    c.setFont(c.getFont().deriveFont(Font.PLAIN));
+                }
 
-        return tableContainer;
+                return c;
+            }
+        });
+
+        table.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+
+        // 2. Labels (Verification Engine and Sensor)
+        JLabel topLabel = new JLabel("Verification Engine", JLabel.CENTER);
+        topLabel.setFont(new Font("Arial", Font.ITALIC, 14));
+        topLabel.setBorder(BorderFactory.createEmptyBorder(0, 60, 0, 0));
+
+        JLabel leftLabel = new JLabel("Sensor");
+        leftLabel.setFont(new Font("Arial", Font.ITALIC, 14));
+        JPanel leftPanel = new JPanel(new GridBagLayout());
+        leftPanel.add(leftLabel);
+
+        // 3. Assembly
+        mainWrapper.add(topLabel, BorderLayout.NORTH);
+        mainWrapper.add(leftPanel, BorderLayout.WEST);
+        mainWrapper.add(table, BorderLayout.CENTER);
+
+        JLabel captionLabel = new JLabel("Table 1: Confusion Matrix", JLabel.CENTER);
+        captionLabel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
+        mainWrapper.add(captionLabel, BorderLayout.SOUTH);
+
+        return mainWrapper;
     }
 
     public Object[] @NotNull [] getTableContent() {
         int tt = 0, ft = 0, tf = 0, ff  = 0;
 
         for(int i = 0; i < reference.size(); i++){
-            if((sensorAndAI.get(i).getX() - reference.get(i).getX() < 0.5) && (sensorAndAI.get(i).getY() - reference.get(i).getY() < 0.5)){
-                if(verificationEngine.get(i).getX() - reference.get(i).getX() < 0.5) tt++;
+            if((sensorAndAI.get(i).getX() - reference.get(i).getX() < diff) && (sensorAndAI.get(i).getY() - reference.get(i).getY() < diff)){
+                if(verificationEngine.get(i).getX() - reference.get(i).getX() < diff) tt++;
                 else tf++;
             }
            else{
-               if(verificationEngine.get(i).getX() - reference.get(i).getX() < 0.5) ft++;
+               if(verificationEngine.get(i).getX() - reference.get(i).getX() < diff) ft++;
                else ff++;
             }
         }
 
         return new Object[][]{
-                {"", "T", "F"},
-                {"T", tt, tf},
-                {"F", ft, ff}
+                {"", "T", "F", "Don't Use"},
+                {"T", tt, tf, 0},
+                {"F", ft, ff, 0}
         };
     }
 
@@ -150,35 +194,79 @@ public class ExperimentalEvaluation {
 
             int w = getWidth();
             int h = getHeight();
-            int margin = 30;
 
-            // Draw axes
+            // Megnövelt margók a feliratoknak
+            int leftMargin = 50;
+            int bottomMargin = 50;
+            int rightMargin = 30;
+            int topMargin = 30;
+
+            int graphWidth = w - leftMargin - rightMargin;
+            int graphHeight = h - bottomMargin - topMargin;
+
+            // 1. Tengelyek rajzolása
             g2.setColor(Color.BLACK);
-            g2.drawLine(margin, h - margin, w - margin, h - margin); // X-axis
-            g2.drawLine(margin, margin, margin, h - margin);         // Y-axis
+            g2.setStroke(new BasicStroke(2));
+            g2.drawLine(leftMargin, h - bottomMargin, w - rightMargin, h - bottomMargin); // X-tengely
+            g2.drawLine(leftMargin, topMargin, leftMargin, h - bottomMargin);             // Y-tengely
 
-            // Sample data for the histogram
-            double[] values = {0.15, 0.45, 0.8, 0.65, 0.3, 0.1};
+            // 2. Y-tengely feliratozása (1-től 10-ig)
+            g2.setFont(new Font("Arial", Font.PLAIN, 12));
+            for (int i = 0; i <= 10; i++) {
+                int yPos = h - bottomMargin - (i * graphHeight / 10);
+
+                // Kis jelölő vonalak (ticks)
+                g2.drawLine(leftMargin - 5, yPos, leftMargin, yPos);
+
+                // Számok (igazítva a vonalhoz)
+                String label = String.valueOf(i);
+                int labelWidth = g2.getFontMetrics().stringWidth(label);
+                g2.drawString(label, leftMargin - labelWidth - 10, yPos + 5);
+            }
+
+            // Y-tengely neve (függőlegesen)
+            g2.rotate(-Math.PI / 2);
+            g2.drawString("TBD", - (topMargin + graphHeight / 2) - 30, leftMargin - 35);
+            g2.rotate(Math.PI / 2);
+
+            // 3. Adatok és X-tengely feliratozása
+            double[] values = getHistogramData(); // Feltételezzük, hogy 0.0 és 1.0 közötti értékek az Y-hoz képest
             int barCount = values.length;
-            int availableWidth = w - 2 * margin;
-            int barWidth = (availableWidth / barCount) - 15;
-            int maxBarHeight = h - 2 * margin;
+            int barWidth = (graphWidth / barCount) - 10;
 
             for (int i = 0; i < barCount; i++) {
-                int barHeight = (int) (values[i] * maxBarHeight);
-                int x = margin + i * (availableWidth / barCount) + 7;
-                int y = h - margin - barHeight;
+                // Oszlop rajzolása
+                int barHeight = (int) (values[i] * graphHeight);
+                int x = leftMargin + i * (graphWidth / barCount) + 5;
+                int y = h - bottomMargin - barHeight;
 
-                // Apply gradient fill for a modern look
                 GradientPaint gp = new GradientPaint(x, y, new Color(100, 150, 255), x, y + barHeight, new Color(30, 80, 180));
                 g2.setPaint(gp);
                 g2.fillRect(x, y, barWidth, barHeight);
 
-                // Draw bar outline
                 g2.setColor(new Color(20, 50, 120));
                 g2.drawRect(x, y, barWidth, barHeight);
+
+                // X-tengely feliratok (0-100% elosztva)
+                g2.setColor(Color.BLACK);
+                String percentLabel = (i * (100 / (barCount - 1))) + "%";
+                int labelX = x + (barWidth / 2) - (g2.getFontMetrics().stringWidth(percentLabel) / 2);
+                g2.drawString(percentLabel, labelX, h - bottomMargin + 20);
             }
+
+            // X-tengely neve
+            g2.drawString("TBD(%)", leftMargin + graphWidth / 2 - 40, h - 10);
         }
+    }
+
+    private double[] getHistogramData() {
+
+        return new double[]{0.15, 0.45, 0.8, 0.65, 0.3, 0.1};
+    }
+
+    private double calculatePrecision(){
+        var data = getTableContent();
+        return (double)data[1][1]/((double) data[1][1]+ (double) data[0][1]);
     }
 
     /**
