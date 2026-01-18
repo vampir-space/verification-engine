@@ -7,19 +7,37 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
-import java.util.ArrayList;
+import java.util.*;
 
 public class ExperimentalEvaluation {
-    private final ArrayList<Odometry> reference = new ArrayList<>();
-    private final ArrayList<Odometry> sensorAndAI = new ArrayList<>();
-    private final ArrayList<Odometry> verificationEngine = new ArrayList<>();
+    //TODO object id needed?
+    private final HashMap<Long, Odometry> reference = new HashMap<>();
+    private final HashMap<Long, Odometry> sensorAndAI = new HashMap<>();
+    private final HashMap<Long, Odometry> verificationEngine = new HashMap<>();
+
+    Long startTime;
+    Long endTime;
+    Long granularity;
 
     double diff = 0.5;
 
-    public void addOdometries(Odometry ref, Odometry sen, Odometry ver){
-        reference.add(ref);
-        sensorAndAI.add(sen);
-        verificationEngine.add(ver);
+    public ExperimentalEvaluation(Long startTime, Long endTime, Long granularity){
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.granularity = granularity;
+    }
+
+    public void addOdometries(ArrayList<Odometry> ref, ArrayList<Odometry> sen, ArrayList<Odometry> ver){
+        //todo check if they belong to the same time
+        for(Odometry refOdometry: ref){
+            reference.put(refOdometry.getTime(), refOdometry);
+        }
+        for(Odometry senOdometry: sen){
+            sensorAndAI.put(senOdometry.getTime(), senOdometry);
+        }
+        for(Odometry verOdometry: ver){
+            verificationEngine.put(verOdometry.getTime(), verOdometry);
+        }
     }
 
     /**
@@ -86,7 +104,7 @@ public class ExperimentalEvaluation {
         frame.add(leftColumn);
         frame.add(rightColumn);
 
-        frame.setSize(950, 550); // Increased size slightly for better fit
+        frame.setSize(1200, 800); // Increased size slightly for better fit
         frame.setLocationRelativeTo(null);
 
         return frame;
@@ -96,25 +114,47 @@ public class ExperimentalEvaluation {
      * Creates the table panel without a header and with centered content.
      */
     private JPanel createTablePanel() {
-        JPanel mainWrapper = new JPanel(new BorderLayout(10, 10));
+        // Fő tároló panel, függőleges elrendezéssel
+        JPanel mainContainer = new JPanel();
+        mainContainer.setLayout(new BoxLayout(mainContainer, BoxLayout.Y_AXIS));
+        mainContainer.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // 1. Data preparation: now using 4 columns
-        // The first row: ["", "T", "F", "Dont Use"]
-        Object[][] data = getTableContent();
+        // 1. Konfúziós Mátrix - 1 (Példa adatokkal, nullákkal)
+        Object[][] cm1Data = getConfusionTableContent(sensorAndAI);
+        mainContainer.add(createMatrixComponent("Confusion Matrix - Sensor + AI", cm1Data, "Actual", "Predicted"));
+        mainContainer.add(Box.createVerticalStrut(30)); // Távolság a mátrixok között
 
-        // Increase column names array size to 4
-        String[] columns = {"", "", "", ""};
+        // 2. Konfúziós Mátrix - 2 (Példa adatokkal, nullákkal)
+        Object[][] cm2Data = getConfusionTableContent(verificationEngine);
+        mainContainer.add(createMatrixComponent("Confusion Matrix - Verification Engine", cm2Data, "Actual", "Predicted"));
+        mainContainer.add(Box.createVerticalStrut(30));
+
+        // 3. Agreement Matrix (Az eredeti táblázatod adatai alapján)
+        Object[][] agreementData = getAgreementTableContent();
+        mainContainer.add(createMatrixComponent("Agreement Matrix", agreementData, "Sensor", "Verification Engine"));
+
+        return mainContainer;
+    }
+
+    /**
+     * Segédfüggvény egy stílusos mátrix panel létrehozásához feliratokkal
+     */
+    private JPanel createMatrixComponent(String title, Object[][] data, String leftLabelText, String topLabelText) {
+        JPanel wrapper = new JPanel(new BorderLayout(5, 5));
+
+        // Oszlopnevek (üresen hagyjuk, mert az első sor funkcionál fejlécként)
+        String[] columns = new String[data[0].length];
+        for (int i = 0; i < columns.length; i++) columns[i] = "";
 
         JTable table = new JTable(data, columns);
         table.setTableHeader(null);
-
-        // --- VISUAL STYLING ---
-        table.setRowHeight(45);
+        table.setRowHeight(40);
         table.setShowGrid(true);
         table.setGridColor(Color.GRAY);
-        table.setFont(new Font("Arial", Font.BOLD, 14));
+        table.setFont(new Font("Arial", Font.PLAIN, 14));
+        table.setPreferredScrollableViewportSize(table.getPreferredSize());
 
-        // Custom renderer for header-like appearance
+        // Renderer a fejléc stílushoz (első sor és első oszlop kiemelése)
         table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
@@ -122,9 +162,8 @@ public class ExperimentalEvaluation {
                 JLabel c = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 c.setHorizontalAlignment(JLabel.CENTER);
 
-                // Highlight the first row (including "Dont Use") and the first column
                 if (row == 0 || column == 0) {
-                    c.setBackground(new Color(230, 230, 230)); // Slightly darker gray
+                    c.setBackground(new Color(235, 235, 235));
                     c.setForeground(Color.BLACK);
                     c.setFont(c.getFont().deriveFont(Font.BOLD));
                 } else {
@@ -132,45 +171,52 @@ public class ExperimentalEvaluation {
                     c.setForeground(Color.DARK_GRAY);
                     c.setFont(c.getFont().deriveFont(Font.PLAIN));
                 }
-
                 return c;
             }
         });
 
         table.setBorder(BorderFactory.createLineBorder(Color.BLACK));
 
-        // 2. Labels (Verification Engine and Sensor)
-        JLabel topLabel = new JLabel("Verification Engine", JLabel.CENTER);
-        topLabel.setFont(new Font("Arial", Font.ITALIC, 14));
-        topLabel.setBorder(BorderFactory.createEmptyBorder(0, 60, 0, 0));
+        // Feliratok elhelyezése
+        JLabel topLabel = new JLabel(topLabelText, JLabel.CENTER);
+        topLabel.setFont(new Font("Arial", Font.ITALIC, 12));
 
-        JLabel leftLabel = new JLabel("Sensor");
-        leftLabel.setFont(new Font("Arial", Font.ITALIC, 14));
+        JLabel leftLabel = new JLabel(leftLabelText);
+        leftLabel.setFont(new Font("Arial", Font.ITALIC, 12));
         JPanel leftPanel = new JPanel(new GridBagLayout());
+        // Elforgatás nélkül, vagy GridBag-el pozicionálva balra
         leftPanel.add(leftLabel);
+        leftPanel.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
 
-        // 3. Assembly
-        mainWrapper.add(topLabel, BorderLayout.NORTH);
-        mainWrapper.add(leftPanel, BorderLayout.WEST);
-        mainWrapper.add(table, BorderLayout.CENTER);
+        JLabel captionLabel = new JLabel(title, JLabel.CENTER);
+        captionLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        captionLabel.setBorder(BorderFactory.createEmptyBorder(5, 0, 10, 0));
 
-        JLabel captionLabel = new JLabel("Table 1: Confusion Matrix", JLabel.CENTER);
-        captionLabel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
-        mainWrapper.add(captionLabel, BorderLayout.SOUTH);
+        // Összeállítás
+        wrapper.add(captionLabel, BorderLayout.NORTH);
 
-        return mainWrapper;
+        JPanel innerPanel = new JPanel(new BorderLayout());
+        innerPanel.add(topLabel, BorderLayout.NORTH);
+        innerPanel.add(leftPanel, BorderLayout.WEST);
+        innerPanel.add(table, BorderLayout.CENTER);
+
+        wrapper.add(innerPanel, BorderLayout.CENTER);
+
+        return wrapper;
     }
 
-    public Object[] @NotNull [] getTableContent() {
+    public Object[] @NotNull [] getAgreementTableContent() {
+        //TODO: true/false negatives?
         int tt = 0, ft = 0, tf = 0, ff  = 0;
 
-        for(int i = 0; i < reference.size(); i++){
-            if((sensorAndAI.get(i).getX() - reference.get(i).getX() < diff) && (sensorAndAI.get(i).getY() - reference.get(i).getY() < diff)){
-                if(verificationEngine.get(i).getX() - reference.get(i).getX() < diff) tt++;
+        for (Map.Entry<Long, Odometry> entry : reference.entrySet()) {
+            Long time = entry.getKey();
+            if((sensorAndAI.get(time).getX() - reference.get(time).getX() < diff) && (sensorAndAI.get(time).getY() - reference.get(time).getY() < diff)){
+                if(verificationEngine.get(time).getX() - reference.get(time).getX() < diff) tt++;
                 else tf++;
             }
            else{
-               if(verificationEngine.get(i).getX() - reference.get(i).getX() < diff) ft++;
+               if(verificationEngine.get(time).getX() - reference.get(time).getX() < diff) ft++;
                else ff++;
             }
         }
@@ -179,6 +225,27 @@ public class ExperimentalEvaluation {
                 {"", "T", "F", "Don't Use"},
                 {"T", tt, tf, 0},
                 {"F", ft, ff, 0}
+        };
+    }
+
+    public Object[] @NotNull [] getConfusionTableContent(HashMap<Long, Odometry> odometryHashMap) {
+       int tp = 0, fp = 0, tn = 0, fn  = 0;
+
+        for (long time = startTime; time <= endTime; time=time+granularity) {
+            if(reference.get(time) != null){
+                if(odometryHashMap.get(time) != null && (odometryHashMap.get(time).getX() - reference.get(time).getX()) < diff)  tp++;
+                else fn++;
+            }
+            else{
+                if(odometryHashMap.get(time) == null)  tn++;
+                else fp++;
+            }
+        }
+
+        return new Object[][]{
+                {"", "T", "F"},
+                {"T", tp, fn},
+                {"F", fp, tn}
         };
     }
 
@@ -265,7 +332,7 @@ public class ExperimentalEvaluation {
     }
 
     private double calculatePrecision(){
-        var data = getTableContent();
+        var data = getAgreementTableContent();
         return (double)data[1][1]/((double) data[1][1]+ (double) data[0][1]);
     }
 
@@ -273,6 +340,6 @@ public class ExperimentalEvaluation {
      * Standard main method to instantiate the class and start the app.
      */
     public static void main(String[] args) {
-        new ExperimentalEvaluation().startApplication();
+        new ExperimentalEvaluation(0L, 0L, 0L).startApplication();
     }
 }
