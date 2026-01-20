@@ -36,10 +36,10 @@ public class EvaluationTest {
         experimentalEvaluation.addOdometries(referenceExample.get(3), sensorAnAIExample.get(3), verificationEngineExample.get(3));
 
         var tableContent = experimentalEvaluation.getTableContent();
+        assertEquals(1, tableContent[0][0]);
+        assertEquals(1, tableContent[1][0]);
+        assertEquals(1, tableContent[0][1]);
         assertEquals(1, tableContent[1][1]);
-        assertEquals(1, tableContent[2][1]);
-        assertEquals(1, tableContent[1][2]);
-        assertEquals(1, tableContent[2][2]);
     }
 
     @Test
@@ -70,10 +70,10 @@ public class EvaluationTest {
         experimentalEvaluation.addOdometries(referenceExample.get(3), sensorAnAIExample.get(3), verificationEngineExample.get(3));
 
         var tableContent = experimentalEvaluation.getTableContent();
+        assertEquals(1, tableContent[0][0]);
+        assertEquals(2, tableContent[1][0]);
+        assertEquals(0, tableContent[0][1]);
         assertEquals(1, tableContent[1][1]);
-        assertEquals(2, tableContent[2][1]);
-        assertEquals(0, tableContent[1][2]);
-        assertEquals(1, tableContent[2][2]);
     }
 
     @Test

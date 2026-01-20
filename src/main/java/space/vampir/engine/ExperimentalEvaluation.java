@@ -14,6 +14,8 @@ public class ExperimentalEvaluation {
     private final ArrayList<Odometry> GNSS = new ArrayList<>();
     private final ArrayList<Odometry> verificationEngine = new ArrayList<>();
 
+    int[][] matrix;
+
     // Max error to show on histogram (meters)
     private final double MAX_ERROR_RANGE = 2.5;
     private final int BIN_COUNT = 5; // Number of bars/categories
@@ -23,6 +25,7 @@ public class ExperimentalEvaluation {
         reference.add(ref);
         GNSS.add(sen);
         verificationEngine.add(ver);
+        matrix = getTableContent();
     }
 
     /**
@@ -59,18 +62,32 @@ public class ExperimentalEvaluation {
         metricsPanel.setLayout(new BoxLayout(metricsPanel, BoxLayout.Y_AXIS));
         metricsPanel.setBorder(new EmptyBorder(20, 10, 0, 0)); // Extra margin above and left
 
-        JLabel precisionLabel = new JLabel("Availability: 0.00");
-        JLabel recallLabel = new JLabel("Integrity: 0.00");
+        int sum = matrix[0][0] + matrix[0][1] + matrix[1][0] + matrix[1][1];
+        JLabel availabilityGNSSLabel = new JLabel("GNSS Availability: " + (matrix[0][0] + matrix[0][1])/(double) sum);
+        JLabel availabilityVerificationEngineLabel = new JLabel("VE Availability: " + (matrix[0][0] + matrix[1][0])/(double) sum);
+        JLabel availabilityImprovementLabel = new JLabel("Availability improvement: " + ((matrix[0][0] + matrix[1][0])/(matrix[0][0] + matrix[0][1]))*100 + "%");
+
+        JLabel integrityGNSSLabel = new JLabel("GNSS Integrity: " + (matrix[0][0] + matrix[0][1] + matrix[0][2])/(double) sum);
+        JLabel integrityVELabel = new JLabel("VE Integrity: " + (matrix[0][0] + matrix[1][0] + matrix[0][2] + matrix[1][2])/(double) sum);
+        JLabel integrityImprovementLabel = new JLabel("VE Integrity: " + ((matrix[0][0] + matrix[1][0] + matrix[0][2] + matrix[1][2])/ (matrix[0][0] + matrix[0][1] + matrix[0][2]))*100 + "%");
 
         // Styling the labels
         Font metricsFont = new Font("SansSerif", Font.BOLD, 14);
-        precisionLabel.setFont(metricsFont);
-        recallLabel.setFont(metricsFont);
+        availabilityGNSSLabel.setFont(metricsFont);
+        availabilityVerificationEngineLabel.setFont(metricsFont);
+        availabilityImprovementLabel.setFont(metricsFont);
+        integrityGNSSLabel.setFont(metricsFont);
+        integrityVELabel.setFont(metricsFont);
+        integrityImprovementLabel.setFont(metricsFont);
 
         // Adding components with a small gap between them
-        metricsPanel.add(precisionLabel);
+        metricsPanel.add(availabilityGNSSLabel);
+        metricsPanel.add(availabilityVerificationEngineLabel);
+        metricsPanel.add(availabilityImprovementLabel);
         metricsPanel.add(Box.createRigidArea(new Dimension(0, 8))); // 8px vertical space
-        metricsPanel.add(recallLabel);
+        metricsPanel.add(integrityGNSSLabel);
+        metricsPanel.add(integrityVELabel);
+        metricsPanel.add(integrityImprovementLabel);
 
         // Add metrics to the center (below the table)
         leftContentWrapper.add(metricsPanel, BorderLayout.CENTER);
@@ -101,14 +118,18 @@ public class ExperimentalEvaluation {
     private JPanel createTablePanel() {
         JPanel mainWrapper = new JPanel(new BorderLayout(10, 10));
 
-        // 1. Data preparation: now using 4 columns
-        // The first row: ["", "T", "F", "Dont Use"]
-        Object[][] data = getTableContent();
+        // 1. Data preparation
+        int[][] data = getTableContent();
+         Object[][] tableContent = new Object[][]{
+                {"", "Valid", "Invalid", "Off"},
+                {"Valid", data[0][0], data[0][1], data[0][2]},
+                {"Invalid", data[1][0], data[1][1], data[1][2]}
+        };
 
         // Increase column names array size to 4
         String[] columns = {"", "", "", ""};
 
-        JTable table = new JTable(data, columns);
+        JTable table = new JTable(tableContent, columns);
         table.setTableHeader(null);
 
         // --- VISUAL STYLING ---
@@ -164,7 +185,7 @@ public class ExperimentalEvaluation {
         return mainWrapper;
     }
 
-    public Object[] @NotNull [] getTableContent() {
+    public int[] @NotNull [] getTableContent() {
         int tt = 0, ft = 0, tf = 0, ff  = 0;
 
         for(int i = 0; i < reference.size(); i++){
@@ -178,10 +199,9 @@ public class ExperimentalEvaluation {
             }
         }
 
-        return new Object[][]{
-                {"", "Valid", "Invalid", "Off"},
-                {"Valid", tt, tf, 0},
-                {"Invalid", ft, ff, 0}
+        return new int[][]{
+                {tt, tf, 0},
+                {ft, ff, 0}
         };
     }
 
@@ -273,10 +293,11 @@ public class ExperimentalEvaluation {
         return bins;
     }
 
+
     /**
      * Standard main method to instantiate the class and start the app.
      */
     public static void main(String[] args) {
-        new ExperimentalEvaluation().startApplication();
+    //    new ExperimentalEvaluation().startApplication();
     }
 }
