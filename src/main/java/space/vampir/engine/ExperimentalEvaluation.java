@@ -11,14 +11,17 @@ import java.util.ArrayList;
 
 public class ExperimentalEvaluation {
     private final ArrayList<Odometry> reference = new ArrayList<>();
-    private final ArrayList<Odometry> sensorAndAI = new ArrayList<>();
+    private final ArrayList<Odometry> GNSS = new ArrayList<>();
     private final ArrayList<Odometry> verificationEngine = new ArrayList<>();
 
+    // Max error to show on histogram (meters)
+    private final double MAX_ERROR_RANGE = 2.5;
+    private final int BIN_COUNT = 5; // Number of bars/categories
     double diff = 0.5;
 
     public void addOdometries(Odometry ref, Odometry sen, Odometry ver){
         reference.add(ref);
-        sensorAndAI.add(sen);
+        GNSS.add(sen);
         verificationEngine.add(ver);
     }
 
@@ -56,8 +59,8 @@ public class ExperimentalEvaluation {
         metricsPanel.setLayout(new BoxLayout(metricsPanel, BoxLayout.Y_AXIS));
         metricsPanel.setBorder(new EmptyBorder(20, 10, 0, 0)); // Extra margin above and left
 
-        JLabel precisionLabel = new JLabel("Precision: 0.00");
-        JLabel recallLabel = new JLabel("Recall: 0.00");
+        JLabel precisionLabel = new JLabel("Availability: 0.00");
+        JLabel recallLabel = new JLabel("Integrity: 0.00");
 
         // Styling the labels
         Font metricsFont = new Font("SansSerif", Font.BOLD, 14);
@@ -139,12 +142,12 @@ public class ExperimentalEvaluation {
 
         table.setBorder(BorderFactory.createLineBorder(Color.BLACK));
 
-        // 2. Labels (Verification Engine and Sensor)
+        // 2. Labels (Verification Engine and GNSS)
         JLabel topLabel = new JLabel("Verification Engine", JLabel.CENTER);
         topLabel.setFont(new Font("Arial", Font.ITALIC, 14));
         topLabel.setBorder(BorderFactory.createEmptyBorder(0, 60, 0, 0));
 
-        JLabel leftLabel = new JLabel("Sensor");
+        JLabel leftLabel = new JLabel("GNSS");
         leftLabel.setFont(new Font("Arial", Font.ITALIC, 14));
         JPanel leftPanel = new JPanel(new GridBagLayout());
         leftPanel.add(leftLabel);
@@ -154,7 +157,7 @@ public class ExperimentalEvaluation {
         mainWrapper.add(leftPanel, BorderLayout.WEST);
         mainWrapper.add(table, BorderLayout.CENTER);
 
-        JLabel captionLabel = new JLabel("Table 1: Confusion Matrix", JLabel.CENTER);
+        JLabel captionLabel = new JLabel("Table 1: Agreement Matrix", JLabel.CENTER);
         captionLabel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
         mainWrapper.add(captionLabel, BorderLayout.SOUTH);
 
@@ -165,7 +168,7 @@ public class ExperimentalEvaluation {
         int tt = 0, ft = 0, tf = 0, ff  = 0;
 
         for(int i = 0; i < reference.size(); i++){
-            if((sensorAndAI.get(i).getX() - reference.get(i).getX() < diff) && (sensorAndAI.get(i).getY() - reference.get(i).getY() < diff)){
+            if((GNSS.get(i).getX() - reference.get(i).getX() < diff) && (GNSS.get(i).getY() - reference.get(i).getY() < diff)){
                 if(verificationEngine.get(i).getX() - reference.get(i).getX() < diff) tt++;
                 else tf++;
             }
@@ -176,9 +179,9 @@ public class ExperimentalEvaluation {
         }
 
         return new Object[][]{
-                {"", "T", "F", "Don't Use"},
-                {"T", tt, tf, 0},
-                {"F", ft, ff, 0}
+                {"", "Valid", "Invalid", "Off"},
+                {"Valid", tt, tf, 0},
+                {"Invalid", ft, ff, 0}
         };
     }
 
@@ -192,81 +195,82 @@ public class ExperimentalEvaluation {
             Graphics2D g2 = (Graphics2D) g;
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-            int w = getWidth();
-            int h = getHeight();
-
-            // Megnövelt margók a feliratoknak
-            int leftMargin = 50;
-            int bottomMargin = 50;
-            int rightMargin = 30;
-            int topMargin = 30;
-
+            int w = getWidth(), h = getHeight();
+            int leftMargin = 60, bottomMargin = 60, rightMargin = 30, topMargin = 40;
             int graphWidth = w - leftMargin - rightMargin;
             int graphHeight = h - bottomMargin - topMargin;
 
-            // 1. Tengelyek rajzolása
+            // 1. Draw Axes
             g2.setColor(Color.BLACK);
             g2.setStroke(new BasicStroke(2));
-            g2.drawLine(leftMargin, h - bottomMargin, w - rightMargin, h - bottomMargin); // X-tengely
-            g2.drawLine(leftMargin, topMargin, leftMargin, h - bottomMargin);             // Y-tengely
+            g2.drawLine(leftMargin, h - bottomMargin, w - rightMargin, h - bottomMargin); // X
+            g2.drawLine(leftMargin, topMargin, leftMargin, h - bottomMargin);             // Y
 
-            // 2. Y-tengely feliratozása (1-től 10-ig)
-            g2.setFont(new Font("Arial", Font.PLAIN, 12));
+            // 2. Y-axis labels (0% to 100%)
             for (int i = 0; i <= 10; i++) {
                 int yPos = h - bottomMargin - (i * graphHeight / 10);
-
-                // Kis jelölő vonalak (ticks)
                 g2.drawLine(leftMargin - 5, yPos, leftMargin, yPos);
-
-                // Számok (igazítva a vonalhoz)
-                String label = String.valueOf(i);
+                String label = (i * 10) + "%";
                 int labelWidth = g2.getFontMetrics().stringWidth(label);
                 g2.drawString(label, leftMargin - labelWidth - 10, yPos + 5);
             }
 
-            // Y-tengely neve (függőlegesen)
-            g2.rotate(-Math.PI / 2);
-            g2.drawString("TBD", - (topMargin + graphHeight / 2) - 30, leftMargin - 35);
-            g2.rotate(Math.PI / 2);
+            // 3. Process and Draw Bars
+            double[] GNSSStats = getDistribution(GNSS);
+            double[] verifierStats = getDistribution(verificationEngine);
 
-            // 3. Adatok és X-tengely feliratozása
-            double[] values = getHistogramData(); // Feltételezzük, hogy 0.0 és 1.0 közötti értékek az Y-hoz képest
-            int barCount = values.length;
-            int barWidth = (graphWidth / barCount) - 10;
+            int groupCount = BIN_COUNT;
+            int groupWidth = graphWidth / groupCount;
+            int barWidth = (groupWidth / 2) - 10;
 
-            for (int i = 0; i < barCount; i++) {
-                // Oszlop rajzolása
-                int barHeight = (int) (values[i] * graphHeight);
-                int x = leftMargin + i * (graphWidth / barCount) + 5;
-                int y = h - bottomMargin - barHeight;
+            for (int i = 0; i < groupCount; i++) {
+                int groupX = leftMargin + i * groupWidth + 10;
 
-                GradientPaint gp = new GradientPaint(x, y, new Color(100, 150, 255), x, y + barHeight, new Color(30, 80, 180));
-                g2.setPaint(gp);
-                g2.fillRect(x, y, barWidth, barHeight);
+                // GNSS Bar (Blue)
+                drawBar(g2, groupX, h - bottomMargin, barWidth, GNSSStats[i], graphHeight, new Color(0, 0, 255));
 
-                g2.setColor(new Color(20, 50, 120));
-                g2.drawRect(x, y, barWidth, barHeight);
+                // Verifier Bar (Orange)
+                drawBar(g2, groupX + barWidth + 2, h - bottomMargin, barWidth, verifierStats[i], graphHeight, new Color(0, 255, 0));
 
-                // X-tengely feliratok (0-100% elosztva)
+                // X-axis Labels
                 g2.setColor(Color.BLACK);
-                String percentLabel = (i * (100 / (barCount - 1))) + "%";
-                int labelX = x + (barWidth / 2) - (g2.getFontMetrics().stringWidth(percentLabel) / 2);
-                g2.drawString(percentLabel, labelX, h - bottomMargin + 20);
+                String label = String.format("%.1fm", (i + 1) * (MAX_ERROR_RANGE / BIN_COUNT));
+                int labelX = groupX + (barWidth);
+                g2.drawString(label, labelX - (g2.getFontMetrics().stringWidth(label)/2), h - bottomMargin + 20);
             }
 
-            // X-tengely neve
-            g2.drawString("TBD(%)", leftMargin + graphWidth / 2 - 40, h - 10);
+            // Axis Names
+            g2.drawString("Error Distance (meters)", leftMargin + graphWidth / 2 - 60, h - 15);
+            g2.rotate(-Math.PI / 2);
+            g2.drawString("Proportion (%)", - (topMargin + graphHeight / 2) - 40, leftMargin - 45);
+            g2.rotate(Math.PI / 2);
+        }
+
+        private void drawBar(Graphics2D g2, int x, int baseLineY, int width, double percentage, int maxHeight, Color color) {
+            int barHeight = (int) (percentage * maxHeight);
+            int y = baseLineY - barHeight;
+            g2.setColor(color);
+            g2.fillRect(x, y, width, barHeight);
+            g2.setColor(color.darker());
+            g2.drawRect(x, y, width, barHeight);
         }
     }
 
-    private double[] getHistogramData() {
-
-        return new double[]{0.15, 0.45, 0.8, 0.65, 0.3, 0.1};
-    }
-
-    private double calculatePrecision(){
-        var data = getTableContent();
-        return (double)data[1][1]/((double) data[1][1]+ (double) data[0][1]);
+    private double[] getDistribution(ArrayList<Odometry> dataList) {
+        double[] bins = new double[BIN_COUNT];
+        if (dataList.isEmpty() || reference.isEmpty()) return bins;
+        double step = MAX_ERROR_RANGE / BIN_COUNT;
+        for (int i = 0; i < dataList.size(); i++) {
+            double error = Math.hypot(dataList.get(i).getX() - reference.get(i).getX(),
+                    dataList.get(i).getY() - reference.get(i).getY());
+            int binIndex = (int) (error / step);
+            if (binIndex >= BIN_COUNT) binIndex = BIN_COUNT - 1;
+            bins[binIndex]++;
+        }
+        for (int i = 0; i < BIN_COUNT; i++) {
+            bins[i] /= dataList.size();
+        }
+        return bins;
     }
 
     /**

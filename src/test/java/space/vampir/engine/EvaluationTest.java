@@ -77,7 +77,7 @@ public class EvaluationTest {
     }
 
     @Test
-    void displaxDataTest() throws InterruptedException {
+    void displayDataTest() throws InterruptedException {
         ArrayList<Odometry> referenceExample = new ArrayList<>();
         ArrayList<Odometry> sensorAnAIExample = new ArrayList<>();
         ArrayList<Odometry> verificationEngineExample = new ArrayList<>();
