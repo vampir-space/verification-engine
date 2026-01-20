@@ -65,11 +65,11 @@ public class ExperimentalEvaluation {
         int sum = matrix[0][0] + matrix[0][1] + matrix[1][0] + matrix[1][1];
         JLabel availabilityGNSSLabel = new JLabel("GNSS Availability: " + (matrix[0][0] + matrix[0][1])/(double) sum);
         JLabel availabilityVerificationEngineLabel = new JLabel("VE Availability: " + (matrix[0][0] + matrix[1][0])/(double) sum);
-        JLabel availabilityImprovementLabel = new JLabel("Availability improvement: " + ((matrix[0][0] + matrix[1][0])/(matrix[0][0] + matrix[0][1]))*100 + "%");
+        JLabel availabilityImprovementLabel = new JLabel("Availability improvement: " + (int) (((double) (matrix[0][0] + matrix[1][0])/((double) matrix[0][0] + matrix[0][1]))*100) + "%");
 
         JLabel integrityGNSSLabel = new JLabel("GNSS Integrity: " + (matrix[0][0] + matrix[0][1] + matrix[0][2])/(double) sum);
         JLabel integrityVELabel = new JLabel("VE Integrity: " + (matrix[0][0] + matrix[1][0] + matrix[0][2] + matrix[1][2])/(double) sum);
-        JLabel integrityImprovementLabel = new JLabel("VE Integrity: " + ((matrix[0][0] + matrix[1][0] + matrix[0][2] + matrix[1][2])/ (matrix[0][0] + matrix[0][1] + matrix[0][2]))*100 + "%");
+        JLabel integrityImprovementLabel = new JLabel("Integrity improvement: " +  (int) ((((double) matrix[0][0] + matrix[1][0] + matrix[0][2] + matrix[1][2])/((double) matrix[0][0] + matrix[0][1] + matrix[0][2]))*100) + "%");
 
         // Styling the labels
         Font metricsFont = new Font("SansSerif", Font.BOLD, 14);
