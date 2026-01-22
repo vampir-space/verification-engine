@@ -293,23 +293,30 @@ public class ExperimentalEvaluation {
      * Calculates the confusion matrix based on the current 'diff' threshold.
      */
     public int[][] getTableContent() {
-        int tt = 0, ft = 0, tf = 0, ff  = 0;
+        int tt = 0, ft = 0, tf = 0, ff  = 0, to = 0, fo = 0;
 
         for (Long timeStamp : reference.keySet()) {
             if((GNSS.get(timeStamp).getX() - reference.get(timeStamp).getX() < diff) && (GNSS.get(timeStamp).getY() - reference.get(timeStamp).getY() < diff)){
-                if(verificationEngine.get(timeStamp).getX() - reference.get(timeStamp).getX() < diff) tt++;
-                else tf++;
+                if(verificationEngine.containsKey(timeStamp)){
+                    if(verificationEngine.get(timeStamp).getX() - reference.get(timeStamp).getX() < diff) tt++;
+                    else tf++;
+                }
+                else to++;
+
             }
             else{
-                if(verificationEngine.get(timeStamp).getX() - reference.get(timeStamp).getX() < diff) ft++;
-                else ff++;
+                if(verificationEngine.containsKey(timeStamp)){
+                    if(verificationEngine.get(timeStamp).getX() - reference.get(timeStamp).getX() < diff) ft++;
+                    else ff++;
+                }
+                else fo++;
             }
         }
 
 
         return new int[][]{
-                {tt, tf, 0},
-                {ft, ff, 0}
+                {tt, tf, to},
+                {ft, ff, fo}
         };
     }
 
@@ -390,21 +397,31 @@ public class ExperimentalEvaluation {
      */
     private double[] getDistribution(HashMap<Long, Odometry> dataList) {
         double[] bins = new double[BIN_COUNT];
+        // Ha bármelyik map üres, ne is kezdjünk számolni
         if (dataList.isEmpty() || reference.isEmpty()) return bins;
 
         double step = MAX_ERROR_RANGE / BIN_COUNT;
 
-        for (int i = 0; i < dataList.size(); i++) {
-            double error = Math.hypot(dataList.get(i).getX() - reference.get(i).getX(),
-                    dataList.get(i).getY() - reference.get(i).getY());
+        // Iteráljunk végig a kapott map kulcsain
+        for (Long timeStamp : dataList.keySet()) {
+            // Ellenőrizzük, hogy a referencia adatokban is megvan-e ez az időbélyeg
+            if (reference.containsKey(timeStamp)) {
+                double error = Math.hypot(
+                        dataList.get(timeStamp).getX() - reference.get(timeStamp).getX(),
+                        dataList.get(timeStamp).getY() - reference.get(timeStamp).getY()
+                );
 
-            int binIndex = (int) (error / step);
-            if (binIndex >= BIN_COUNT) binIndex = BIN_COUNT - 1;
-            bins[binIndex]++;
+                int binIndex = (int) (error / step);
+                if (binIndex >= BIN_COUNT) binIndex = BIN_COUNT - 1;
+                if (binIndex < 0) binIndex = 0;
+                bins[binIndex]++;
+            }
         }
 
-        // Normalize to percentage (0.0 - 1.0)
-        for (int i = 0; i < BIN_COUNT; i++) bins[i] /= dataList.size();
+        // Normalizálás százalékra (0.0 - 1.0)
+        for (int i = 0; i < BIN_COUNT; i++) {
+            bins[i] /= dataList.size();
+        }
         return bins;
     }
 
