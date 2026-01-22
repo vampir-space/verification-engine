@@ -3,7 +3,6 @@ package space.vampir.engine;
 import org.junit.jupiter.api.Test;
 import space.vampir.engine.message.Odometry;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

@@ -8,7 +8,7 @@ import java.util.HashMap;
 
 public class ExperimentalEvaluation {
 
-    private ArrayList<Observer> observers = new ArrayList<>();
+    private final ArrayList<Observer> observers = new ArrayList<>();
     // Data storage
     private final HashMap<Long, Odometry> reference = new HashMap<>();
     private final HashMap<Long, Odometry> GNSS = new HashMap<>();
@@ -16,8 +16,6 @@ public class ExperimentalEvaluation {
 
     // The agreement matrix
     int[][] matrix;
-
-
 
     // The threshold variable controlled by the slider
     double diff = 0.5;
@@ -52,7 +50,7 @@ public class ExperimentalEvaluation {
         GNSS.putAll(gnss);
         verificationEngine.putAll(ver);
         matrix = getTableContent();
-
+        observers.forEach(Observer::update);
     }
 
     /**
