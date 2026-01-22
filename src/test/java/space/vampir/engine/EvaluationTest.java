@@ -4,36 +4,34 @@ import org.junit.jupiter.api.Test;
 import space.vampir.engine.message.Odometry;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class EvaluationTest {
     @Test
     void calculateTableContentUniformTest() {
-        ArrayList<Odometry> referenceExample = new ArrayList<>();
-        ArrayList<Odometry> sensorAnAIExample = new ArrayList<>();
-        ArrayList<Odometry> verificationEngineExample = new ArrayList<>();
+        HashMap<Long, Odometry> referenceExample = new HashMap<>();
+        HashMap<Long, Odometry> sensorAnAIExample = new HashMap<>();
+        HashMap<Long, Odometry> verificationEngineExample = new HashMap<>();
 
-        referenceExample.add(new Odometry(0, 0, 0, 0));
-        referenceExample.add(new Odometry(1, 0, 0, 0));
-        referenceExample.add(new Odometry(2, 0, 0, 0));
-        referenceExample.add(new Odometry(3, 0, 0, 0));
+        referenceExample.put(0L, new Odometry(0L, 0, 0, 0));
+        referenceExample.put(1L, new Odometry(1L, 0, 0, 0));
+        referenceExample.put(2L, new Odometry(2L, 0, 0, 0));
+        referenceExample.put(3L, new Odometry(3L, 0, 0, 0));
 
-        sensorAnAIExample.add(new Odometry(0, 0.4, 0.4, 0)); //T
-        sensorAnAIExample.add(new Odometry(1, 1, 1, 0)); //F
-        sensorAnAIExample.add(new Odometry(2, 0.4, 0.4, 0)); //T
-        sensorAnAIExample.add(new Odometry(3, 2, 2, 0)); //F
+        sensorAnAIExample.put(0L, new Odometry(0, 0.4, 0.4, 0)); //T
+        sensorAnAIExample.put(1L, new Odometry(1, 1, 1, 0)); //F
+        sensorAnAIExample.put(2L, new Odometry(2, 0.4, 0.4, 0)); //T
+        sensorAnAIExample.put(3L, new Odometry(3, 2, 2, 0)); //F
 
-        verificationEngineExample.add(new Odometry(0, 0.3, 0.3, 0)); //T
-        verificationEngineExample.add(new Odometry(1, 0.4, 0.4, 0)); //T
-        verificationEngineExample.add(new Odometry(2, 1, 1, 0)); //F
-        verificationEngineExample.add(new Odometry(3, 1, 1, 0)); //F
+        verificationEngineExample.put(0L, new Odometry(0, 0.3, 0.3, 0)); //T
+        verificationEngineExample.put(1L, new Odometry(1, 0.4, 0.4, 0)); //T
+        verificationEngineExample.put(2L, new Odometry(2, 1, 1, 0)); //F
+        verificationEngineExample.put(3L, new Odometry(3, 1, 1, 0)); //F
 
         ExperimentalEvaluation experimentalEvaluation = new ExperimentalEvaluation();
-        experimentalEvaluation.addOdometries(referenceExample.get(0), sensorAnAIExample.get(0), verificationEngineExample.get(0));
-        experimentalEvaluation.addOdometries(referenceExample.get(1), sensorAnAIExample.get(1), verificationEngineExample.get(1));
-        experimentalEvaluation.addOdometries(referenceExample.get(2), sensorAnAIExample.get(2), verificationEngineExample.get(2));
-        experimentalEvaluation.addOdometries(referenceExample.get(3), sensorAnAIExample.get(3), verificationEngineExample.get(3));
+        experimentalEvaluation.addOdometries(referenceExample, sensorAnAIExample, verificationEngineExample);
 
         var tableContent = experimentalEvaluation.getTableContent();
         assertEquals(1, tableContent[0][0]);
@@ -44,30 +42,28 @@ public class EvaluationTest {
 
     @Test
     void calculateTableContentIrregularTest() {
-        ArrayList<Odometry> referenceExample = new ArrayList<>();
-        ArrayList<Odometry> sensorAnAIExample = new ArrayList<>();
-        ArrayList<Odometry> verificationEngineExample = new ArrayList<>();
+        HashMap<Long, Odometry> referenceExample = new HashMap<>();
+        HashMap<Long, Odometry> sensorAnAIExample = new HashMap<>();
+        HashMap<Long, Odometry> verificationEngineExample = new HashMap<>();
 
-        referenceExample.add(new Odometry(0, 0, 0, 0));
-        referenceExample.add(new Odometry(1, 0, 0, 0));
-        referenceExample.add(new Odometry(2, 0, 0, 0));
-        referenceExample.add(new Odometry(3, 0, 0, 0));
 
-        sensorAnAIExample.add(new Odometry(0, 0.4, 0.4, 0)); //T
-        sensorAnAIExample.add(new Odometry(1, 1, 1, 0)); //F
-        sensorAnAIExample.add(new Odometry(2, 0.6, 0.6, 0)); //F
-        sensorAnAIExample.add(new Odometry(3, 2, 2, 0)); //F
+        referenceExample.put(0L, new Odometry(0L, 0, 0, 0));
+        referenceExample.put(1L, new Odometry(1L, 0, 0, 0));
+        referenceExample.put(2L, new Odometry(2L, 0, 0, 0));
+        referenceExample.put(3L, new Odometry(3L, 0, 0, 0));
 
-        verificationEngineExample.add(new Odometry(0, 0.3, 0.3, 0)); //T
-        verificationEngineExample.add(new Odometry(1, 0.4, 0.4, 0)); //T
-        verificationEngineExample.add(new Odometry(2, 1, 1, 0)); //F
-        verificationEngineExample.add(new Odometry(3, 0.4, 0.4, 0)); //T
+        sensorAnAIExample.put(0L, new Odometry(0, 0.4, 0.4, 0)); //T
+        sensorAnAIExample.put(1L, new Odometry(1, 1, 1, 0)); //F
+        sensorAnAIExample.put(2L, new Odometry(2, 0.6, 0.6, 0)); //F
+        sensorAnAIExample.put(3L, new Odometry(3, 2, 2, 0)); //F
+
+        verificationEngineExample.put(0L, new Odometry(0, 0.3, 0.3, 0)); //T
+        verificationEngineExample.put(1L, new Odometry(1, 0.4, 0.4, 0)); //T
+        verificationEngineExample.put(2L, new Odometry(2, 1, 1, 0)); //F
+        verificationEngineExample.put(3L, new Odometry(3, 0.4, 0.4, 0)); //T
 
         ExperimentalEvaluation experimentalEvaluation = new ExperimentalEvaluation();
-        experimentalEvaluation.addOdometries(referenceExample.get(0), sensorAnAIExample.get(0), verificationEngineExample.get(0));
-        experimentalEvaluation.addOdometries(referenceExample.get(1), sensorAnAIExample.get(1), verificationEngineExample.get(1));
-        experimentalEvaluation.addOdometries(referenceExample.get(2), sensorAnAIExample.get(2), verificationEngineExample.get(2));
-        experimentalEvaluation.addOdometries(referenceExample.get(3), sensorAnAIExample.get(3), verificationEngineExample.get(3));
+        experimentalEvaluation.addOdometries(referenceExample, sensorAnAIExample, verificationEngineExample);
 
         var tableContent = experimentalEvaluation.getTableContent();
         assertEquals(1, tableContent[0][0]);
@@ -78,37 +74,34 @@ public class EvaluationTest {
 
     @Test
     void displayDataTest() throws InterruptedException {
-        ArrayList<Odometry> referenceExample = new ArrayList<>();
-        ArrayList<Odometry> sensorAnAIExample = new ArrayList<>();
-        ArrayList<Odometry> verificationEngineExample = new ArrayList<>();
+        HashMap<Long, Odometry> referenceExample = new HashMap<>();
+        HashMap<Long, Odometry> sensorAnAIExample = new HashMap<>();
+        HashMap<Long, Odometry> verificationEngineExample = new HashMap<>();
 
-        referenceExample.add(new Odometry(0, 0, 0, 0));
-        referenceExample.add(new Odometry(1, 0, 0, 0));
-        referenceExample.add(new Odometry(2, 0, 0, 0));
-        referenceExample.add(new Odometry(3, 0, 0, 0));
-        referenceExample.add(new Odometry(4, 0, 0, 0));
+        referenceExample.put(0L, new Odometry(0L, 0, 0, 0));
+        referenceExample.put(1L, new Odometry(1L, 0, 0, 0));
+        referenceExample.put(2L, new Odometry(2L, 0, 0, 0));
+        referenceExample.put(3L, new Odometry(3L, 0, 0, 0));
+        referenceExample.put(4L, new Odometry(4L, 0, 0, 0));
 
-        sensorAnAIExample.add(new Odometry(0, 0.4, 0.4, 0)); //T
-        sensorAnAIExample.add(new Odometry(1, 1, 1, 0)); //F
-        sensorAnAIExample.add(new Odometry(2, 0.6, 0.6, 0)); //F
-        sensorAnAIExample.add(new Odometry(3, 2, 2, 0)); //F
-        sensorAnAIExample.add(new Odometry(4, 0.4, 0.4, 0)); //T
+        sensorAnAIExample.put(0L, new Odometry(0L, 0.4, 0.4, 0)); //T
+        sensorAnAIExample.put(1L, new Odometry(1L, 1, 1, 0)); //F
+        sensorAnAIExample.put(2L, new Odometry(2L, 0.6, 0.6, 0)); //F
+        sensorAnAIExample.put(3L, new Odometry(3L, 2, 2, 0)); //F
+        sensorAnAIExample.put(4L,new Odometry(4L, 0.4, 0.4, 0)); //T
 
-        verificationEngineExample.add(new Odometry(0, 0.3, 0.3, 0)); //T
-        verificationEngineExample.add(new Odometry(1, 0.4, 0.4, 0)); //T
-        verificationEngineExample.add(new Odometry(2, 1, 1, 0)); //F
-        verificationEngineExample.add(new Odometry(3, 0.4, 0.4, 0)); //T
-        verificationEngineExample.add(new Odometry(4, 1, 1, 0)); //F
+        verificationEngineExample.put(0L, new Odometry(0L, 0.3, 0.3, 0)); //T
+        verificationEngineExample.put(1L, new Odometry(1L, 0.4, 0.4, 0)); //T
+        verificationEngineExample.put(2L, new Odometry(2L, 1, 1, 0)); //F
+        verificationEngineExample.put(3L, new Odometry(3L, 0.4, 0.4, 0)); //T
+        verificationEngineExample.put(4L, new Odometry(4L, 1, 1, 0)); //F
 
         ExperimentalEvaluation experimentalEvaluation = new ExperimentalEvaluation();
-        experimentalEvaluation.addOdometries(referenceExample.get(0), sensorAnAIExample.get(0), verificationEngineExample.get(0));
-        experimentalEvaluation.addOdometries(referenceExample.get(1), sensorAnAIExample.get(1), verificationEngineExample.get(1));
-        experimentalEvaluation.addOdometries(referenceExample.get(2), sensorAnAIExample.get(2), verificationEngineExample.get(2));
-        experimentalEvaluation.addOdometries(referenceExample.get(3), sensorAnAIExample.get(3), verificationEngineExample.get(3));
-        experimentalEvaluation.addOdometries(referenceExample.get(4), sensorAnAIExample.get(4), verificationEngineExample.get(4));
+        experimentalEvaluation.addOdometries(referenceExample, sensorAnAIExample, verificationEngineExample);
+
 
         experimentalEvaluation.startApplication();
 
-        Thread.sleep(10000);
+        Thread.sleep(100000);
     }
 }
