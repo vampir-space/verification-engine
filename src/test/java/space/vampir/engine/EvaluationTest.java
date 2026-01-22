@@ -38,7 +38,7 @@ public class EvaluationTest {
         ExperimentalEvaluation experimentalEvaluation = new ExperimentalEvaluation();
         experimentalEvaluation.addOdometries(referenceExample, GNSS, verificationEngineExample);
 
-        var tableContent = experimentalEvaluation.getTableContent();
+        var tableContent = experimentalEvaluation.getMatrix();
         assertEquals(1, tableContent[0][0]);
         assertEquals(1, tableContent[1][0]);
         assertEquals(1, tableContent[0][1]);
@@ -72,7 +72,7 @@ public class EvaluationTest {
         ExperimentalEvaluation experimentalEvaluation = new ExperimentalEvaluation();
         experimentalEvaluation.addOdometries(referenceExample, sensorAnAIExample, verificationEngineExample);
 
-        var tableContent = experimentalEvaluation.getTableContent();
+        var tableContent = experimentalEvaluation.getMatrix();
         assertEquals(1, tableContent[0][0]);
         assertEquals(2, tableContent[1][0]);
         assertEquals(0, tableContent[0][1]);
@@ -110,8 +110,8 @@ public class EvaluationTest {
         ExperimentalEvaluation experimentalEvaluation = new ExperimentalEvaluation();
         experimentalEvaluation.addOdometries(referenceExample, GNSS, verificationEngineExample);
 
-
-        experimentalEvaluation.startApplication();
+        //todo this way?
+        experimentalEvaluation.attach(new VisualRepresentation(experimentalEvaluation));
 
         Thread.sleep(100000);
 
