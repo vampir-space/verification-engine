@@ -14,6 +14,7 @@ public class VisualRepresentation implements Observer {
     private HistogramPanel histogramPanel;
     private JLabel thresholdSliderValueLabel;
     private JLabel timeSliderValueLabel;
+    private JLabel timeWindowSliderValueLabel;
 
     // Metric Labels
     private JLabel availabilityGNSSLabel;
@@ -177,6 +178,42 @@ public class VisualRepresentation implements Observer {
         gbc.anchor = GridBagConstraints.LINE_START;
         bottomContainer.add(timeSliderValueLabel, gbc);
 
+        // --- Row 3: Time window Slider ---
+
+        // 1. Label (Column 0)
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.anchor = GridBagConstraints.LINE_END; // Right align text
+        bottomContainer.add(new JLabel("Time window: "), gbc);
+
+        // 2. Slider (Column 1)
+        gbc.gridx = 1;
+        gbc.gridy = 2;
+        gbc.anchor = GridBagConstraints.CENTER;
+
+        timeWindowSliderValueLabel = new JLabel(String.format("%d", (int)actualTime));
+        timeWindowSliderValueLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
+
+        JSlider timeWindowSlider = new JSlider((int) evaluation.getStartTime(), (int) evaluation.getEndTime(), (int) actualTime);
+        timeWindowSlider.setMajorTickSpacing(10);
+        timeWindowSlider.setMinorTickSpacing(1);
+        timeWindowSlider.setPaintTicks(true);
+        timeWindowSlider.setPreferredSize(new Dimension(300, 50));
+
+        timeWindowSlider.addChangeListener(e -> {
+            timeWindow = timeWindowSlider.getValue();
+            timeWindowSliderValueLabel.setText(String.format("%d", (int) timeWindow));
+            updateDashboard();
+        });
+
+        bottomContainer.add(timeWindowSlider, gbc);
+
+        // 3. Value Label (Column 2)
+        gbc.gridx = 2;
+        gbc.gridy = 2;
+        gbc.anchor = GridBagConstraints.LINE_START;
+        bottomContainer.add(timeWindowSliderValueLabel, gbc);
+
         // Add the organized container to the bottom of the frame
         frame.add(bottomContainer, BorderLayout.SOUTH);
 
@@ -304,18 +341,20 @@ public class VisualRepresentation implements Observer {
         if (sum == 0) sum = 1; // Prevent division by zero
 
         // Calculation logic
+        // 1. Calculate Availability Metrics
         double gnssAvail = (double)(matrix[0][0] + matrix[0][1]) / sum;
         double veAvail = (double)(matrix[0][0] + matrix[1][0]) / sum;
 
-        double availImp = (matrix[0][0] + matrix[0][1]) == 0 ? 0 :
-                (double)(matrix[0][0] + matrix[1][0]) / (matrix[0][0] + matrix[0][1]);
+        // 2. Calculate Availability Improvement (Safe from division by zero)
+        // If GNSS availability is 0, we define improvement as 0 to avoid Infinity/NaN
+        double availImp = (gnssAvail == 0) ? 0 : (veAvail - gnssAvail) / gnssAvail;
 
+        // 3. Calculate Integrity Metrics
         double gnssInteg = (double)(matrix[0][0] + matrix[0][1] + matrix[0][2]) / sum;
         double veInteg = (double)(matrix[0][0] + matrix[1][0] + matrix[0][2] + matrix[1][2]) / sum;
 
-        double denomInteg = (matrix[0][0] + matrix[0][1] + matrix[0][2]);
-        double integImp = denomInteg == 0 ? 0 :
-                (double)(matrix[0][0] + matrix[1][0] + matrix[0][2] + matrix[1][2]) / denomInteg;
+        // 4. Calculate Integrity Improvement (Safe from division by zero)
+        double integImp = (gnssInteg == 0) ? 0 : (veInteg - gnssInteg) / gnssInteg;
 
         // Set text
         availabilityGNSSLabel.setText(String.format("GNSS Availability: %.2f", gnssAvail));

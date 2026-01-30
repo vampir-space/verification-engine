@@ -33,19 +33,14 @@ public class SaveToCSV implements Observer {
         double gnssAvail = (double) (matrix[0][0] + matrix[0][1]) / sum;
         double veAvail = (double) (matrix[0][0] + matrix[1][0]) / sum;
 
-        double availImp = (matrix[0][0] + matrix[0][1]) == 0 ? 0 :
-                (double) (matrix[0][0] + matrix[1][0]) / (matrix[0][0] + matrix[0][1]);
+        double availImp  = (gnssAvail == 0) ? 0 : (veAvail - gnssAvail) / gnssAvail;
 
-        // Check if the 3rd column (index 2) exists to avoid errors
-        int m02 = matrix[0].length > 2 ? matrix[0][2] : 0;
-        int m12 = matrix.length > 1 && matrix[1].length > 2 ? matrix[1][2] : 0;
+        // 3. Calculate Integrity Metrics
+        double gnssInteg = (double)(matrix[0][0] + matrix[0][1] + matrix[0][2]) / sum;
+        double veInteg = (double)(matrix[0][0] + matrix[1][0] + matrix[0][2] + matrix[1][2]) / sum;
 
-        double gnssInteg = (double) (matrix[0][0] + matrix[0][1] + m02) / sum;
-        double veInteg = (double) (matrix[0][0] + matrix[1][0] + m02 + m12) / sum;
-
-        double denomInteg = (matrix[0][0] + matrix[0][1] + m02);
-        double integImp = denomInteg == 0 ? 0 :
-                (double) (matrix[0][0] + matrix[1][0] + m02 + m12) / denomInteg;
+        // 4. Calculate Integrity Improvement (Safe from division by zero)
+        double integImp = (gnssInteg == 0) ? 0 : (veInteg - gnssInteg) / gnssInteg;
 
 
         // --- CSV SAVING IMPLEMENTATION ---
@@ -75,14 +70,14 @@ public class SaveToCSV implements Observer {
             writer.write("\n"); // Empty line as separator
 
             // 2. Section: Calculated Metrics
-            writer.write("Calculated Metrics;Value;Percentage\n");
+            writer.write("Calculated Metrics;Percentage\n");
 
-            writeMetricRow(writer, "GNSS Availability", gnssAvail);
-            writeMetricRow(writer, "VE Availability", veAvail);
-            writeMetricRow(writer, "Availability Improvement", availImp);
-            writeMetricRow(writer, "GNSS Integrity", gnssInteg);
-            writeMetricRow(writer, "VE Integrity", veInteg);
-            writeMetricRow(writer, "Integrity Improvement", integImp);
+            writer.write(String.format(Locale.US, "GNSS Availability;%.2f\n", gnssAvail));
+            writer.write(String.format(Locale.US, "VE Availability;%.2f\n", veAvail));
+            writer.write(String.format(Locale.US, "Availability improvement;%.2f%%\n", availImp * 100));
+            writer.write(String.format(Locale.US, "GNSS Integrity;%.2f\n", gnssInteg));
+            writer.write(String.format(Locale.US, "VE Integrity;%.2f\n", veInteg));
+            writer.write(String.format(Locale.US, "Integrity Improvement;%.2f%%\n", integImp * 100));
 
             System.out.println("CSV saved successfully: " + filename);
 
@@ -97,7 +92,7 @@ public class SaveToCSV implements Observer {
         // Using Locale.US to ensure dot (.) is used as decimal separator,
         // avoiding conflict with the semicolon (;) CSV delimiter.
         // Format: Name ; Value (0.1234) ; Percentage (12.34%)
-        String line = String.format(Locale.US, "%s;%.4f;%.2f%%\n", label, value, value * 100);
+        String line = String.format(Locale.US, "%s;;%.2f%%\n", label, value * 100);
         writer.write(line);
     }
 }
