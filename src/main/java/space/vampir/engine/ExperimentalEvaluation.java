@@ -138,30 +138,32 @@ public class ExperimentalEvaluation {
     /**
      * Helper method to calculate the percentage distribution of errors.
      */
-    public double[] getDistribution(HashMap<Long, Odometry> dataList, int BIN_COUNT, double MAX_ERROR_RANGE) {
+    public double[] getDistribution(HashMap<Long, Odometry> dataList, int BIN_COUNT, double MAX_ERROR_RANGE, long actualTime, long timeWindow) {
         double[] bins = new double[BIN_COUNT];
-        // Ha bármelyik map üres, ne is kezdjünk számolni
+        // If either map is empty, skip calculation
         if (dataList.isEmpty() || reference.isEmpty()) return bins;
 
         double step = MAX_ERROR_RANGE / BIN_COUNT;
 
-        // Iteráljunk végig a kapott map kulcsain
+        // Iterate through the keys of the provided map
         for (Long timeStamp : dataList.keySet()) {
-            // Ellenőrizzük, hogy a referencia adatokban is megvan-e ez az időbélyeg
-            if (reference.containsKey(timeStamp)) {
-                double error = Math.hypot(
-                        dataList.get(timeStamp).getX() - reference.get(timeStamp).getX(),
-                        dataList.get(timeStamp).getY() - reference.get(timeStamp).getY()
-                );
+            if (timeStamp >= actualTime - timeWindow && timeStamp <= actualTime) {
+                // Check if this timestamp exists in the reference data
+                if (reference.containsKey(timeStamp)) {
+                    double error = Math.hypot(
+                            dataList.get(timeStamp).getX() - reference.get(timeStamp).getX(),
+                            dataList.get(timeStamp).getY() - reference.get(timeStamp).getY()
+                    );
 
-                int binIndex = (int) (error / step);
-                if (binIndex >= BIN_COUNT) binIndex = BIN_COUNT - 1;
-                if (binIndex < 0) binIndex = 0;
-                bins[binIndex]++;
+                    int binIndex = (int) (error / step);
+                    if (binIndex >= BIN_COUNT) binIndex = BIN_COUNT - 1;
+                    if (binIndex < 0) binIndex = 0;
+                    bins[binIndex]++;
+                }
             }
         }
 
-        // Normalizálás százalékra (0.0 - 1.0)
+        // Normalize to percentage (0.0 - 1.0)
         for (int i = 0; i < BIN_COUNT; i++) {
             bins[i] /= dataList.size();
         }

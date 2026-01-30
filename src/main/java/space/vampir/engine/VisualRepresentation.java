@@ -25,7 +25,7 @@ public class VisualRepresentation implements Observer {
 
 
     long actualTime;
-    long timeWindow = 5;
+    long timeWindow = 3;
 
     // Configuration constants
     private final double MAX_ERROR_RANGE = 2.5; // Max error to show on histogram (meters)
@@ -327,7 +327,6 @@ public class VisualRepresentation implements Observer {
         integrityImprovementLabel.setText(String.format("Integrity improvement: %d%%", (int)(integImp * 100)));
 
         // 4. Update the Histogram
-        // Although the bars depend on MAX_ERROR_RANGE, repainting ensures consistency
         if (histogramPanel != null) {
             histogramPanel.repaint();
         }
@@ -363,8 +362,8 @@ public class VisualRepresentation implements Observer {
             }
 
             // Calculate distribution
-            double[] GNSSStats = evaluation.getDistribution(evaluation.getGNSS(), BIN_COUNT, MAX_ERROR_RANGE);
-            double[] verifierStats = evaluation.getDistribution(evaluation.getVerificationEngine(), BIN_COUNT, MAX_ERROR_RANGE);
+            double[] GNSSStats = evaluation.getDistribution(evaluation.getGNSS(), BIN_COUNT, MAX_ERROR_RANGE, actualTime, timeWindow);
+            double[] verifierStats = evaluation.getDistribution(evaluation.getVerificationEngine(), BIN_COUNT, MAX_ERROR_RANGE, actualTime, timeWindow);
 
             int groupCount = BIN_COUNT;
             int groupWidth = graphWidth / groupCount;
