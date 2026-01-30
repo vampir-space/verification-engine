@@ -1,5 +1,6 @@
 package space.vampir.engine;
 
 public interface Observer {
-    public void update();
+    void update();
+    void finish();
 }

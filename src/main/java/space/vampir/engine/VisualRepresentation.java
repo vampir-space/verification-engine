@@ -35,7 +35,12 @@ public class VisualRepresentation implements Observer {
 
     @Override
     public void update() {
+        updateDashboard();
+    }
 
+    @Override
+    public void finish() {
+        //todo close application
     }
 
     /**

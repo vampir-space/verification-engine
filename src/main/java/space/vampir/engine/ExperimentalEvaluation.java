@@ -53,6 +53,10 @@ public class ExperimentalEvaluation {
         observers.forEach(Observer::update);
     }
 
+    public void endEvaluation(){
+        observers.forEach(Observer::finish);
+    }
+
     /**
      * Calculates the confusion matrix based on the current 'diff' threshold.
      */
