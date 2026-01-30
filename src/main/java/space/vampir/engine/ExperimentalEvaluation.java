@@ -3,6 +3,7 @@ package space.vampir.engine;
 import space.vampir.engine.message.Odometry;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 
 
@@ -15,10 +16,23 @@ public class ExperimentalEvaluation {
     private final HashMap<Long, Odometry> verificationEngine = new HashMap<>();
 
     // The agreement matrix
-    int[][] matrix;
+    //int[][] matrix;
 
     // The threshold variable controlled by the slider
     double diff = 0.5;
+
+
+    //todo make it clearer
+    long startTime = -1;
+    long endTime = -1;
+
+    public long getStartTime(){
+        return startTime;
+    }
+
+    public long getEndTime() {
+        return endTime;
+    }
 
     public void attach(Observer observer) {
         this.observers.add(observer);
@@ -30,12 +44,12 @@ public class ExperimentalEvaluation {
 
     public void setDiff(double diff) {
         this.diff = diff;
-        matrix = getTableContent();
+      //  matrix = getTableContent();
     }
 
-    public int[][] getMatrix(){
+    /*public int[][] getMatrix(){
         return matrix;
-    }
+    }*/
 
     public HashMap<Long, Odometry> getGNSS() {
         return GNSS;
@@ -49,8 +63,10 @@ public class ExperimentalEvaluation {
         reference.putAll(ref);
         GNSS.putAll(gnss);
         verificationEngine.putAll(ver);
-        matrix = getTableContent();
+        //matrix = getTableContent();
         observers.forEach(Observer::update);
+        if(startTime == -1) startTime = Collections.min(ref.keySet());
+        if(endTime == -1 || endTime < Collections.max(ref.keySet())) endTime = Collections.max(ref.keySet());
     }
 
     public void endEvaluation(){
@@ -60,9 +76,8 @@ public class ExperimentalEvaluation {
     /**
      * Calculates the confusion matrix based on the current 'diff' threshold.
      */
-    private int[][] getTableContent() {
+    public int[][] getMatrix() {
         int tt = 0, ft = 0, tf = 0, ff  = 0, to = 0, fo = 0;
-
         for (Long timeStamp : reference.keySet()) {
             if((GNSS.get(timeStamp).getX() - reference.get(timeStamp).getX() < diff) && (GNSS.get(timeStamp).getY() - reference.get(timeStamp).getY() < diff)){
                 if(verificationEngine.containsKey(timeStamp)){
@@ -79,8 +94,38 @@ public class ExperimentalEvaluation {
                 }
                 else fo++;
             }
-        }
 
+        }
+        return new int[][]{
+                {tt, tf, to},
+                {ft, ff, fo}
+        };
+    }
+
+    /**
+     * Calculates the confusion matrix based on the current 'diff' threshold.
+     */
+    public int[][] getMatrix(long actualTime, long timeWindow) {
+        int tt = 0, ft = 0, tf = 0, ff  = 0, to = 0, fo = 0;
+        for (Long timeStamp : reference.keySet()) {
+            if(timeStamp >= actualTime - timeWindow && timeStamp <= actualTime) {
+                if((GNSS.get(timeStamp).getX() - reference.get(timeStamp).getX() < diff) && (GNSS.get(timeStamp).getY() - reference.get(timeStamp).getY() < diff)){
+                    if(verificationEngine.containsKey(timeStamp)){
+                        if(verificationEngine.get(timeStamp).getX() - reference.get(timeStamp).getX() < diff) tt++;
+                        else tf++;
+                    }
+                    else to++;
+
+                }
+                else{
+                    if(verificationEngine.containsKey(timeStamp)){
+                        if(verificationEngine.get(timeStamp).getX() - reference.get(timeStamp).getX() < diff) ft++;
+                        else ff++;
+                    }
+                    else fo++;
+                }
+            }
+        }
 
         return new int[][]{
                 {tt, tf, to},
@@ -127,6 +172,36 @@ public class ExperimentalEvaluation {
      * Main method for testing purposes.
      */
     public static void main(String[] args) {
+        HashMap<Long, Odometry> referenceExample = new HashMap<>();
+        HashMap<Long, Odometry> GNSS = new HashMap<>();
+        HashMap<Long, Odometry> verificationEngineExample = new HashMap<>();
 
+        referenceExample.put(0L, new Odometry(0L, 0, 0, 0));
+        referenceExample.put(1L, new Odometry(1L, 0, 0, 0));
+        referenceExample.put(2L, new Odometry(2L, 0, 0, 0));
+        referenceExample.put(3L, new Odometry(3L, 0, 0, 0));
+        referenceExample.put(4L, new Odometry(4L, 0, 0, 0));
+        referenceExample.put(5L, new Odometry(5L, 0, 0, 0));
+        referenceExample.put(6L, new Odometry(6L, 0, 0, 0));
+
+        GNSS.put(0L, new Odometry(0L, 0.4, 0.4, 0)); //T
+        GNSS.put(1L, new Odometry(1L, 1, 1, 0)); //F
+        GNSS.put(2L, new Odometry(2L, 0.6, 0.6, 0)); //F
+        GNSS.put(3L, new Odometry(3L, 2, 2, 0)); //F
+        GNSS.put(4L,new Odometry(4L, 0.4, 0.4, 0)); //T
+        GNSS.put(5L, new Odometry(5L, 2, 2, 0)); //F
+        GNSS.put(6L,new Odometry(6L, 0.4, 0.4, 0)); //T
+
+        verificationEngineExample.put(0L, new Odometry(0L, 0.3, 0.3, 0)); //T
+        verificationEngineExample.put(1L, new Odometry(1L, 0.4, 0.4, 0)); //T
+        verificationEngineExample.put(2L, new Odometry(2L, 1, 1, 0)); //F
+        verificationEngineExample.put(3L, new Odometry(3L, 0.4, 0.4, 0)); //T
+        verificationEngineExample.put(4L, new Odometry(4L, 1, 1, 0)); //F
+
+        ExperimentalEvaluation experimentalEvaluation = new ExperimentalEvaluation();
+        experimentalEvaluation.addOdometries(referenceExample, GNSS, verificationEngineExample);
+
+        //todo this way?
+        experimentalEvaluation.attach(new VisualRepresentation(experimentalEvaluation));
     }
 }

@@ -2,8 +2,6 @@ package space.vampir.engine;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -14,7 +12,8 @@ public class VisualRepresentation implements Observer {
     // --- GUI Components that require dynamic updates ---
     private DefaultTableModel tableModel;
     private HistogramPanel histogramPanel;
-    private JLabel sliderValueLabel;
+    private JLabel thresholdSliderValueLabel;
+    private JLabel timeSliderValueLabel;
 
     // Metric Labels
     private JLabel availabilityGNSSLabel;
@@ -24,12 +23,17 @@ public class VisualRepresentation implements Observer {
     private JLabel integrityVELabel;
     private JLabel integrityImprovementLabel;
 
+
+    long actualTime;
+    long timeWindow = 5;
+
     // Configuration constants
     private final double MAX_ERROR_RANGE = 2.5; // Max error to show on histogram (meters)
     private final int BIN_COUNT = 5;            // Number of bars in the histogram
 
     VisualRepresentation(ExperimentalEvaluation evaluation){
         this.evaluation = evaluation;
+        actualTime = evaluation.getEndTime();
         startApplication();
     }
 
@@ -62,7 +66,7 @@ public class VisualRepresentation implements Observer {
         JFrame frame = new JFrame("Experimental Evaluation");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        // Main layout: BorderLayout to place the slider at the top
+        // Main layout: BorderLayout
         frame.setLayout(new BorderLayout());
         ((JPanel)frame.getContentPane()).setBorder(new EmptyBorder(10, 20, 20, 20));
 
@@ -93,52 +97,98 @@ public class VisualRepresentation implements Observer {
 
         frame.add(contentPanel, BorderLayout.CENTER);
 
-        // --- 2. BOTTOM SECTION: CONTROL PANEL (SLIDER) ---
-        JPanel controlPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        controlPanel.setBorder(new EmptyBorder(0, 0, 20, 0));
+        // --- 2. BOTTOM SECTION: CONTROL PANEL (SLIDERS) ---
 
-        JLabel labelTitle = new JLabel("Coordinate Error Threshold (diff): ");
-        sliderValueLabel = new JLabel(String.format("%.1f m", diff));
-        sliderValueLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
+        // We use GridBagLayout to align the labels and sliders perfectly in columns
+        JPanel bottomContainer = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 10, 5, 10); // Padding between components
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        // Slider setup:
-        // Swing JSlider only supports integers. To get 0.1 precision,
-        // we map 0-50 (int) to 0.0-5.0 (double).
+        // --- Row 1: Threshold Slider ---
+
+        // 1. Label (Column 0) - Aligned to the right so it sticks to the slider
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.LINE_END; // Right align text
+        bottomContainer.add(new JLabel("Coordinate Error Threshold (diff): "), gbc);
+
+        // 2. Slider (Column 1)
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.CENTER;
+
+        thresholdSliderValueLabel = new JLabel(String.format("%.1f m", diff));
+        thresholdSliderValueLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
+
         JSlider thresholdSlider = new JSlider(0, 50, (int)(diff * 10));
         thresholdSlider.setMajorTickSpacing(10);
         thresholdSlider.setMinorTickSpacing(1);
         thresholdSlider.setPaintTicks(true);
         thresholdSlider.setPreferredSize(new Dimension(300, 50));
 
-        // Listener: Triggers when the slider is moved
-        thresholdSlider.addChangeListener(new ChangeListener() {
-            @Override
-            public void stateChanged(ChangeEvent e) {
-                // Convert int value back to double (e.g., 15 -> 1.5)
-                evaluation.setDiff(thresholdSlider.getValue() / 10.0);
-                sliderValueLabel.setText(String.format("%.1f m", diff));
-
-                // Trigger the UI update
-                updateDashboard();
-            }
+        thresholdSlider.addChangeListener(e -> {
+            evaluation.setDiff(thresholdSlider.getValue() / 10.0);
+            thresholdSliderValueLabel.setText(String.format("%.1f m", evaluation.getDiff()));
+            updateDashboard();
         });
 
-        controlPanel.add(labelTitle);
-        controlPanel.add(thresholdSlider);
-        controlPanel.add(sliderValueLabel);
+        bottomContainer.add(thresholdSlider, gbc);
 
-        frame.add(controlPanel, BorderLayout.SOUTH);
+        // 3. Value Label (Column 2) - Aligned to the left
+        gbc.gridx = 2;
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.LINE_START;
+        bottomContainer.add(thresholdSliderValueLabel, gbc);
+
+        // --- Row 2: Time Slider ---
+
+        // 1. Label (Column 0)
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.anchor = GridBagConstraints.LINE_END; // Right align text
+        bottomContainer.add(new JLabel("Time: "), gbc);
+
+        // 2. Slider (Column 1)
+        gbc.gridx = 1;
+        gbc.gridy = 1;
+        gbc.anchor = GridBagConstraints.CENTER;
+
+        timeSliderValueLabel = new JLabel(String.format("%d", (int)actualTime));
+        timeSliderValueLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
+
+        JSlider timeSlider = new JSlider((int) evaluation.getStartTime(), (int) evaluation.getEndTime(), (int) actualTime);
+        timeSlider.setMajorTickSpacing(10);
+        timeSlider.setMinorTickSpacing(1);
+        timeSlider.setPaintTicks(true);
+        timeSlider.setPreferredSize(new Dimension(300, 50));
+
+        timeSlider.addChangeListener(e -> {
+            actualTime = timeSlider.getValue();
+            timeSliderValueLabel.setText(String.format("%d", (int)actualTime));
+            updateDashboard();
+        });
+
+        bottomContainer.add(timeSlider, gbc);
+
+        // 3. Value Label (Column 2)
+        gbc.gridx = 2;
+        gbc.gridy = 1;
+        gbc.anchor = GridBagConstraints.LINE_START;
+        bottomContainer.add(timeSliderValueLabel, gbc);
+
+        // Add the organized container to the bottom of the frame
+        frame.add(bottomContainer, BorderLayout.SOUTH);
 
         // Final frame settings
-        frame.setSize(950, 650); // Increased height to accommodate the slider
-        frame.setLocationRelativeTo(null); // Center on screen
+        frame.setSize(950, 700);
+        frame.setLocationRelativeTo(null);
 
         // Populate the dashboard with initial data
         updateDashboard();
 
         return frame;
     }
-
     /**
      * Initializes the panel containing the text-based metrics (Precision/Recall/Integrity).
      */
@@ -240,7 +290,7 @@ public class VisualRepresentation implements Observer {
      */
     private void updateDashboard() {
         // 1. Recalculate the matrix based on the new threshold
-        int[][] matrix = evaluation.getMatrix();
+        int[][] matrix = evaluation.getMatrix(actualTime, timeWindow);
 
         // 2. Update the Table
         // Reset rows and add new data

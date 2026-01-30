@@ -146,7 +146,6 @@ public class EvaluationTest {
         ExperimentalEvaluation experimentalEvaluation = new ExperimentalEvaluation();
         experimentalEvaluation.addOdometries(referenceExample, GNSS, verificationEngineExample);
 
-        //todo this way?
         experimentalEvaluation.attach(new SaveToCSV(experimentalEvaluation));
         experimentalEvaluation.endEvaluation();
     }
