@@ -11,10 +11,10 @@ import java.awt.*;
 import java.io.File;
 import java.util.List;
 
-public class DisplayScene {
+public class DisplayScenario {
     final MapRender map;
 
-    DisplayScene(MapRender map) {
+    DisplayScenario(MapRender map) {
         this.map = map;
     }
 
@@ -25,7 +25,7 @@ public class DisplayScene {
                 -100, 100, -40,
                 47.478824, 19.056313);
 
-        new DisplayScene(map).showOnPanel(
+        new DisplayScenario(map).showOnPanel(
                 new Scenario(
                         new Odometry(0,47.47869148915325,19.057058607914573,Math.PI*1.5),
                         new PointPillars(0,List.of(
