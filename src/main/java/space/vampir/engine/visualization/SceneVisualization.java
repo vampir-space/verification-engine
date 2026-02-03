@@ -1,6 +1,7 @@
 package space.vampir.engine.visualization;
 
 import space.vampir.engine.message.Scenario;
+import space.vampir.engine.verification.UpdatedScenario;
 
 import java.net.URL;
 
@@ -9,6 +10,7 @@ public class SceneVisualization {
     protected static URL lineImage2 = SceneVisualization.class.getResource("/line2.svg");
     protected static URL carImage = SceneVisualization.class.getResource("/car.svg");
     protected static URL egoImage = SceneVisualization.class.getResource("/ego.svg");
+    protected static URL laneImage = SceneVisualization.class.getResource("/lane.svg");
 
     final MapRender map;
 
@@ -20,7 +22,7 @@ public class SceneVisualization {
         this.map = map;
     }
 
-    public synchronized void show(Scenario state) {
+    public synchronized void show(Scenario state){
         map.getObjects().clear();
         var odom = state.odometry();
         if(odom != null) {
