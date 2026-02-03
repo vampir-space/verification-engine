@@ -14,10 +14,10 @@
   <g
      id="layer1">
     <circle
-       style="fill:none;stroke:#0000ff;stroke-width:0.1;stroke-linecap:square;stroke-miterlimit:10;stroke-dasharray:1,1;stroke-opacity:1;paint-order:stroke fill markers;stroke-dashoffset:0"
+       style="fill:#2b83ba66"
        id="path1"
        cx="10"
        cy="10"
-       r="9.5" />
+       r="10" />
   </g>
 </svg>
