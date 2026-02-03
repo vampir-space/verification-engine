@@ -47,7 +47,7 @@ public class DisplayUpdatedScenario {
     public void showOnPanel(UpdatedScenario updatedScenario) {
         JFrame frame = new JFrame();
 
-        UpdatedSceneVisualization visualization = new UpdatedSceneVisualization(map);
+        SceneVisualization visualization = new SceneVisualization(map);
         visualization.show(updatedScenario);
         MapPanel mapPanel = new MapPanel(map);
 
