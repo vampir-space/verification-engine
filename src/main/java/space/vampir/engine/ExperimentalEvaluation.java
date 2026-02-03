@@ -16,7 +16,6 @@ public class ExperimentalEvaluation {
     private final HashMap<Long, Odometry> verificationEngine = new HashMap<>();
 
     // The agreement matrix
-    //int[][] matrix;
 
     // The threshold variable controlled by the slider
     double diff = 0.5;
@@ -44,12 +43,7 @@ public class ExperimentalEvaluation {
 
     public void setDiff(double diff) {
         this.diff = diff;
-      //  matrix = getTableContent();
     }
-
-    /*public int[][] getMatrix(){
-        return matrix;
-    }*/
 
     public HashMap<Long, Odometry> getGNSS() {
         return GNSS;
@@ -63,7 +57,6 @@ public class ExperimentalEvaluation {
         reference.putAll(ref);
         GNSS.putAll(gnss);
         verificationEngine.putAll(ver);
-        //matrix = getTableContent();
         observers.forEach(Observer::update);
         if(startTime == -1) startTime = Collections.min(ref.keySet());
         if(endTime == -1 || endTime < Collections.max(ref.keySet())) endTime = Collections.max(ref.keySet());
