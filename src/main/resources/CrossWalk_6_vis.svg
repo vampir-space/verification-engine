@@ -31,7 +31,7 @@
      id="defs1">
     <style
        type="text/css"
-       id="style1">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+       id="style1">{stroke-linejoin: round; stroke-linecap: butt}</style>
   </defs>
   <g
      id="axes_1"
