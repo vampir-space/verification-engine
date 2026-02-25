@@ -31,9 +31,9 @@ public class DisplayUpdatedScenario {
                         new Scenario(
                             new Odometry(0,47.47869148915325,19.0572,Math.PI*1.5),
                             new PointPillars(0, List.of(
-                                    new PointPillars.PointPillarsDetection(5, 10, Math.PI*0,2,2),
-                                    new PointPillars.PointPillarsDetection(10, 10, Math.PI*0,1,1),
-                                    new PointPillars.PointPillarsDetection(-10, -10, Math.PI*0,5,5)
+//                                    new PointPillars.PointPillarsDetection(5, 10, Math.PI*0,2,2),
+//                                    new PointPillars.PointPillarsDetection(10, 10, Math.PI*0,1,1),
+//                                    new PointPillars.PointPillarsDetection(-10, -10, Math.PI*0,5,5)
                             )),
                             new Yolo(0, List.of(
                                     new Yolo.YoloDetection("car",Math.PI*0.05,0),
