@@ -2,40 +2,82 @@ package space.vampir.engine;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
-import okhttp3.WebSocket;
 import space.vampir.engine.communication.ROSListener;
 import space.vampir.engine.communication.StateListener;
 import space.vampir.engine.communication.StateRecorder;
-import space.vampir.engine.message.Scenario;
-import space.vampir.engine.visualization.*;
+import space.vampir.engine.verification.DummyVerificationEngine;
+import space.vampir.engine.verification.VerificationEngine;
+import space.vampir.engine.visualization.MapRender;
+import space.vampir.engine.visualization.RenderExample;
+import space.vampir.engine.visualization.SceneVisualization;
+import space.vampir.engine.visualization.Visualization;
 
-import javax.swing.*;
-import java.awt.*;
-import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 public class Replay {
+
+    private static class WindowConfig {
+        boolean showScene = true;
+        boolean showStats = true;
+        // add more views later, e.g.:
+        // boolean showCamera = false;
+        // boolean showRefinery = false;
+    }
+
+    private static WindowConfig getWindowConfig(String[] args) {
+        WindowConfig config = new WindowConfig();
+        for (String arg : args) {
+            switch (arg) {
+                case "--scene" -> config.showScene = true;
+                case "--no-scene" -> config.showScene = false;
+                case "--stats" -> config.showStats = true;
+                case "--no-stats" -> config.showStats = false;
+                // add more options later
+            }
+        }
+        return config;
+    }
+
     public static void main(String[] args) {
+        WindowConfig windowConfig = getWindowConfig(args);
+        List<Visualization> visualizations = new ArrayList<>();
+
         // Map
         final MapRender map = new MapRender(RenderExample.class.getResource("/CrossWalk_6_vis.svg"),
-                147.488,997.344,356.646,
-                -100,100,-40,
+                147.488, 997.344, 356.646,
+                -100, 100, -40,
                 47.478824, 19.056313);
 //        final MapRender map = new MapRender(RenderExample.class.getResource("/Town10HD.svg"),
 //                158.327,683.330,642.063,
 //                -100,100,-150,
 //                0.0, 0.0);
 
-        JFrame frame = new JFrame();
-        SceneVisualization visualization = new SceneVisualization(map);
+        SceneVisualization sceneVisualization = new SceneVisualization(map, windowConfig.showScene);
+        visualizations.add(sceneVisualization);
+
+        VerificationEngine verificationEngine = new DummyVerificationEngine(3.0);
+        ExperimentalEvaluation experimentalEvaluation = new ExperimentalEvaluation();
+        VisualStatRepresentation statsVisualization = new VisualStatRepresentation(experimentalEvaluation, windowConfig.showStats);
+        visualizations.add(statsVisualization);
 
         // Communication
         StateListener listener = recorder -> {
             var state = recorder.getLastState();
-            if(state != null) {
-                visualization.show(state);
-                SwingUtilities.updateComponentTreeUI(frame);
+            if (state != null) {
+                sceneVisualization.show(state);
+
+                var updatedScenario = verificationEngine.update(state);
+                experimentalEvaluation.addOdometries(
+                        Map.of(state.time(), updatedScenario.groundTruth()),
+                        Map.of(state.time(), state.odometry()),
+                        Map.of(state.time(), updatedScenario.updatedByVerificationEngine())
+                );
+
+                visualizations.forEach(Visualization::updateVisualization);
             }
         };
 
@@ -49,16 +91,9 @@ public class Replay {
 
         client.newWebSocket(request, new ROSListener(recorder, latch, relevantTopics));
 
-        // Start
-        SwingUtilities.invokeLater(() -> {
-            frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-            frame.setPreferredSize(new Dimension(400, 400));
-            frame.setContentPane(new MapPanel(map));
-            frame.pack();
-            frame.setLocationRelativeTo(null);
-            frame.setVisible(true);
-        });
-    }
+        // Start windows
 
+        visualizations.forEach(Visualization::startWindow);
+    }
 
 }

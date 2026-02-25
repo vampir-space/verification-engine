@@ -109,8 +109,8 @@ public class EvaluationTest {
         ExperimentalEvaluation experimentalEvaluation = new ExperimentalEvaluation();
         experimentalEvaluation.addOdometries(referenceExample, GNSS, verificationEngineExample);
 
-        //todo this way?
-        experimentalEvaluation.attach(new VisualRepresentation(experimentalEvaluation));
+        var visualRepresentation = new VisualStatRepresentation(experimentalEvaluation);
+        visualRepresentation.startWindow();
 
         Thread.sleep(100000);
     }

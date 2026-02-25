@@ -8,7 +8,7 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 
-public class VisualRepresentation extends Visualization implements Observer {
+public class VisualStatRepresentation extends Visualization implements Observer {
     ExperimentalEvaluation evaluation;
 
     // --- GUI Components that require dynamic updates ---
@@ -34,14 +34,14 @@ public class VisualRepresentation extends Visualization implements Observer {
     private final double MAX_ERROR_RANGE = 2.5; // Max error to show on histogram (meters)
     private final int BIN_COUNT = 5;            // Number of bars in the histogram
 
-    VisualRepresentation(ExperimentalEvaluation evaluation, boolean enabled) {
-        super(enabled);
+    VisualStatRepresentation(ExperimentalEvaluation evaluation, boolean enabled) {
+        super(enabled, new Dimension(950, 700));
         this.evaluation = evaluation;
         actualTime = evaluation.getEndTime();
         evaluation.attach(this);
     }
 
-    VisualRepresentation(ExperimentalEvaluation evaluation) {
+    VisualStatRepresentation(ExperimentalEvaluation evaluation) {
         this(evaluation, true);
     }
 
@@ -59,17 +59,22 @@ public class VisualRepresentation extends Visualization implements Observer {
      * Entry point to launch the application instance.
      */
     @Override
-    public void startVisualization() {
+    public void startVisualization(Dimension dimension) {
         SwingUtilities.invokeLater(() -> {
-            JFrame frame = createMainFrame();
+            JFrame frame = createMainFrame(dimension);
             frame.setVisible(true);
         });
+    }
+
+    @Override
+    public void updateVisualization() {
+        updateDashboard();
     }
 
     /**
      * Creates and configures the main application window.
      */
-    private JFrame createMainFrame() {
+    private JFrame createMainFrame(Dimension dimension) {
         double diff = evaluation.getDiff();
 
         JFrame frame = new JFrame("Experimental Evaluation");
@@ -77,7 +82,7 @@ public class VisualRepresentation extends Visualization implements Observer {
 
         // Main layout: BorderLayout
         frame.setLayout(new BorderLayout());
-        ((JPanel)frame.getContentPane()).setBorder(new EmptyBorder(10, 20, 20, 20));
+        ((JPanel) frame.getContentPane()).setBorder(new EmptyBorder(10, 20, 20, 20));
 
         // --- 1. CENTER SECTION: METRICS & VISUALIZATIONS ---
         JPanel contentPanel = new JPanel(new GridLayout(1, 2, 40, 0));
@@ -130,7 +135,7 @@ public class VisualRepresentation extends Visualization implements Observer {
         thresholdSliderValueLabel = new JLabel(String.format("%.1f m", diff));
         thresholdSliderValueLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
 
-        JSlider thresholdSlider = new JSlider(0, 50, (int)(diff * 10));
+        JSlider thresholdSlider = new JSlider(0, 50, (int) (diff * 10));
         thresholdSlider.setMajorTickSpacing(10);
         thresholdSlider.setMinorTickSpacing(1);
         thresholdSlider.setPaintTicks(true);
@@ -163,7 +168,7 @@ public class VisualRepresentation extends Visualization implements Observer {
         gbc.gridy = 1;
         gbc.anchor = GridBagConstraints.CENTER;
 
-        timeSliderValueLabel = new JLabel(String.format("%d", (int)actualTime));
+        timeSliderValueLabel = new JLabel(String.format("%d", (int) actualTime));
         timeSliderValueLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
 
         JSlider timeSlider = new JSlider((int) evaluation.getStartTime(), (int) evaluation.getEndTime(), (int) actualTime);
@@ -174,7 +179,7 @@ public class VisualRepresentation extends Visualization implements Observer {
 
         timeSlider.addChangeListener(e -> {
             actualTime = timeSlider.getValue();
-            timeSliderValueLabel.setText(String.format("%d", (int)actualTime));
+            timeSliderValueLabel.setText(String.format("%d", (int) actualTime));
             updateDashboard();
         });
 
@@ -199,7 +204,7 @@ public class VisualRepresentation extends Visualization implements Observer {
         gbc.gridy = 2;
         gbc.anchor = GridBagConstraints.CENTER;
 
-        timeWindowSliderValueLabel = new JLabel(String.format("%d", (int)actualTime));
+        timeWindowSliderValueLabel = new JLabel(String.format("%d", (int) actualTime));
         timeWindowSliderValueLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
 
         JSlider timeWindowSlider = new JSlider((int) evaluation.getStartTime(), (int) evaluation.getEndTime(), (int) actualTime);
@@ -226,7 +231,7 @@ public class VisualRepresentation extends Visualization implements Observer {
         frame.add(bottomContainer, BorderLayout.SOUTH);
 
         // Final frame settings
-        frame.setSize(950, 700);
+        frame.setSize(dimension);
         frame.setLocationRelativeTo(null);
 
         // Populate the dashboard with initial data
@@ -234,6 +239,7 @@ public class VisualRepresentation extends Visualization implements Observer {
 
         return frame;
     }
+
     /**
      * Initializes the panel containing the text-based metrics (Precision/Recall/Integrity).
      */
@@ -259,7 +265,8 @@ public class VisualRepresentation extends Visualization implements Observer {
             lbl.setFont(metricsFont);
             metricsPanel.add(lbl);
             // Add a spacer after the Availability section
-            if (lbl == availabilityImprovementLabel) metricsPanel.add(Box.createRigidArea(new Dimension(0, 8)));
+            if (lbl == availabilityImprovementLabel)
+                metricsPanel.add(Box.createRigidArea(new Dimension(0, 8)));
         }
 
         return metricsPanel;
@@ -350,16 +357,16 @@ public class VisualRepresentation extends Visualization implements Observer {
 
         // Calculation logic
         // 1. Calculate Availability Metrics
-        double gnssAvail = (double)(matrix[0][0] + matrix[0][1]) / sum;
-        double veAvail = (double)(matrix[0][0] + matrix[1][0]) / sum;
+        double gnssAvail = (double) (matrix[0][0] + matrix[0][1]) / sum;
+        double veAvail = (double) (matrix[0][0] + matrix[1][0]) / sum;
 
         // 2. Calculate Availability Improvement (Safe from division by zero)
         // If GNSS availability is 0, we define improvement as 0 to avoid Infinity/NaN
         double availImp = (gnssAvail == 0) ? 0 : (veAvail - gnssAvail) / gnssAvail;
 
         // 3. Calculate Integrity Metrics
-        double gnssInteg = (double)(matrix[0][0] + matrix[0][1] + matrix[0][2]) / sum;
-        double veInteg = (double)(matrix[0][0] + matrix[1][0] + matrix[0][2] + matrix[1][2]) / sum;
+        double gnssInteg = (double) (matrix[0][0] + matrix[0][1] + matrix[0][2]) / sum;
+        double veInteg = (double) (matrix[0][0] + matrix[1][0] + matrix[0][2] + matrix[1][2]) / sum;
 
         // 4. Calculate Integrity Improvement (Safe from division by zero)
         double integImp = (gnssInteg == 0) ? 0 : (veInteg - gnssInteg) / gnssInteg;
@@ -367,11 +374,11 @@ public class VisualRepresentation extends Visualization implements Observer {
         // Set text
         availabilityGNSSLabel.setText(String.format("GNSS Availability: %.2f", gnssAvail));
         availabilityVerificationEngineLabel.setText(String.format("VE Availability: %.2f", veAvail));
-        availabilityImprovementLabel.setText(String.format("Availability improvement: %d%%", (int)(availImp * 100)));
+        availabilityImprovementLabel.setText(String.format("Availability improvement: %d%%", (int) (availImp * 100)));
 
         integrityGNSSLabel.setText(String.format("GNSS Integrity: %.2f", gnssInteg));
         integrityVELabel.setText(String.format("VE Integrity: %.2f", veInteg));
-        integrityImprovementLabel.setText(String.format("Integrity improvement: %d%%", (int)(integImp * 100)));
+        integrityImprovementLabel.setText(String.format("Integrity improvement: %d%%", (int) (integImp * 100)));
 
         // 4. Update the Histogram
         if (histogramPanel != null) {
@@ -429,7 +436,7 @@ public class VisualRepresentation extends Visualization implements Observer {
                 // X-axis Labels
                 g2.setColor(Color.BLACK);
                 String label = String.format("%.1fm", (i + 1) * (MAX_ERROR_RANGE / BIN_COUNT));
-                g2.drawString(label, groupX + barWidth - (g2.getFontMetrics().stringWidth(label)/2), h - bottomMargin + 20);
+                g2.drawString(label, groupX + barWidth - (g2.getFontMetrics().stringWidth(label) / 2), h - bottomMargin + 20);
             }
 
             // Axis Titles
@@ -437,7 +444,7 @@ public class VisualRepresentation extends Visualization implements Observer {
 
             // Rotate text for Y-axis
             g2.rotate(-Math.PI / 2);
-            g2.drawString("Proportion (%)", - (topMargin + graphHeight / 2) - 40, leftMargin - 45);
+            g2.drawString("Proportion (%)", -(topMargin + graphHeight / 2) - 40, leftMargin - 45);
             g2.rotate(Math.PI / 2);
         }
 

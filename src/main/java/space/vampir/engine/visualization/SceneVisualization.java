@@ -3,9 +3,11 @@ package space.vampir.engine.visualization;
 import space.vampir.engine.message.Scenario;
 import space.vampir.engine.verification.UpdatedScenario;
 
+import javax.swing.*;
+import java.awt.*;
 import java.net.URL;
 
-public class SceneVisualization {
+public class SceneVisualization extends Visualization {
     protected static URL lineImage = SceneVisualization.class.getResource("/line.svg");
     protected static URL lineImage2 = SceneVisualization.class.getResource("/line2.svg");
     protected static URL carImage = SceneVisualization.class.getResource("/car.svg");
@@ -15,9 +17,10 @@ public class SceneVisualization {
     protected static URL veImage = SceneVisualization.class.getResource("/ve.svg");
     protected static URL gtImage = SceneVisualization.class.getResource("/gt.svg");
 
-
+    protected final JFrame frame = new JFrame();
 
     final MapRender map;
+    final MapPanel mapPanel;
 
     final ObjectRender ego = new ObjectRender(egoImage, 3,5,0,0,0);
     final ObjectRender circle = new ObjectRender(RenderExample.class.getResource("/blue-circle.svg"), 30,30,0,0,0);
@@ -25,8 +28,35 @@ public class SceneVisualization {
     final ObjectRender ve = new ObjectRender(veImage, 3,5,0,0,0);
     final ObjectRender gt = new ObjectRender(gtImage,3,5,0,0,0);
 
-    public SceneVisualization(MapRender map) {
+    public SceneVisualization(MapRender map, boolean enabled) {
+        super(enabled, new Dimension(400, 400));
         this.map = map;
+        this.mapPanel = new MapPanel(map);
+    }
+
+    public SceneVisualization(MapRender map) {
+        this(map, true);
+    }
+
+    @Override
+    public void startVisualization(Dimension dimension) {
+        SwingUtilities.invokeLater(() -> {
+            frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+            frame.setPreferredSize(dimension);
+            frame.setContentPane(mapPanel);
+            frame.pack();
+            frame.setLocationRelativeTo(null);
+            frame.setVisible(true);
+        });
+    }
+
+    @Override
+    public void updateVisualization() {
+        SwingUtilities.updateComponentTreeUI(frame);
+    }
+
+    public MapPanel getMapPanel() {
+        return mapPanel;
     }
 
     public synchronized void show(Scenario state){

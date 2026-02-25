@@ -5,6 +5,7 @@ import space.vampir.engine.message.Odometry;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Map;
 
 
 public class ExperimentalEvaluation {
@@ -53,7 +54,7 @@ public class ExperimentalEvaluation {
         return verificationEngine;
     }
 
-    public void addOdometries(HashMap<Long, Odometry> ref, HashMap<Long, Odometry> gnss, HashMap<Long,Odometry> ver){
+    public void addOdometries(Map<Long, Odometry> ref, Map<Long, Odometry> gnss, Map<Long,Odometry> ver){
         reference.putAll(ref);
         GNSS.putAll(gnss);
         verificationEngine.putAll(ver);
@@ -196,7 +197,7 @@ public class ExperimentalEvaluation {
         ExperimentalEvaluation experimentalEvaluation = new ExperimentalEvaluation();
         experimentalEvaluation.addOdometries(referenceExample, GNSS, verificationEngineExample);
 
-        //todo this way?
-        experimentalEvaluation.attach(new VisualRepresentation(experimentalEvaluation));
+        var visualRepresentation = new VisualStatRepresentation(experimentalEvaluation);
+        visualRepresentation.startWindow();
     }
 }

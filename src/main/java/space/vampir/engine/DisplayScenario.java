@@ -40,22 +40,10 @@ public class DisplayScenario {
     }
 
     public void showOnPanel(Scenario scenario) {
-        JFrame frame = new JFrame();
-
         SceneVisualization visualization = new SceneVisualization(map);
         visualization.show(scenario);
-        MapPanel mapPanel = new MapPanel(map);
-
-        mapPanel.saveImage(new File("scene.png"), 1000, 400);
-        SwingUtilities.updateComponentTreeUI(frame);
-
-        SwingUtilities.invokeLater(() -> {
-            frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-            frame.setPreferredSize(new Dimension(400, 400));
-            frame.setContentPane(mapPanel);
-            frame.pack();
-            frame.setLocationRelativeTo(null);
-            frame.setVisible(true);
-        });
+        visualization.getMapPanel().saveImage(new File("scene.png"), 1000, 400);
+        visualization.updateWindow();
+        visualization.startWindow();
     }
 }
