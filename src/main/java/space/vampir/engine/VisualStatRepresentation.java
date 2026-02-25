@@ -1,12 +1,14 @@
 package space.vampir.engine;
 
+import space.vampir.engine.visualization.Visualization;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 
-public class VisualRepresentation implements Observer {
+public class VisualRepresentation extends Visualization implements Observer {
     ExperimentalEvaluation evaluation;
 
     // --- GUI Components that require dynamic updates ---
@@ -32,10 +34,15 @@ public class VisualRepresentation implements Observer {
     private final double MAX_ERROR_RANGE = 2.5; // Max error to show on histogram (meters)
     private final int BIN_COUNT = 5;            // Number of bars in the histogram
 
-    VisualRepresentation(ExperimentalEvaluation evaluation){
+    VisualRepresentation(ExperimentalEvaluation evaluation, boolean enabled) {
+        super(enabled);
         this.evaluation = evaluation;
         actualTime = evaluation.getEndTime();
-        startApplication();
+        evaluation.attach(this);
+    }
+
+    VisualRepresentation(ExperimentalEvaluation evaluation) {
+        this(evaluation, true);
     }
 
     @Override
@@ -51,7 +58,8 @@ public class VisualRepresentation implements Observer {
     /**
      * Entry point to launch the application instance.
      */
-    public void startApplication() {
+    @Override
+    public void startVisualization() {
         SwingUtilities.invokeLater(() -> {
             JFrame frame = createMainFrame();
             frame.setVisible(true);
