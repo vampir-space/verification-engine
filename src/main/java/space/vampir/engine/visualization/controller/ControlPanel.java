@@ -70,6 +70,9 @@ public class ControlPanel extends Visualization {
         speedSlider.setMajorTickSpacing(1);
         speedSlider.setPaintTicks(true);
         speedSlider.addChangeListener(cl(e -> controller.setSpeed(speedSlider.getValue())));
+        InputMap imss = speedSlider.getInputMap(JComponent.WHEN_FOCUSED);
+        imss.put(KeyStroke.getKeyStroke("LEFT"), "none");
+        imss.put(KeyStroke.getKeyStroke("RIGHT"), "none");
 
         bottomControls.add(new JLabel("Speed"));
         bottomControls.add(speedSlider);
@@ -82,6 +85,9 @@ public class ControlPanel extends Visualization {
                 controller.setCurrentIndex(timeSlider.getValue());
             }
         }));
+        InputMap imts = timeSlider.getInputMap(JComponent.WHEN_FOCUSED);
+        imts.put(KeyStroke.getKeyStroke("UP"), "none");
+        imts.put(KeyStroke.getKeyStroke("DOWN"), "none");
 
         panel.add(timeSlider, BorderLayout.NORTH);
         panel.add(bottomControls, BorderLayout.SOUTH);

@@ -31,14 +31,14 @@ public class Controller {
 
     public void setTimestamps(List<Long> newTimestamps) {
         timestamps.clear();
-        timestamps.addAll(newTimestamps);
+        newTimestamps.forEach(this::addTimestamp);
         notifySizeChanged();
         currentIndex = Math.min(currentIndex, timestamps.size() - 1);
         notifySelected();
     }
 
     public void addTimestampLive(long timestamp) {
-        timestamps.add(timestamp);
+        addTimestamp(timestamp);
         notifySizeChanged();
         if (liveMode) {
             currentIndex = timestamps.size() - 1;
@@ -157,6 +157,15 @@ public class Controller {
     }
 
     /* ---------------- Internal ---------------- */
+
+    private void addTimestamp(long timestamp) {
+        int idx = Collections.binarySearch(timestamps, timestamp);
+        if (idx >= 0) {
+            return; // Already exists
+        }
+        int insertPos = -idx - 1;
+        timestamps.add(insertPos, timestamp);
+    }
 
     private void step() {
         if (playState == PlayState.PAUSED) return;
