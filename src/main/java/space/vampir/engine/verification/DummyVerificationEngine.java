@@ -4,7 +4,10 @@ import space.vampir.engine.message.Odometry;
 import space.vampir.engine.message.Scenario;
 
 public class DummyVerificationEngine implements VerificationEngine {
-    final double noise;
+
+    private static final boolean ADD_GNSS_NOISE = true;
+
+    private final double noise;
 
     public DummyVerificationEngine(double noise) {
         this.noise = noise;
@@ -17,7 +20,14 @@ public class DummyVerificationEngine implements VerificationEngine {
             return new UpdatedScenario(rawScenario, null, null);
         }
         Odometry newValue = addNoise(groundTruth);
-        return new UpdatedScenario(rawScenario, newValue, groundTruth);
+        Odometry gnssValue = ADD_GNSS_NOISE ? addNoise(groundTruth) : groundTruth;
+        Scenario newRawScenario = new Scenario(
+                rawScenario.time(),
+                gnssValue,
+                rawScenario.pointPillars(),
+                rawScenario.yolo()
+        );
+        return new UpdatedScenario(newRawScenario, newValue, groundTruth);
     }
 
     private Odometry addNoise(Odometry odometry) {

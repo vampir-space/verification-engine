@@ -36,11 +36,12 @@ public class VisualStatRepresentation extends Visualization implements Observer 
     long timeWindow = 3;
 
     // Configuration constants
+    private static final Dimension DEFAULT_WINDOW_SIZE = new Dimension(950, 700);
     private final double MAX_ERROR_RANGE = 2.5; // Max error to show on histogram (meters)
     private final int BIN_COUNT = 5;            // Number of bars in the histogram
 
     VisualStatRepresentation(ExperimentalEvaluation evaluation, boolean enabled) {
-        super(enabled, new Dimension(950, 700));
+        super(enabled, DEFAULT_WINDOW_SIZE);
         this.evaluation = evaluation;
         actualTime = evaluation.getEndTime();
         evaluation.attach(this);
