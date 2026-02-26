@@ -19,7 +19,7 @@ public class Controller {
     private int speed = 0; // 0 = 1x, negative slower, positive faster
     private final int speedMin = -5;
     private final int speedMax = 5;
-    private boolean liveMode = false;
+    private boolean liveMode = true;
 
     private final Timer playbackTimer;
 
@@ -62,6 +62,10 @@ public class Controller {
 
     public int getCurrentIndex() {
         return currentIndex;
+    }
+
+    public boolean isLive() {
+        return liveMode;
     }
 
     public int getMaxIndex() {
@@ -191,7 +195,7 @@ public class Controller {
 
     private int computeDelayMs() {
         double multiplier = Math.pow(1.5, speed);
-        double baseDelay = 500.0; // 1x = 500ms
+        double baseDelay = 100.0; // 1x speed
         return (int) Math.max(20, baseDelay / multiplier);
     }
 

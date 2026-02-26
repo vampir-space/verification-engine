@@ -24,7 +24,7 @@ public class KeyBindingManager {
         registerHotKey(
                 "stepBackward",
                 panel,
-                KeyStroke.getKeyStroke(KeyEvent.VK_PAGE_UP, 0),
+                KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, 0),
                 e -> controller.stepBackward()
         );
 
@@ -38,7 +38,7 @@ public class KeyBindingManager {
         registerHotKey(
                 "stepForward",
                 panel,
-                KeyStroke.getKeyStroke(KeyEvent.VK_PAGE_DOWN, 0),
+                KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0),
                 e -> controller.stepForward()
         );
 
@@ -59,7 +59,7 @@ public class KeyBindingManager {
         registerHotKey(
                 "slowDown",
                 panel,
-                KeyStroke.getKeyStroke(KeyEvent.VK_0, 0),
+                KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0),
                 e -> controller.slowDown()
         );
 
@@ -73,7 +73,7 @@ public class KeyBindingManager {
         registerHotKey(
                 "speedUp",
                 panel,
-                KeyStroke.getKeyStroke(KeyEvent.VK_2, 0),
+                KeyStroke.getKeyStroke(KeyEvent.VK_UP, 0),
                 e -> controller.speedUp()
         );
     }

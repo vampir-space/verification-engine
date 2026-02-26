@@ -17,9 +17,15 @@ public abstract class Visualization {
         this.defaultDimension = defaultDimension;
     }
 
-    public abstract void visualize(Scenario scenario, UpdatedScenario updatedScenario);
+    protected abstract void doVisualize(Scenario scenario, UpdatedScenario updatedScenario);
 
-    public abstract void startVisualization(Dimension dimension);
+    public void visualize(Scenario scenario, UpdatedScenario updatedScenario) {
+        if (enabled) {
+            doVisualize(scenario, updatedScenario);
+        }
+    }
+
+    protected abstract void startVisualization(Dimension dimension);
 
     public final void startWindow(Dimension dimension) {
         if (enabled) {
@@ -31,7 +37,7 @@ public abstract class Visualization {
         startWindow(defaultDimension);
     }
 
-    public abstract void updateVisualization();
+    protected abstract void updateVisualization();
 
     public final void updateWindow() {
         if (enabled) {

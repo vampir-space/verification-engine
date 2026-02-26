@@ -50,20 +50,20 @@ public class Replay {
     }
 
     public static void main(String[] args) {
-        VerificationEngine verificationEngine = new DummyVerificationEngine(3.0);
+        VerificationEngine verificationEngine = new DummyVerificationEngine(0.000025);
 
         WindowConfig windowConfig = getWindowConfig(args);
         List<Visualization> visualizations = new ArrayList<>();
 
         // Map
-        final MapRender map = new MapRender(RenderExample.class.getResource("/CrossWalk_6_vis.svg"),
-                147.488, 997.344, 356.646,
-                -100, 100, -40,
-                47.478824, 19.056313);
-//        final MapRender map = new MapRender(RenderExample.class.getResource("/Town10HD.svg"),
-//                158.327,683.330,642.063,
-//                -100,100,-150,
-//                0.0, 0.0);
+//        final MapRender map = new MapRender(RenderExample.class.getResource("/CrossWalk_6_vis.svg"),
+//                147.488, 997.344, 356.646,
+//                -100, 100, -40,
+//                47.478824, 19.056313);
+        final MapRender map = new MapRender(RenderExample.class.getResource("/Town10HD.svg"),
+                158.327,683.330,642.063,
+                -100,100,-150,
+                0.0, 0.0);
 
         Controller controller = new Controller();
         ControlPanel controlPanel = new ControlPanel(controller);
@@ -71,8 +71,11 @@ public class Replay {
             var state = states.get(time);
             if (state != null) {
                 var updatedScenario = verificationEngine.update(state);
-                for (Visualization visualization : visualizations) {
-                    visualization.visualize(state, updatedScenario);
+                if (updatedScenario.groundTruth() != null) {
+                    for (Visualization visualization : visualizations) {
+                        visualization.visualize(state, updatedScenario);
+                        visualization.updateWindow();
+                    }
                 }
             }
         });
@@ -91,7 +94,6 @@ public class Replay {
             if (state != null) {
                 states.put(state.time(), state);
                 controller.addTimestampLive(state.time());
-                visualizations.forEach(Visualization::updateVisualization);
             }
         };
 

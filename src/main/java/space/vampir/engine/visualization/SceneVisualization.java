@@ -30,7 +30,7 @@ public class SceneVisualization extends Visualization {
     final ObjectRender gt = new ObjectRender(gtImage,3,5,0,0,0);
 
     public SceneVisualization(MapRender map, boolean enabled) {
-        super(enabled, new Dimension(600, 400));
+        super(enabled, new Dimension(600, 600));
         this.map = map;
         this.mapPanel = new MapPanel(map);
     }
@@ -61,7 +61,7 @@ public class SceneVisualization extends Visualization {
     }
 
     @Override
-    public void visualize(Scenario scenario, UpdatedScenario updatedScenario) {
+    public void doVisualize(Scenario scenario, UpdatedScenario updatedScenario) {
         show(scenario);
     }
 
@@ -100,7 +100,6 @@ public class SceneVisualization extends Visualization {
                     line = lineImage;
                 } else {
                     line = lineImage2;
-                    System.out.println(detection.type());
                 }
 
                 var o = new ObjectRender(line,12,80, ego.getX(), ego.getY(), ego.getTheta()+detection.angle());
@@ -177,7 +176,6 @@ public class SceneVisualization extends Visualization {
                     line = lineImage;
                 } else {
                     line = lineImage2;
-                    System.out.println(detection.type());
                 }
 
                 var o = new ObjectRender(line,12,80, gnss.getX(), gnss.getY(), gnss.getTheta()+detection.angle());

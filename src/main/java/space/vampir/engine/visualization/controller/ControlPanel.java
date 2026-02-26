@@ -49,6 +49,11 @@ public class ControlPanel extends Visualization {
         stepFwd.addActionListener(al(e -> controller.stepForward()));
         live.addActionListener(al(e -> controller.resetToLive()));
 
+        for (JButton button : new JButton[]{stepBack, playBack, pause, playFwd, stepFwd, live}) {
+            InputMap im = button.getInputMap(JComponent.WHEN_FOCUSED);
+            im.put(KeyStroke.getKeyStroke("SPACE"), "none");
+        }
+
         JPanel bottomControls = new JPanel(new FlowLayout(FlowLayout.CENTER));
         bottomControls.add(timeLabel);
         bottomControls.add(stepBack);
@@ -101,16 +106,19 @@ public class ControlPanel extends Visualization {
             }
 
             private void update() {
-                if (!actionInitiated) {
-                    SwingUtilities.invokeLater(() -> {
-                        int current = controller.getCurrentIndex();
-                        int max = controller.getMaxIndex();
-                        timeLabel.setText(String.format("%d / %d", current, max));
+                SwingUtilities.invokeLater(() -> {
+                    int current = controller.getCurrentIndex();
+                    int max = controller.getMaxIndex();
+                    timeLabel.setText(String.format("%d / %d", current, max));
+                    live.setForeground(controller.isLive() ? Color.RED : Color.BLACK);
+                    if (!actionInitiated) {
+                        actionInitiated = true;
                         timeSlider.setMaximum(controller.getMaxIndex());
                         timeSlider.setValue(controller.getCurrentIndex());
                         speedSlider.setValue(controller.getSpeed());
-                    });
-                }
+                        actionInitiated = false;
+                    }
+                });
             }
         });
     }
@@ -129,11 +137,10 @@ public class ControlPanel extends Visualization {
 
     @Override
     public void updateVisualization() {
-        SwingUtilities.updateComponentTreeUI(frame);
     }
 
     @Override
-    public void visualize(Scenario scenario, UpdatedScenario updatedScenario) {
+    public void doVisualize(Scenario scenario, UpdatedScenario updatedScenario) {
     }
 
     @Override
@@ -143,17 +150,21 @@ public class ControlPanel extends Visualization {
 
     private ChangeListener cl(ChangeListener listener) {
         return e -> {
-            actionInitiated = true;
-            listener.stateChanged(e);
-            actionInitiated = false;
+            if (!actionInitiated) {
+                actionInitiated = true;
+                listener.stateChanged(e);
+                actionInitiated = false;
+            }
         };
     }
 
     private ActionListener al(ActionListener listener) {
         return e -> {
-            actionInitiated = true;
-            listener.actionPerformed(e);
-            actionInitiated = false;
+            if (!actionInitiated) {
+                actionInitiated = true;
+                listener.actionPerformed(e);
+                actionInitiated = false;
+            }
         };
     }
 }
