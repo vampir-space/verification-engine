@@ -2,6 +2,7 @@ package space.vampir.engine.visualization;
 
 import space.vampir.engine.message.Scenario;
 import space.vampir.engine.verification.UpdatedScenario;
+import space.vampir.engine.visualization.controller.KeyBindingManager;
 
 import javax.swing.*;
 import java.awt.*;
@@ -17,7 +18,7 @@ public class SceneVisualization extends Visualization {
     protected static URL veImage = SceneVisualization.class.getResource("/ve.svg");
     protected static URL gtImage = SceneVisualization.class.getResource("/gt.svg");
 
-    protected final JFrame frame = new JFrame();
+    protected final JFrame frame = new JFrame("Map");
 
     final MapRender map;
     final MapPanel mapPanel;
@@ -29,7 +30,7 @@ public class SceneVisualization extends Visualization {
     final ObjectRender gt = new ObjectRender(gtImage,3,5,0,0,0);
 
     public SceneVisualization(MapRender map, boolean enabled) {
-        super(enabled, new Dimension(400, 400));
+        super(enabled, new Dimension(600, 400));
         this.map = map;
         this.mapPanel = new MapPanel(map);
     }
@@ -45,7 +46,11 @@ public class SceneVisualization extends Visualization {
             frame.setPreferredSize(dimension);
             frame.setContentPane(mapPanel);
             frame.pack();
-            frame.setLocationRelativeTo(null);
+
+            Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+            Dimension frameSize  = frame.getSize();
+            frame.setLocation(screenSize.width - frameSize.width, 0);
+
             frame.setVisible(true);
         });
     }
@@ -53,6 +58,16 @@ public class SceneVisualization extends Visualization {
     @Override
     public void updateVisualization() {
         SwingUtilities.updateComponentTreeUI(frame);
+    }
+
+    @Override
+    public void visualize(Scenario scenario, UpdatedScenario updatedScenario) {
+        show(scenario);
+    }
+
+    @Override
+    public void registerHotkeys(KeyBindingManager keyBindingManager) {
+        keyBindingManager.registerDefaultHotkeys(mapPanel);
     }
 
     public MapPanel getMapPanel() {

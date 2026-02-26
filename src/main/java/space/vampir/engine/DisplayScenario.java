@@ -6,8 +6,6 @@ import space.vampir.engine.message.Scenario;
 import space.vampir.engine.message.Yolo;
 import space.vampir.engine.visualization.*;
 
-import javax.swing.*;
-import java.awt.*;
 import java.io.File;
 import java.util.List;
 

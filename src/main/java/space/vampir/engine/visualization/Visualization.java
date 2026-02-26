@@ -1,5 +1,9 @@
 package space.vampir.engine.visualization;
 
+import space.vampir.engine.message.Scenario;
+import space.vampir.engine.verification.UpdatedScenario;
+import space.vampir.engine.visualization.controller.KeyBindingManager;
+
 import java.awt.*;
 
 public abstract class Visualization {
@@ -12,6 +16,8 @@ public abstract class Visualization {
         this.enabled = enabled;
         this.defaultDimension = defaultDimension;
     }
+
+    public abstract void visualize(Scenario scenario, UpdatedScenario updatedScenario);
 
     public abstract void startVisualization(Dimension dimension);
 
@@ -31,6 +37,9 @@ public abstract class Visualization {
         if (enabled) {
             updateVisualization();
         }
+    }
+
+    public void registerHotkeys(KeyBindingManager keyBindingManager) {
     }
 
 }

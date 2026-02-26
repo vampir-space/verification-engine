@@ -1,15 +1,20 @@
 package space.vampir.engine;
 
+import space.vampir.engine.message.Scenario;
+import space.vampir.engine.verification.UpdatedScenario;
 import space.vampir.engine.visualization.Visualization;
+import space.vampir.engine.visualization.controller.KeyBindingManager;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.util.Map;
 
 public class VisualStatRepresentation extends Visualization implements Observer {
     ExperimentalEvaluation evaluation;
+    private final JPanel panel = new JPanel();
 
     // --- GUI Components that require dynamic updates ---
     private DefaultTableModel tableModel;
@@ -61,7 +66,17 @@ public class VisualStatRepresentation extends Visualization implements Observer 
     @Override
     public void startVisualization(Dimension dimension) {
         SwingUtilities.invokeLater(() -> {
-            JFrame frame = createMainFrame(dimension);
+            createMainPanel();
+            JFrame frame = new JFrame("Experimental Evaluation");
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setPreferredSize(dimension);
+            frame.setContentPane(panel);
+            frame.pack();
+
+            Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+            Dimension frameSize  = frame.getSize();
+            frame.setLocation(0, screenSize.height - frameSize.height);
+
             frame.setVisible(true);
         });
     }
@@ -71,18 +86,29 @@ public class VisualStatRepresentation extends Visualization implements Observer 
         updateDashboard();
     }
 
+    @Override
+    public void visualize(Scenario scenario, UpdatedScenario updatedScenario) {
+        evaluation.addOdometries(
+                Map.of(scenario.time(), updatedScenario.groundTruth()),
+                Map.of(scenario.time(), scenario.odometry()),
+                Map.of(scenario.time(), updatedScenario.updatedByVerificationEngine())
+        );
+    }
+
+    @Override
+    public void registerHotkeys(KeyBindingManager keyBindingManager) {
+        keyBindingManager.registerDefaultHotkeys(panel);
+    }
+
     /**
      * Creates and configures the main application window.
      */
-    private JFrame createMainFrame(Dimension dimension) {
+    private void createMainPanel() {
         double diff = evaluation.getDiff();
 
-        JFrame frame = new JFrame("Experimental Evaluation");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
         // Main layout: BorderLayout
-        frame.setLayout(new BorderLayout());
-        ((JPanel) frame.getContentPane()).setBorder(new EmptyBorder(10, 20, 20, 20));
+        panel.setLayout(new BorderLayout());
+        panel.setBorder(new EmptyBorder(10, 20, 20, 20));
 
         // --- 1. CENTER SECTION: METRICS & VISUALIZATIONS ---
         JPanel contentPanel = new JPanel(new GridLayout(1, 2, 40, 0));
@@ -109,7 +135,7 @@ public class VisualStatRepresentation extends Visualization implements Observer 
         contentPanel.add(leftColumn);
         contentPanel.add(rightColumn);
 
-        frame.add(contentPanel, BorderLayout.CENTER);
+        panel.add(contentPanel, BorderLayout.CENTER);
 
         // --- 2. BOTTOM SECTION: CONTROL PANEL (SLIDERS) ---
 
@@ -228,16 +254,10 @@ public class VisualStatRepresentation extends Visualization implements Observer 
         bottomContainer.add(timeWindowSliderValueLabel, gbc);
 
         // Add the organized container to the bottom of the frame
-        frame.add(bottomContainer, BorderLayout.SOUTH);
-
-        // Final frame settings
-        frame.setSize(dimension);
-        frame.setLocationRelativeTo(null);
+        panel.add(bottomContainer, BorderLayout.SOUTH);
 
         // Populate the dashboard with initial data
         updateDashboard();
-
-        return frame;
     }
 
     /**
@@ -290,6 +310,7 @@ public class VisualStatRepresentation extends Visualization implements Observer 
         table.setShowGrid(true);
         table.setGridColor(Color.GRAY);
         table.setFont(new Font("Arial", Font.BOLD, 14));
+        table.setEnabled(false); // Make table non-editable
 
         // Custom renderer for visual styling (gray background for headers)
         table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {

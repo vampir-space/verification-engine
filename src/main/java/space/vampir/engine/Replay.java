@@ -5,20 +5,27 @@ import okhttp3.Request;
 import space.vampir.engine.communication.ROSListener;
 import space.vampir.engine.communication.StateListener;
 import space.vampir.engine.communication.StateRecorder;
+import space.vampir.engine.message.Scenario;
 import space.vampir.engine.verification.DummyVerificationEngine;
 import space.vampir.engine.verification.VerificationEngine;
 import space.vampir.engine.visualization.MapRender;
 import space.vampir.engine.visualization.RenderExample;
 import space.vampir.engine.visualization.SceneVisualization;
 import space.vampir.engine.visualization.Visualization;
+import space.vampir.engine.visualization.controller.ControlPanel;
+import space.vampir.engine.visualization.controller.Controller;
+import space.vampir.engine.visualization.controller.KeyBindingManager;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 public class Replay {
+
+    private static Map<Long, Scenario> states = new LinkedHashMap<>();
 
     private static class WindowConfig {
         boolean showScene = true;
@@ -43,6 +50,8 @@ public class Replay {
     }
 
     public static void main(String[] args) {
+        VerificationEngine verificationEngine = new DummyVerificationEngine(3.0);
+
         WindowConfig windowConfig = getWindowConfig(args);
         List<Visualization> visualizations = new ArrayList<>();
 
@@ -56,10 +65,22 @@ public class Replay {
 //                -100,100,-150,
 //                0.0, 0.0);
 
+        Controller controller = new Controller();
+        ControlPanel controlPanel = new ControlPanel(controller);
+        controller.addObserver((time, size) -> {
+            var state = states.get(time);
+            if (state != null) {
+                var updatedScenario = verificationEngine.update(state);
+                for (Visualization visualization : visualizations) {
+                    visualization.visualize(state, updatedScenario);
+                }
+            }
+        });
+        visualizations.add(controlPanel);
+
         SceneVisualization sceneVisualization = new SceneVisualization(map, windowConfig.showScene);
         visualizations.add(sceneVisualization);
 
-        VerificationEngine verificationEngine = new DummyVerificationEngine(3.0);
         ExperimentalEvaluation experimentalEvaluation = new ExperimentalEvaluation();
         VisualStatRepresentation statsVisualization = new VisualStatRepresentation(experimentalEvaluation, windowConfig.showStats);
         visualizations.add(statsVisualization);
@@ -68,15 +89,8 @@ public class Replay {
         StateListener listener = recorder -> {
             var state = recorder.getLastState();
             if (state != null) {
-                sceneVisualization.show(state);
-
-                var updatedScenario = verificationEngine.update(state);
-                experimentalEvaluation.addOdometries(
-                        Map.of(state.time(), updatedScenario.groundTruth()),
-                        Map.of(state.time(), state.odometry()),
-                        Map.of(state.time(), updatedScenario.updatedByVerificationEngine())
-                );
-
+                states.put(state.time(), state);
+                controller.addTimestampLive(state.time());
                 visualizations.forEach(Visualization::updateVisualization);
             }
         };
@@ -94,6 +108,11 @@ public class Replay {
         // Start windows
 
         visualizations.forEach(Visualization::startWindow);
+
+        KeyBindingManager keyBindingManager = new KeyBindingManager(controller);
+        for (Visualization visualization : visualizations) {
+            visualization.registerHotkeys(keyBindingManager);
+        }
     }
 
 }
