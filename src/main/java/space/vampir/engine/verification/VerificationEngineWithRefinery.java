@@ -29,8 +29,7 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
         ComplexityStrategy<ModelSeedFragment> complexityStrategy = new BasicStrategy<>(outputStrategy);
         converter = new Converter<>(map, complexityStrategy);
 
-        MapGenerationProblemProvider problemProvider =
-                new MapGenerationProblemProvider(complexityStrategy.getMetaModelString());
+        problemProvider = new MapGenerationProblemProvider(complexityStrategy.getMetaModelString());
     }
 
     @Override
@@ -54,8 +53,11 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
         List<GeometrySolver.YoloDetection> yolos = new ArrayList<>();
 
         if (model != null) {
-            var observationMapping = problemProvider.getPartialRelation("Observation::Object");
-            var observationMappingCursor = model.getPartialInterpretation(observationMapping).getAll();
+            var pr = model.getProblemTrace().getPartialRelation("object");
+
+//            var observationMapping = problemProvider.getPartialRelation("object");
+//            var observationMappingCursor = model.getPartialInterpretation(observationMapping).getAll();
+            var observationMappingCursor = model.getPartialInterpretation(pr).getAll();
             while (observationMappingCursor.move()) {
                 int observationIndex = observationMappingCursor.getKey().get(0);
                 var observationName = refineryFragment.getName(observationIndex);
