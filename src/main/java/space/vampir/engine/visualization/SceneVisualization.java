@@ -61,8 +61,8 @@ public class SceneVisualization extends Visualization {
     }
 
     @Override
-    public void doVisualize(Scenario scenario, UpdatedScenario updatedScenario) {
-        show(scenario);
+    public void doVisualize(UpdatedScenario updatedScenario) {
+        show(updatedScenario);
     }
 
     @Override

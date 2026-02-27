@@ -93,11 +93,12 @@ public class VisualStatRepresentation extends Visualization implements Observer,
     }
 
     @Override
-    public void doVisualize(Scenario scenario, UpdatedScenario updatedScenario) {
+    public void doVisualize(UpdatedScenario updatedScenario) {
+        long time = updatedScenario.scenario().time();
         evaluation.addOdometries(
-                Map.of(scenario.time(), updatedScenario.groundTruth()),
-                Map.of(scenario.time(), updatedScenario.scenario().odometry()),
-                Map.of(scenario.time(), updatedScenario.updatedByVerificationEngine())
+                Map.of(time, updatedScenario.groundTruth()),
+                Map.of(time, updatedScenario.scenario().odometry()),
+                Map.of(time, updatedScenario.updatedByVerificationEngine())
         );
     }
 

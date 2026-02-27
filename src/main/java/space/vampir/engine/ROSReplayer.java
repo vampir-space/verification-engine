@@ -7,33 +7,20 @@ import space.vampir.engine.communication.StateListener;
 import space.vampir.engine.communication.StateRecorder;
 import space.vampir.engine.message.Scenario;
 import space.vampir.engine.verification.DummyVerificationEngine;
+import space.vampir.engine.verification.UpdatedScenario;
 import space.vampir.engine.verification.VerificationEngine;
 import space.vampir.engine.visualization.MapRender;
 import space.vampir.engine.visualization.RenderExample;
 import space.vampir.engine.visualization.SceneVisualization;
-import space.vampir.engine.visualization.Visualization;
-import space.vampir.engine.visualization.controller.ControlPanel;
-import space.vampir.engine.visualization.controller.Controller;
-import space.vampir.engine.visualization.controller.KeyBindingManager;
+import space.vampir.engine.visualization.WindowConfig;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
-public class Replay {
+public class ROSReplayer {
 
-    private static Map<Long, Scenario> states = new LinkedHashMap<>();
-
-    private static class WindowConfig {
-        boolean showScene = true;
-        boolean showStats = true;
-        // add more views later, e.g.:
-        // boolean showCamera = false;
-        // boolean showRefinery = false;
-    }
+    private static final double DUMMY_GNSS_NOISE = 1.1;
+    private static final double DUMMY_VERIFICATION_ENGINE_NOISE = 0.8;
 
     private static WindowConfig getWindowConfig(String[] args) {
         WindowConfig config = new WindowConfig();
@@ -50,10 +37,8 @@ public class Replay {
     }
 
     public static void main(String[] args) {
-        VerificationEngine verificationEngine = new DummyVerificationEngine(1.1, 0.8);
-
         WindowConfig windowConfig = getWindowConfig(args);
-        List<Visualization> visualizations = new ArrayList<>();
+        VerificationEngine verificationEngine = new DummyVerificationEngine(DUMMY_VERIFICATION_ENGINE_NOISE);
 
         // Map
 //        final MapRender map = new MapRender(RenderExample.class.getResource("/CrossWalk_6_vis.svg"),
@@ -65,36 +50,31 @@ public class Replay {
                 -100, 100, -150,
                 0.0, 0.0);
 
-        Controller controller = new Controller();
-        ControlPanel controlPanel = new ControlPanel(controller);
-        controller.addObserver((time, size) -> {
-            var state = states.get(time);
-            if (state != null) {
-                var updatedScenario = verificationEngine.update(state);
-                if (updatedScenario.groundTruth() != null) {
-                    for (Visualization visualization : visualizations) {
-                        visualization.visualize(state, updatedScenario);
-                        visualization.updateWindow();
-                    }
-                }
-            }
-        });
-        visualizations.add(controlPanel);
+        StateReplayer stateReplayer = new StateReplayer(verificationEngine);
 
         SceneVisualization sceneVisualization = new SceneVisualization(map, windowConfig.showScene);
-        visualizations.add(sceneVisualization);
+        stateReplayer.addVisualization(sceneVisualization);
 
         ExperimentalEvaluation experimentalEvaluation = new ExperimentalEvaluation();
         VisualStatRepresentation statsVisualization = new VisualStatRepresentation(experimentalEvaluation, windowConfig.showStats, false);
-        controller.addObserver(statsVisualization);
-        visualizations.add(statsVisualization);
+        stateReplayer.addControllerObserver(statsVisualization);
+        stateReplayer.addVisualization(statsVisualization);
 
         // Communication
         StateListener listener = recorder -> {
-            var state = recorder.getLastState();
+            Scenario state = recorder.getLastState();
             if (state != null) {
-                states.put(state.time(), state);
-                controller.addTimestampLive(state.time());
+                UpdatedScenario updatedScenario = new UpdatedScenario(
+                        new Scenario(
+                                state.time(),
+                                NoiseApplier.addNoise(state.odometry(), DUMMY_GNSS_NOISE),
+                                state.pointPillars(),
+                                state.yolo()
+                        ),
+                        null,
+                        state.odometry()
+                );
+                stateReplayer.addState(updatedScenario);
             }
         };
 
@@ -108,14 +88,8 @@ public class Replay {
 
         client.newWebSocket(request, new ROSListener(recorder, latch, relevantTopics));
 
-        // Start windows
-
-        visualizations.forEach(Visualization::startWindow);
-
-        KeyBindingManager keyBindingManager = new KeyBindingManager(controller);
-        for (Visualization visualization : visualizations) {
-            visualization.registerHotkeys(keyBindingManager);
-        }
+        // Start replayer
+        stateReplayer.start();
     }
 
 }

@@ -17,11 +17,11 @@ public abstract class Visualization {
         this.defaultDimension = defaultDimension;
     }
 
-    protected abstract void doVisualize(Scenario scenario, UpdatedScenario updatedScenario);
+    protected abstract void doVisualize(UpdatedScenario updatedScenario);
 
-    public void visualize(Scenario scenario, UpdatedScenario updatedScenario) {
+    public void visualize(UpdatedScenario updatedScenario) {
         if (enabled) {
-            doVisualize(scenario, updatedScenario);
+            doVisualize(updatedScenario);
         }
     }
 

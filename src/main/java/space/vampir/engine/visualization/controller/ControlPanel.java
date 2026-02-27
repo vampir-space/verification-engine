@@ -146,7 +146,7 @@ public class ControlPanel extends Visualization {
     }
 
     @Override
-    public void doVisualize(Scenario scenario, UpdatedScenario updatedScenario) {
+    public void doVisualize(UpdatedScenario updatedScenario) {
     }
 
     @Override
