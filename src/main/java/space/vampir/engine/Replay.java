@@ -50,7 +50,7 @@ public class Replay {
     }
 
     public static void main(String[] args) {
-        VerificationEngine verificationEngine = new DummyVerificationEngine(0.00005, 0.000025);
+        VerificationEngine verificationEngine = new DummyVerificationEngine(1.1, 0.8);
 
         WindowConfig windowConfig = getWindowConfig(args);
         List<Visualization> visualizations = new ArrayList<>();

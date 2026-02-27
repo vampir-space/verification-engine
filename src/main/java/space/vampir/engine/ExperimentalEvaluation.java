@@ -3,6 +3,7 @@ package space.vampir.engine;
 import space.vampir.engine.message.Odometry;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiPredicate;
@@ -36,6 +37,11 @@ public class ExperimentalEvaluation {
 
     public int getSize() {
         return reference.size();
+    }
+
+    public int getSizeBefore(long time) {
+        int result = Collections.binarySearch(timestamps, time);
+        return result < 0 ? -result - 1 : result + 1;
     }
 
     public HashMap<Long, Odometry> getGNSS() {
@@ -77,7 +83,7 @@ public class ExperimentalEvaluation {
      * Calculates the confusion matrix based on the current 'diff' threshold in the given period.
      */
     public int[][] getMatrix(int actualTime, int timeWindow) {
-        return getMatrix((index, timeStamp) -> index >= actualTime - timeWindow && index <= actualTime);
+        return getMatrix((index, timeStamp) -> index > actualTime - timeWindow && index <= actualTime);
     }
 
     private int[][] getMatrix(BiPredicate<Integer, Long> timeFilter) {
@@ -124,11 +130,12 @@ public class ExperimentalEvaluation {
         if (dataList.isEmpty() || reference.isEmpty()) return bins;
 
         double step = MAX_ERROR_RANGE / BIN_COUNT;
+        int totalCount = 0;
 
         // Iterate through the keys of the provided map
         for (int i = 0; i < timestamps.size(); i++) {
             Long timeStamp = timestamps.get(i);
-            if (i >= actualTime - timeWindow && i <= actualTime) {
+            if (i > actualTime - timeWindow && i <= actualTime) {
                 // Check if this timestamp exists in reference and dataList as well
                 if (reference.containsKey(timeStamp) && dataList.containsKey(timeStamp)) {
                     double error = Math.hypot(
@@ -140,13 +147,14 @@ public class ExperimentalEvaluation {
                     if (binIndex >= BIN_COUNT) binIndex = BIN_COUNT - 1;
                     if (binIndex < 0) binIndex = 0;
                     bins[binIndex]++;
+                    totalCount++;
                 }
             }
         }
 
         // Normalize to percentage (0.0 - 1.0)
         for (int i = 0; i < BIN_COUNT; i++) {
-            bins[i] /= dataList.size();
+            bins[i] /= totalCount;
         }
         return bins;
     }

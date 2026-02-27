@@ -96,7 +96,7 @@ public class VisualStatRepresentation extends Visualization implements Observer,
     public void doVisualize(Scenario scenario, UpdatedScenario updatedScenario) {
         evaluation.addOdometries(
                 Map.of(scenario.time(), updatedScenario.groundTruth()),
-                Map.of(scenario.time(), scenario.odometry()),
+                Map.of(scenario.time(), updatedScenario.scenario().odometry()),
                 Map.of(scenario.time(), updatedScenario.updatedByVerificationEngine())
         );
     }
@@ -109,16 +109,17 @@ public class VisualStatRepresentation extends Visualization implements Observer,
     @Override
     public void select(long time, int index) {
         timeSlider.setValue(index);
+        boolean timeWindowSliderAtMax = timeWindowSlider.getValue() == timeWindowSlider.getMaximum();
+        int timeWindowMax = Math.max(1, Math.min(evaluation.getSize(), evaluation.getSizeBefore(time)));
+        timeWindowSlider.setMaximum(timeWindowMax);
+        if (timeWindowSliderAtMax) {
+            timeWindowSlider.setValue(timeWindowMax);
+        }
     }
 
     @Override
     public void sizeChanged(long maxTime, int size) {
-        timeSlider.setMaximum(size);
-        boolean timeWindowSliderAtMax = timeWindowSlider.getValue() == timeWindowSlider.getMaximum();
-        timeWindowSlider.setMaximum(size);
-        if (timeWindowSliderAtMax) {
-            timeWindowSlider.setValue(size);
-        }
+        timeSlider.setMaximum(size - 1);
     }
 
     /**
