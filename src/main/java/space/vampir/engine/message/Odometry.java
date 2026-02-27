@@ -27,7 +27,6 @@ public class Odometry extends Message{
                 (double) readMap(quat,"w"));
         double theta = Math.toRadians(euler[2]) + Math.PI/2;
 
-
         return new Odometry(time,x,y,theta);
     }
 

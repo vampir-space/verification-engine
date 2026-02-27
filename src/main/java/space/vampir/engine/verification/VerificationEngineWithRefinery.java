@@ -55,8 +55,6 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
         if (model != null) {
             var pr = model.getProblemTrace().getPartialRelation("object");
 
-//            var observationMapping = problemProvider.getPartialRelation("object");
-//            var observationMappingCursor = model.getPartialInterpretation(observationMapping).getAll();
             var observationMappingCursor = model.getPartialInterpretation(pr).getAll();
             while (observationMappingCursor.move()) {
                 int observationIndex = observationMappingCursor.getKey().get(0);
