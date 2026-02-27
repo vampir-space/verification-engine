@@ -18,11 +18,8 @@ import tools.refinery.store.representation.Symbol;
 import tools.refinery.store.tuple.Tuple;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
 
 public class SimpleTest {
 
@@ -30,7 +27,7 @@ public class SimpleTest {
     void test() {
 
         // once
-        String filePath = "/CrossWalk_6.xodr";
+        String filePath = "/CrossWalk_6/CrossWalk_6.xodr";
         URL resource = SimpleTest.class.getResource(filePath);
         String fileString =  resource.getFile();
         File file = new File(fileString);

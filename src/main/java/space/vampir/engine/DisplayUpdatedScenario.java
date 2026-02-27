@@ -7,7 +7,6 @@ import space.vampir.engine.message.Yolo;
 import space.vampir.engine.verification.UpdatedScenario;
 import space.vampir.engine.visualization.*;
 
-import javax.swing.*;
 import java.awt.*;
 import java.io.File;
 import java.util.List;
@@ -21,10 +20,7 @@ public class DisplayUpdatedScenario {
 
     public static void main(String[] args) {
         // Map
-        final MapRender map = new MapRender(RenderExample.class.getResource("/CrossWalk_6_vis.svg"),
-                293.64313 - 145.75468, 1143.4985 - 145.75468, 522.96765 - 165.92186,
-                -100, 100, -40,
-                47.478824, 19.056313);
+        final MapRender map = new MapRender("/CrossWalk_6/CrossWalk_6.json");
 
         new DisplayUpdatedScenario(map).showOnPanel(
                 new UpdatedScenario(

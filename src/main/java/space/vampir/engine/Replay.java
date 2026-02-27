@@ -56,14 +56,8 @@ public class Replay {
         List<Visualization> visualizations = new ArrayList<>();
 
         // Map
-//        final MapRender map = new MapRender(RenderExample.class.getResource("/CrossWalk_6_vis.svg"),
-//                147.488, 997.344, 356.646,
-//                -100, 100, -40,
-//                47.478824, 19.056313);
-        final MapRender map = new MapRender(RenderExample.class.getResource("/Town10HD.svg"),
-                158.327,683.330,642.063,
-                -100,100,-150,
-                0.0, 0.0);
+//        final MapRender map = new MapRender("/CrossWalk_6/CrossWalk_6.json");
+        final MapRender map = new MapRender("/Town10HD/Town10HD.json");
 
         Controller controller = new Controller();
         ControlPanel controlPanel = new ControlPanel(controller);

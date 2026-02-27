@@ -15,10 +15,7 @@ import java.util.List;
 
 public class SystemTest {
     // Map
-    final MapRender map = new MapRender(RenderExample.class.getResource("/CrossWalk_6_vis.svg"),
-            293.64313 - 145.75468, 1143.4985 - 145.75468, 522.96765 - 165.92186,
-            -100, 100, -40,
-            47.478824, 19.056313);
+    final MapRender map = new MapRender("/CrossWalk_6/CrossWalk_6.json");
 
     @Test
     void simpleTest() {

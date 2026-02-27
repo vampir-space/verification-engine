@@ -1,8 +1,12 @@
 package space.vampir.engine.visualization;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.weisj.jsvg.SVGDocument;
 import com.github.weisj.jsvg.parser.SVGLoader;
 
+import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +39,48 @@ public class MapRender {
                         double backgroundX1, double backgroundX2, double backgroundY1,
                         double mapX1, double mapX2, double mapY1,
                         double geoRefLat, double geoRefLon) {
+        SVGLoader loader = new SVGLoader();
+        background = Objects.requireNonNull(loader.load(Objects.requireNonNull(mapURL, "SVG file not found")));
+        name = mapURL.getFile();
+        double background2MapScale = (mapX2-mapX1) / (backgroundX2-backgroundX1);
+
+        mapXStart = mapX1-(backgroundX1-background.viewBox().getMinX())*background2MapScale;
+        mapYStart = mapY1-((background.viewBox().getMaxY()-backgroundY1)*background2MapScale);
+
+        mapXSize = (background.viewBox().getMaxX() - background.viewBox().getMinX())*background2MapScale;
+        mapYSize = (background.viewBox().getMaxY() - background.viewBox().getMinX())*background2MapScale;
+
+        this.geoRefLatRad = Math.toRadians(geoRefLat);
+        this.geoRefLonRad = Math.toRadians(geoRefLon);
+    }
+
+    public MapRender(String configFilePath) {
+        ObjectMapper mapper = new ObjectMapper();
+        // Read JSON file into a tree structure
+        JsonNode node = null;
+        URL configURL = MapRender.class.getResource(configFilePath);
+        try {
+            node = mapper.readTree(configURL);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        // Extract values
+        String urlPath = node.get("mapURL").asText();
+        URL mapURL = MapRender.class.getResource(urlPath);
+
+        double backgroundX1 = node.get("backgroundX1").asDouble();
+        double backgroundX2 = node.get("backgroundX2").asDouble();
+        double backgroundY1 = node.get("backgroundY1").asDouble();
+
+        double mapX1 = node.get("mapX1").asDouble();
+        double mapX2 = node.get("mapX2").asDouble();
+        double mapY1 = node.get("mapY1").asDouble();
+
+        double geoRefLat = node.get("geoRefLat").asDouble();
+        double geoRefLon = node.get("geoRefLon").asDouble();
+
+        // Return the initialized class
         SVGLoader loader = new SVGLoader();
         background = Objects.requireNonNull(loader.load(Objects.requireNonNull(mapURL, "SVG file not found")));
         name = mapURL.getFile();
