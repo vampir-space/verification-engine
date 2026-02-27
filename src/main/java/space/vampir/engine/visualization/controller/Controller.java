@@ -1,5 +1,7 @@
 package space.vampir.engine.visualization.controller;
 
+import space.vampir.engine.SortedUniqueList;
+
 import javax.swing.Timer;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -10,7 +12,7 @@ public class Controller {
         PLAY_BACKWARD, PAUSED, PLAY_FORWARD
     }
 
-    private final List<Long> timestamps = new ArrayList<>();
+    private final SortedUniqueList<Long> timestamps = new SortedUniqueList<>();
     private final List<ControllerObserver> observers = new CopyOnWriteArrayList<>();
 
     private int currentIndex = 0;
@@ -48,10 +50,6 @@ public class Controller {
 
     public void addObserver(ControllerObserver observer) {
         observers.add(observer);
-    }
-
-    public void removeObserver(ControllerObserver observer) {
-        observers.remove(observer);
     }
 
     public void setCurrentIndex(int index) {
@@ -183,7 +181,7 @@ public class Controller {
 
     private void notifySizeChanged() {
         for (ControllerObserver o : observers) {
-            o.sizeChanged(timestamps.size());
+            o.sizeChanged(timestamps.getLast(), timestamps.size());
         }
     }
 

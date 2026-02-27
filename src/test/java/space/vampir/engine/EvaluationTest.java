@@ -96,9 +96,9 @@ public class EvaluationTest {
         GNSS.put(1L, new Odometry(1L, 1, 1, 0)); //F
         GNSS.put(2L, new Odometry(2L, 0.6, 0.6, 0)); //F
         GNSS.put(3L, new Odometry(3L, 2, 2, 0)); //F
-        GNSS.put(4L,new Odometry(4L, 0.4, 0.4, 0)); //T
+        GNSS.put(4L, new Odometry(4L, 0.4, 0.4, 0)); //T
         GNSS.put(5L, new Odometry(5L, 2, 2, 0)); //F
-        GNSS.put(6L,new Odometry(6L, 0.4, 0.4, 0)); //T
+        GNSS.put(6L, new Odometry(6L, 0.4, 0.4, 0)); //T
 
         verificationEngineExample.put(0L, new Odometry(0L, 0.3, 0.3, 0)); //T
         verificationEngineExample.put(1L, new Odometry(1L, 0.4, 0.4, 0)); //T
@@ -112,7 +112,8 @@ public class EvaluationTest {
         var visualRepresentation = new VisualStatRepresentation(experimentalEvaluation);
         visualRepresentation.startWindow();
 
-        Thread.sleep(100000);
+        Thread.sleep(2000);
+        experimentalEvaluation.endEvaluation();
     }
 
     @Test
@@ -133,9 +134,9 @@ public class EvaluationTest {
         GNSS.put(1L, new Odometry(1L, 1, 1, 0)); //F
         GNSS.put(2L, new Odometry(2L, 0.6, 0.6, 0)); //F
         GNSS.put(3L, new Odometry(3L, 2, 2, 0)); //F
-        GNSS.put(4L,new Odometry(4L, 0.4, 0.4, 0)); //T
+        GNSS.put(4L, new Odometry(4L, 0.4, 0.4, 0)); //T
         GNSS.put(5L, new Odometry(5L, 2, 2, 0)); //F
-        GNSS.put(6L,new Odometry(6L, 0.4, 0.4, 0)); //T
+        GNSS.put(6L, new Odometry(6L, 0.4, 0.4, 0)); //T
 
         verificationEngineExample.put(0L, new Odometry(0L, 0.3, 0.3, 0)); //T
         verificationEngineExample.put(1L, new Odometry(1L, 0.4, 0.4, 0)); //T
