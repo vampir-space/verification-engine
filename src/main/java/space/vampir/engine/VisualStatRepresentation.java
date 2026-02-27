@@ -1,6 +1,5 @@
 package space.vampir.engine;
 
-import space.vampir.engine.message.Scenario;
 import space.vampir.engine.verification.UpdatedScenario;
 import space.vampir.engine.visualization.Visualization;
 import space.vampir.engine.visualization.controller.ControllerObserver;
@@ -80,7 +79,7 @@ public class VisualStatRepresentation extends Visualization implements Observer,
             frame.pack();
 
             Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-            Dimension frameSize  = frame.getSize();
+            Dimension frameSize = frame.getSize();
             frame.setLocation(0, screenSize.height - frameSize.height);
 
             frame.setVisible(true);
@@ -109,18 +108,25 @@ public class VisualStatRepresentation extends Visualization implements Observer,
 
     @Override
     public void select(long time, int index) {
-        timeSlider.setValue(index);
-        boolean timeWindowSliderAtMax = timeWindowSlider.getValue() == timeWindowSlider.getMaximum();
-        int timeWindowMax = Math.max(1, Math.min(evaluation.getSize(), evaluation.getSizeBefore(time)));
-        timeWindowSlider.setMaximum(timeWindowMax);
-        if (timeWindowSliderAtMax) {
-            timeWindowSlider.setValue(timeWindowMax);
+        actualTime = index;
+        if (timeSlider != null) {
+            timeSlider.setValue(index);
+        }
+        if (timeWindowSlider != null) {
+            boolean timeWindowSliderAtMax = timeWindowSlider.getValue() == timeWindowSlider.getMaximum();
+            int timeWindowMax = Math.max(1, Math.min(evaluation.getSize(), evaluation.getSizeBefore(time)));
+            timeWindowSlider.setMaximum(timeWindowMax);
+            if (timeWindowSliderAtMax) {
+                timeWindowSlider.setValue(timeWindowMax);
+            }
         }
     }
 
     @Override
     public void sizeChanged(long maxTime, int size) {
-        timeSlider.setMaximum(size - 1);
+        if (timeSlider != null) {
+            timeSlider.setMaximum(size - 1);
+        }
     }
 
     /**
@@ -389,6 +395,10 @@ public class VisualStatRepresentation extends Visualization implements Observer,
      * This is called whenever the slider is moved.
      */
     private void updateDashboard() {
+        if (this.tableModel == null) {
+            return; // dashboard not initialized yet, skip update
+        }
+
         // 1. Recalculate the matrix based on the new threshold
         int[][] matrix = evaluation.getMatrix(actualTime, timeWindow);
 
