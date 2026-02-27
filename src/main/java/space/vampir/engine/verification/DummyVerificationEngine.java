@@ -5,12 +5,12 @@ import space.vampir.engine.message.Scenario;
 
 public class DummyVerificationEngine implements VerificationEngine {
 
-    private static final boolean ADD_GNSS_NOISE = true;
+    private final double gnssNoise;
+    private final double verificationEngineNoise;
 
-    private final double noise;
-
-    public DummyVerificationEngine(double noise) {
-        this.noise = noise;
+    public DummyVerificationEngine(double gnssNoise, double verificationEngineNoise) {
+        this.gnssNoise = gnssNoise;
+        this.verificationEngineNoise = verificationEngineNoise;
     }
 
     @Override
@@ -19,8 +19,8 @@ public class DummyVerificationEngine implements VerificationEngine {
         if (groundTruth == null) {
             return new UpdatedScenario(rawScenario, null, null);
         }
-        Odometry newValue = addNoise(groundTruth);
-        Odometry gnssValue = ADD_GNSS_NOISE ? addNoise(groundTruth) : groundTruth;
+        Odometry gnssValue = addNoise(groundTruth, gnssNoise);
+        Odometry newValue = addNoise(groundTruth, verificationEngineNoise);
         Scenario newRawScenario = new Scenario(
                 rawScenario.time(),
                 gnssValue,
@@ -30,7 +30,7 @@ public class DummyVerificationEngine implements VerificationEngine {
         return new UpdatedScenario(newRawScenario, newValue, groundTruth);
     }
 
-    private Odometry addNoise(Odometry odometry) {
+    private Odometry addNoise(Odometry odometry, double noise) {
         double noiseRadius = Math.random() * noise;
         double xNoise = Math.random() * noiseRadius * 2 - noiseRadius;
         double yNoise = Math.sqrt(noiseRadius * noiseRadius - xNoise * xNoise);
