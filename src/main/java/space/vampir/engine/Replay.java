@@ -61,8 +61,8 @@ public class Replay {
 //                -100, 100, -40,
 //                47.478824, 19.056313);
         final MapRender map = new MapRender(RenderExample.class.getResource("/Town10HD.svg"),
-                158.327,683.330,642.063,
-                -100,100,-150,
+                158.327, 683.330, 642.063,
+                -100, 100, -150,
                 0.0, 0.0);
 
         Controller controller = new Controller();
@@ -85,7 +85,8 @@ public class Replay {
         visualizations.add(sceneVisualization);
 
         ExperimentalEvaluation experimentalEvaluation = new ExperimentalEvaluation();
-        VisualStatRepresentation statsVisualization = new VisualStatRepresentation(experimentalEvaluation, windowConfig.showStats);
+        VisualStatRepresentation statsVisualization = new VisualStatRepresentation(experimentalEvaluation, windowConfig.showStats, false);
+        controller.addObserver(statsVisualization);
         visualizations.add(statsVisualization);
 
         // Communication

@@ -3,6 +3,7 @@ package space.vampir.engine;
 import space.vampir.engine.message.Scenario;
 import space.vampir.engine.verification.UpdatedScenario;
 import space.vampir.engine.visualization.Visualization;
+import space.vampir.engine.visualization.controller.ControllerObserver;
 import space.vampir.engine.visualization.controller.KeyBindingManager;
 
 import javax.swing.*;
@@ -12,13 +13,17 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.Map;
 
-public class VisualStatRepresentation extends Visualization implements Observer {
+public class VisualStatRepresentation extends Visualization implements Observer, ControllerObserver {
     ExperimentalEvaluation evaluation;
-    private final JPanel panel = new JPanel();
+    private final boolean timeSliderEnabled;
 
     // --- GUI Components that require dynamic updates ---
+    private final JFrame frame = new JFrame("Experimental Evaluation");
+    private final JPanel panel = new JPanel();
     private DefaultTableModel tableModel;
     private HistogramPanel histogramPanel;
+    private JSlider timeSlider;
+    private JSlider timeWindowSlider;
     private JLabel thresholdSliderValueLabel;
     private JLabel timeSliderValueLabel;
     private JLabel timeWindowSliderValueLabel;
@@ -31,24 +36,25 @@ public class VisualStatRepresentation extends Visualization implements Observer 
     private JLabel integrityVELabel;
     private JLabel integrityImprovementLabel;
 
-
-    long actualTime;
-    long timeWindow = 3;
+    int actualTime;
+    int timeWindow;
 
     // Configuration constants
     private static final Dimension DEFAULT_WINDOW_SIZE = new Dimension(950, 700);
     private final double MAX_ERROR_RANGE = 2.5; // Max error to show on histogram (meters)
     private final int BIN_COUNT = 5;            // Number of bars in the histogram
 
-    VisualStatRepresentation(ExperimentalEvaluation evaluation, boolean enabled) {
+    VisualStatRepresentation(ExperimentalEvaluation evaluation, boolean enabled, boolean timeSliderEnabled) {
         super(enabled, DEFAULT_WINDOW_SIZE);
         this.evaluation = evaluation;
-        actualTime = evaluation.getEndTime();
+        this.timeSliderEnabled = timeSliderEnabled;
+        actualTime = Math.max(0, evaluation.getSize() - 1);
+        timeWindow = evaluation.getSize();
         evaluation.attach(this);
     }
 
     VisualStatRepresentation(ExperimentalEvaluation evaluation) {
-        this(evaluation, true);
+        this(evaluation, true, true);
     }
 
     @Override
@@ -58,7 +64,7 @@ public class VisualStatRepresentation extends Visualization implements Observer 
 
     @Override
     public void finish() {
-        //todo close application
+        frame.dispose();
     }
 
     /**
@@ -68,7 +74,6 @@ public class VisualStatRepresentation extends Visualization implements Observer 
     public void startVisualization(Dimension dimension) {
         SwingUtilities.invokeLater(() -> {
             createMainPanel();
-            JFrame frame = new JFrame("Experimental Evaluation");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.setPreferredSize(dimension);
             frame.setContentPane(panel);
@@ -99,6 +104,21 @@ public class VisualStatRepresentation extends Visualization implements Observer 
     @Override
     public void registerHotkeys(KeyBindingManager keyBindingManager) {
         keyBindingManager.registerDefaultHotkeys(panel);
+    }
+
+    @Override
+    public void select(long time, int index) {
+        timeSlider.setValue(index);
+    }
+
+    @Override
+    public void sizeChanged(long maxTime, int size) {
+        timeSlider.setMaximum(size);
+        boolean timeWindowSliderAtMax = timeWindowSlider.getValue() == timeWindowSlider.getMaximum();
+        timeWindowSlider.setMaximum(size);
+        if (timeWindowSliderAtMax) {
+            timeWindowSlider.setValue(size);
+        }
     }
 
     /**
@@ -195,18 +215,21 @@ public class VisualStatRepresentation extends Visualization implements Observer 
         gbc.gridy = 1;
         gbc.anchor = GridBagConstraints.CENTER;
 
-        timeSliderValueLabel = new JLabel(String.format("%d", (int) actualTime));
+        timeSliderValueLabel = new JLabel(String.format("%d", actualTime));
         timeSliderValueLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
 
-        JSlider timeSlider = new JSlider((int) evaluation.getStartTime(), (int) evaluation.getEndTime(), (int) actualTime);
+        timeSlider = new JSlider(0, Math.max(0, evaluation.getSize() - 1), actualTime);
         timeSlider.setMajorTickSpacing(10);
         timeSlider.setMinorTickSpacing(1);
         timeSlider.setPaintTicks(true);
         timeSlider.setPreferredSize(new Dimension(300, 50));
+        if (!timeSliderEnabled) {
+            timeSlider.setEnabled(false);
+        }
 
         timeSlider.addChangeListener(e -> {
             actualTime = timeSlider.getValue();
-            timeSliderValueLabel.setText(String.format("%d", (int) actualTime));
+            timeSliderValueLabel.setText(String.format("%d", actualTime));
             updateDashboard();
         });
 
@@ -231,10 +254,11 @@ public class VisualStatRepresentation extends Visualization implements Observer 
         gbc.gridy = 2;
         gbc.anchor = GridBagConstraints.CENTER;
 
-        timeWindowSliderValueLabel = new JLabel(String.format("%d", (int) actualTime));
+        var maxSize = Math.max(1, evaluation.getSize());
+        timeWindowSliderValueLabel = new JLabel(String.format("%d", maxSize));
         timeWindowSliderValueLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
 
-        JSlider timeWindowSlider = new JSlider((int) evaluation.getStartTime(), (int) evaluation.getEndTime(), (int) actualTime);
+        timeWindowSlider = new JSlider(1, maxSize, maxSize);
         timeWindowSlider.setMajorTickSpacing(10);
         timeWindowSlider.setMinorTickSpacing(1);
         timeWindowSlider.setPaintTicks(true);
@@ -242,7 +266,7 @@ public class VisualStatRepresentation extends Visualization implements Observer 
 
         timeWindowSlider.addChangeListener(e -> {
             timeWindow = timeWindowSlider.getValue();
-            timeWindowSliderValueLabel.setText(String.format("%d", (int) timeWindow));
+            timeWindowSliderValueLabel.setText(String.format("%d", timeWindow));
             updateDashboard();
         });
 

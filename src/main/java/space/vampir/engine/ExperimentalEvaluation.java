@@ -3,16 +3,16 @@ package space.vampir.engine;
 import space.vampir.engine.message.Odometry;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Predicate;
+import java.util.function.BiPredicate;
 
 
 public class ExperimentalEvaluation {
 
     private final ArrayList<Observer> observers = new ArrayList<>();
     // Data storage
+    private final SortedUniqueList<Long> timestamps = new SortedUniqueList<>();
     private final HashMap<Long, Odometry> reference = new HashMap<>();
     private final HashMap<Long, Odometry> GNSS = new HashMap<>();
     private final HashMap<Long, Odometry> verificationEngine = new HashMap<>();
@@ -21,19 +21,6 @@ public class ExperimentalEvaluation {
 
     // The threshold variable controlled by the slider
     double diff = 0.5;
-
-
-    //todo make it clearer
-    long startTime = -1;
-    long endTime = -1;
-
-    public long getStartTime() {
-        return startTime;
-    }
-
-    public long getEndTime() {
-        return endTime;
-    }
 
     public void attach(Observer observer) {
         this.observers.add(observer);
@@ -45,6 +32,10 @@ public class ExperimentalEvaluation {
 
     public void setDiff(double diff) {
         this.diff = diff;
+    }
+
+    public int getSize() {
+        return reference.size();
     }
 
     public HashMap<Long, Odometry> getGNSS() {
@@ -59,13 +50,8 @@ public class ExperimentalEvaluation {
         putAll(reference, ref);
         putAll(GNSS, gnss);
         putAll(verificationEngine, ver);
+        timestamps.addAll(reference.keySet());
         observers.forEach(Observer::update);
-        if (startTime == -1) {
-            startTime = Collections.min(ref.keySet());
-        }
-        if (endTime == -1 || endTime < Collections.max(ref.keySet())) {
-            endTime = Collections.max(ref.keySet());
-        }
     }
 
     private void putAll(Map<Long, Odometry> target, Map<Long, Odometry> source) {
@@ -84,20 +70,21 @@ public class ExperimentalEvaluation {
      * Calculates the confusion matrix based on the current 'diff' threshold.
      */
     public int[][] getMatrix() {
-        return getMatrix(timeStamp -> true);
+        return getMatrix((index, timeStamp) -> true);
     }
 
     /**
      * Calculates the confusion matrix based on the current 'diff' threshold in the given period.
      */
-    public int[][] getMatrix(long actualTime, long timeWindow) {
-        return getMatrix(timeStamp -> timeStamp >= actualTime - timeWindow && timeStamp <= actualTime);
+    public int[][] getMatrix(int actualTime, int timeWindow) {
+        return getMatrix((index, timeStamp) -> index >= actualTime - timeWindow && index <= actualTime);
     }
 
-    private int[][] getMatrix(Predicate<Long> timeFilter) {
+    private int[][] getMatrix(BiPredicate<Integer, Long> timeFilter) {
         int tt = 0, ft = 0, tf = 0, ff = 0, to = 0, fo = 0;
-        for (Long timeStamp : reference.keySet()) {
-            if (timeFilter.test(timeStamp)) {
+        for (int i = 0; i < timestamps.size(); i++) {
+            Long timeStamp = timestamps.get(i);
+            if (timeFilter.test(i, timeStamp)) {
                 if ((GNSS.get(timeStamp).getX() - reference.get(timeStamp).getX() < diff) && (GNSS.get(timeStamp).getY() - reference.get(timeStamp).getY() < diff)) {
                     if (verificationEngine.containsKey(timeStamp)) {
                         if (verificationEngine.get(timeStamp).getX() - reference.get(timeStamp).getX() < diff) {
@@ -131,7 +118,7 @@ public class ExperimentalEvaluation {
     /**
      * Helper method to calculate the percentage distribution of errors.
      */
-    public double[] getDistribution(HashMap<Long, Odometry> dataList, int BIN_COUNT, double MAX_ERROR_RANGE, long actualTime, long timeWindow) {
+    public double[] getDistribution(HashMap<Long, Odometry> dataList, int BIN_COUNT, double MAX_ERROR_RANGE, int actualTime, int timeWindow) {
         double[] bins = new double[BIN_COUNT];
         // If either map is empty, skip calculation
         if (dataList.isEmpty() || reference.isEmpty()) return bins;
@@ -139,10 +126,11 @@ public class ExperimentalEvaluation {
         double step = MAX_ERROR_RANGE / BIN_COUNT;
 
         // Iterate through the keys of the provided map
-        for (Long timeStamp : dataList.keySet()) {
-            if (timeStamp >= actualTime - timeWindow && timeStamp <= actualTime) {
-                // Check if this timestamp exists in the reference data
-                if (reference.containsKey(timeStamp)) {
+        for (int i = 0; i < timestamps.size(); i++) {
+            Long timeStamp = timestamps.get(i);
+            if (i >= actualTime - timeWindow && i <= actualTime) {
+                // Check if this timestamp exists in reference and dataList as well
+                if (reference.containsKey(timeStamp) && dataList.containsKey(timeStamp)) {
                     double error = Math.hypot(
                             dataList.get(timeStamp).getX() - reference.get(timeStamp).getX(),
                             dataList.get(timeStamp).getY() - reference.get(timeStamp).getY()

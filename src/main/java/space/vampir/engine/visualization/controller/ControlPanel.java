@@ -102,7 +102,7 @@ public class ControlPanel extends Visualization {
             }
 
             @Override
-            public void sizeChanged(int size) {
+            public void sizeChanged(long maxTime, int size) {
                 update();
             }
 

@@ -1,5 +1,7 @@
 package space.vampir.engine.visualization.controller;
 
+import space.vampir.engine.SortedUniqueList;
+
 import javax.swing.Timer;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -10,7 +12,7 @@ public class Controller {
         PLAY_BACKWARD, PAUSED, PLAY_FORWARD
     }
 
-    private final List<Long> timestamps = new ArrayList<>();
+    private final SortedUniqueList<Long> timestamps = new SortedUniqueList<>();
     private final List<ControllerObserver> observers = new CopyOnWriteArrayList<>();
 
     private int currentIndex = 0;
@@ -31,14 +33,14 @@ public class Controller {
 
     public void setTimestamps(List<Long> newTimestamps) {
         timestamps.clear();
-        newTimestamps.forEach(this::addTimestamp);
+        timestamps.addAll(newTimestamps);
         notifySizeChanged();
         currentIndex = Math.min(currentIndex, timestamps.size() - 1);
         notifySelected();
     }
 
     public void addTimestampLive(long timestamp) {
-        addTimestamp(timestamp);
+        timestamps.add(timestamp);
         notifySizeChanged();
         if (liveMode) {
             currentIndex = timestamps.size() - 1;
@@ -48,10 +50,6 @@ public class Controller {
 
     public void addObserver(ControllerObserver observer) {
         observers.add(observer);
-    }
-
-    public void removeObserver(ControllerObserver observer) {
-        observers.remove(observer);
     }
 
     public void setCurrentIndex(int index) {
@@ -158,15 +156,6 @@ public class Controller {
 
     /* ---------------- Internal ---------------- */
 
-    private void addTimestamp(long timestamp) {
-        int idx = Collections.binarySearch(timestamps, timestamp);
-        if (idx >= 0) {
-            return; // Already exists
-        }
-        int insertPos = -idx - 1;
-        timestamps.add(insertPos, timestamp);
-    }
-
     private void step() {
         if (playState == PlayState.PAUSED) return;
         step(playState == PlayState.PLAY_FORWARD ? +1 : -1);
@@ -192,7 +181,7 @@ public class Controller {
 
     private void notifySizeChanged() {
         for (ControllerObserver o : observers) {
-            o.sizeChanged(timestamps.size());
+            o.sizeChanged(timestamps.getLast(), timestamps.size());
         }
     }
 
