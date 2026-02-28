@@ -19,6 +19,7 @@ public class SceneVisualization extends Visualization {
     protected static URL gnssImage = SceneVisualization.class.getResource("/gnss.svg");
     protected static URL veImage = SceneVisualization.class.getResource("/ve.svg");
     protected static URL gtImage = SceneVisualization.class.getResource("/gt.svg");
+    protected static URL objectImage = SceneVisualization.class.getResource("/red-square.svg");
 
     protected final JFrame frame = new JFrame("Map");
 

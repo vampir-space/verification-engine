@@ -3,11 +3,15 @@ package space.vampir.engine.visualization;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.weisj.jsvg.SVGDocument;
 import com.github.weisj.jsvg.parser.SVGLoader;
+import tools.refinery.mapconverter.map.MapHandler;
+import tools.refinery.mapconverter.map.MapObject;
+import tools.refinery.mapconverter.map.ObjectType;
 
+import java.io.File;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+
+import static com.google.common.io.Resources.getResource;
 
 public class MapRender {
     final SVGDocument background;
@@ -28,6 +32,9 @@ public class MapRender {
     final double geoRefLonRad;
 
     List<ObjectRender> objects = new ArrayList<>();
+
+    //objects on the map (read from the xodr file)
+    List<ObjectRender> staticObjects = new ArrayList<>();
 
     /**
      * x1       x2
@@ -89,6 +96,24 @@ public class MapRender {
 
         this.geoRefLatRad = Math.toRadians(geoRefLat);
         this.geoRefLonRad = Math.toRadians(geoRefLon);
+
+        //Adding objects on the map from the xodr file
+        String xodrFilePath = configFilePath.replace(".json", ".xodr");
+        URL url = MapRender.class.getResource(xodrFilePath);
+        MapHandler mapHandler = null;
+        if (url != null) {
+            mapHandler = new MapHandler(new File(url.getFile()));
+        }
+
+        if (mapHandler != null) {
+            LinkedHashMap<Integer, MapObject> objects = mapHandler.getObjects();
+            for(MapObject o : objects.values()) {
+                //todo theta and size
+                if(o.getType().equals(ObjectType.Signal)){
+                    this.staticObjects.add(new ObjectRender(MapRender.class.getResource("/signal.svg"),4.0, 6.0, o.getCoordinate().getX(), o.getCoordinate().getY(), 0.0));
+                }
+            }
+        }
     }
 
     public SVGDocument getBackground() {
@@ -120,6 +145,10 @@ public class MapRender {
 
     public List<ObjectRender> getObjects() {
         return List.copyOf(objects); // copy to avoid concurrent modification issues
+    }
+
+    public List<ObjectRender> getStaticObjects(){
+        return List.copyOf(staticObjects);
     }
 
     public static MapRender of(String path) {

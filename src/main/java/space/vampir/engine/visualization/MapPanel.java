@@ -42,6 +42,10 @@ public class MapPanel extends JPanel {
         for (var object : map.getObjects()) {
             renderObject(object, g2d);
         }
+
+        for (var object : map.getStaticObjects()) {
+            renderObject(object, g2d);
+        }
     }
 
     private void renderObject(ObjectRender object, Graphics2D g2d) {
