@@ -12,27 +12,15 @@ import java.io.File;
 
 public class MapPanel extends JPanel {
     MapRender map;
-    JLabel label = new JLabel();
-    JSlider time = new JSlider();
 
     public MapPanel(MapRender mapRender) {
         this.map = mapRender;
-
         ToolTipManager.sharedInstance().registerComponent(this);
+    }
 
-        this.setLayout(new FlowLayout());
-
-        setLabel();
-        label.setVisible(true);
-        this.add(label);
-
-        time.setMaximum(1);
-        time.setMinimum(0);
-        time.setValue(0);
-        time.setEnabled(false);
-
-        time.setVisible(true);
-        //this.add(time);
+    public void setMapRender(MapRender mapRender) {
+        this.map = mapRender;
+        repaint();
     }
 
     @Override
@@ -51,7 +39,7 @@ public class MapPanel extends JPanel {
         ViewBox bounds = new ViewBox(0, 0, getWidth(), getHeight());
         map.getBackground().render(this, g2d, bounds);
 
-        for(var object : map.getObjects()) {
+        for (var object : map.getObjects()) {
             renderObject(object, g2d);
         }
     }
@@ -62,14 +50,14 @@ public class MapPanel extends JPanel {
         double mapScale = Math.min(
                 getWidth() / map.mapXSize,
                 getHeight() / map.mapYSize);
-        double centerX = map.mapXStart + map.mapXSize/2;
-        double xOffset = object.x-centerX;
-        double centerY = map.mapYStart + map.mapYSize/2;
-        double yOffset = object.y-centerY;
+        double centerX = map.mapXStart + map.mapXSize / 2;
+        double xOffset = object.x - centerX;
+        double centerY = map.mapYStart + map.mapYSize / 2;
+        double yOffset = object.y - centerY;
 
         g2d.transform(AffineTransform.getTranslateInstance(
-                getWidth() / 2.0 + xOffset*mapScale,
-                getHeight() / 2.0 - yOffset*mapScale));
+                getWidth() / 2.0 + xOffset * mapScale,
+                getHeight() / 2.0 - yOffset * mapScale));
 
         // Rotate
         g2d.transform(AffineTransform.getRotateInstance(object.theta));
@@ -83,8 +71,8 @@ public class MapPanel extends JPanel {
         double svgYScale = object.background.size().height / map.background.size().height;
         double sizeXScale = object.getSizeX() / map.mapXSize;
         double sizeYScale = object.getSizeY() / map.mapYSize;
-        double xScale = sizeXScale*svgToRenderScale/svgXScale;
-        double yScale = sizeYScale*svgToRenderScale/svgYScale;
+        double xScale = sizeXScale * svgToRenderScale / svgXScale;
+        double yScale = sizeYScale * svgToRenderScale / svgYScale;
         g2d.transform(AffineTransform.getScaleInstance(xScale, yScale));
 
         // move center to 0,0
@@ -95,22 +83,18 @@ public class MapPanel extends JPanel {
         g2d.setTransform(old);
     }
 
-    public void setLabel() {
-        this.label.setText(String.format("%s",map.getName()));
-    }
-
     @Override
     public String getToolTipText(MouseEvent event) {
-        double centerX = map.mapXStart + map.mapXSize/2;
-        double centerY = map.mapYStart + map.mapYSize/2;
+        double centerX = map.mapXStart + map.mapXSize / 2;
+        double centerY = map.mapYStart + map.mapYSize / 2;
 
         double scale = Math.max(
                 map.mapXSize / getWidth(),
                 map.mapYSize / getHeight());
-        double posx = centerX + scale*(event.getX()-getWidth()/2.0);
-        double posy = centerY - scale*(event.getY()-getHeight()/2.0);
+        double posx = centerX + scale * (event.getX() - getWidth() / 2.0);
+        double posy = centerY - scale * (event.getY() - getHeight() / 2.0);
 
-        return String.format("→%.2fm↑%.2fm",posx,posy);
+        return String.format("→%.2fm↑%.2fm", posx, posy);
     }
 
     public void saveImage(File file, int width, int height) {
@@ -128,7 +112,7 @@ public class MapPanel extends JPanel {
             if (lastIndexOf > -1) {
                 format = name.substring(lastIndexOf + 1);
             }
-            ImageIO.write(bi,format,file);
+            ImageIO.write(bi, format, file);
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -39,7 +39,7 @@ public class VisualStatRepresentation extends Visualization implements Observer,
     int timeWindow;
 
     // Configuration constants
-    private static final Dimension DEFAULT_WINDOW_SIZE = new Dimension(950, 700);
+    private static final Dimension DEFAULT_WINDOW_SIZE = new Dimension(850, 700);
     private final double MAX_ERROR_RANGE = 2.5; // Max error to show on histogram (meters)
     private final int BIN_COUNT = 5;            // Number of bars in the histogram
 

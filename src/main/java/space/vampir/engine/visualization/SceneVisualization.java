@@ -6,7 +6,9 @@ import space.vampir.engine.visualization.controller.KeyBindingManager;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionListener;
 import java.net.URL;
+import java.util.List;
 
 public class SceneVisualization extends Visualization {
     protected static URL lineImage = SceneVisualization.class.getResource("/line.svg");
@@ -20,23 +22,61 @@ public class SceneVisualization extends Visualization {
 
     protected final JFrame frame = new JFrame("Map");
 
-    final MapRender map;
-    final MapPanel mapPanel;
+    protected MapRender map;
+    protected final MapPanel mapPanel;
+    protected final JComboBox<String> mapSelector;
+    protected final JLabel mapSelectorLabel = new JLabel();
+    protected final ActionListener mapSelectorActionListener;
 
-    final ObjectRender ego = new ObjectRender(egoImage, 3,5,0,0,0);
-    final ObjectRender circle = new ObjectRender(RenderExample.class.getResource("/blue-circle.svg"), 30,30,0,0,0);
-    final ObjectRender gnss = new ObjectRender(gnssImage, 3,5,0,0,0);
-    final ObjectRender ve = new ObjectRender(veImage, 3,5,0,0,0);
-    final ObjectRender gt = new ObjectRender(gtImage,3,5,0,0,0);
+    final ObjectRender ego = new ObjectRender(egoImage, 3, 5, 0, 0, 0);
+    final ObjectRender circle = new ObjectRender(RenderExample.class.getResource("/blue-circle.svg"), 30, 30, 0, 0, 0);
+    final ObjectRender gnss = new ObjectRender(gnssImage, 3, 5, 0, 0, 0);
+    final ObjectRender ve = new ObjectRender(veImage, 3, 5, 0, 0, 0);
+    final ObjectRender gt = new ObjectRender(gtImage, 3, 5, 0, 0, 0);
 
     public SceneVisualization(MapRender map, boolean enabled) {
-        super(enabled, new Dimension(600, 600));
-        this.map = map;
-        this.mapPanel = new MapPanel(map);
+        super(enabled, new Dimension(700, 700));
+
+        List<String> maps = MapProvider.getMapConfigs();
+        this.map = map == null ? new MapRender(maps.getFirst()) : map;
+        this.mapPanel = new MapPanel(this.map);
+        setLabel();
+
+        maps.add("Other");
+        mapSelector = new JComboBox<>(maps.toArray(new String[0]));
+        setMapSelector(this.map);
+        mapSelectorActionListener = e -> {
+            String selected = (String) mapSelector.getSelectedItem();
+            if (selected != null && !selected.equals("Other")) {
+                this.map = new MapRender(selected);
+                mapPanel.setMapRender(this.map);
+                setLabel();
+            } else {
+                setMapSelector(this.map);
+            }
+        };
+        mapSelector.addActionListener(mapSelectorActionListener);
     }
 
     public SceneVisualization(MapRender map) {
         this(map, true);
+    }
+
+    private void setMapSelector(MapRender mapRender) {
+        mapSelector.removeActionListener(mapSelectorActionListener);
+        for (int i = 0; i < mapSelector.getItemCount(); i++) {
+            if (mapSelector.getItemAt(i).equals(mapRender.mapConfig)) {
+                mapSelector.setSelectedIndex(i);
+                mapSelector.addActionListener(mapSelectorActionListener);
+                return;
+            }
+        }
+        mapSelector.setSelectedItem("Other");
+        mapSelector.addActionListener(mapSelectorActionListener);
+    }
+
+    private void setLabel() {
+        this.mapSelectorLabel.setText(String.format("%s", map.getName()));
     }
 
     @Override
@@ -44,11 +84,23 @@ public class SceneVisualization extends Visualization {
         SwingUtilities.invokeLater(() -> {
             frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
             frame.setPreferredSize(dimension);
-            frame.setContentPane(mapPanel);
+            frame.setLayout(new BorderLayout());
+
+            JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+            topPanel.add(mapSelector);
+            topPanel.add(mapSelectorLabel);
+            JScrollPane scrollPane = new JScrollPane(
+                    topPanel,
+                    JScrollPane.VERTICAL_SCROLLBAR_NEVER,
+                    JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
+            );
+            frame.add(scrollPane, BorderLayout.NORTH);
+            frame.add(mapPanel, BorderLayout.CENTER);
+
             frame.pack();
 
             Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-            Dimension frameSize  = frame.getSize();
+            Dimension frameSize = frame.getSize();
             frame.setLocation(screenSize.width - frameSize.width, 0);
 
             frame.setVisible(true);
@@ -57,7 +109,7 @@ public class SceneVisualization extends Visualization {
 
     @Override
     public void updateVisualization() {
-        SwingUtilities.updateComponentTreeUI(frame);
+        SwingUtilities.updateComponentTreeUI(mapPanel);
     }
 
     @Override
@@ -74,11 +126,11 @@ public class SceneVisualization extends Visualization {
         return mapPanel;
     }
 
-    public synchronized void show(Scenario state){
-        map.getObjects().clear();
+    public synchronized void show(Scenario state) {
+        map.clearObjects();
         var odom = state.odometry();
-        if(odom != null) {
-            var coord = map.toMapCoord(odom.getX(),odom.getY());
+        if (odom != null) {
+            var coord = map.toMapCoord(odom.getX(), odom.getY());
 
             ego.setX(coord[0]);
             ego.setY(coord[1]);
@@ -93,23 +145,23 @@ public class SceneVisualization extends Visualization {
         }
 
         var yolo = state.yolo();
-        if(yolo != null) {
-            for(var detection : yolo.getYoloDetections()) {
+        if (yolo != null) {
+            for (var detection : yolo.getYoloDetections()) {
                 final URL line;
-                if(detection.type().equals("car")) {
+                if (detection.type().equals("car")) {
                     line = lineImage;
                 } else {
                     line = lineImage2;
                 }
 
-                var o = new ObjectRender(line,12,80, ego.getX(), ego.getY(), ego.getTheta()+detection.angle());
+                var o = new ObjectRender(line, 12, 80, ego.getX(), ego.getY(), ego.getTheta() + detection.angle());
                 map.addObject(o);
             }
         }
 
         var pointPillars = state.pointPillars();
-        if(pointPillars != null) {
-            for(var detection : pointPillars.getDetections()){
+        if (pointPillars != null) {
+            for (var detection : pointPillars.getDetections()) {
 
                 var cosT = Math.cos(ego.theta);
                 var sinT = Math.sin(ego.theta);
@@ -125,14 +177,14 @@ public class SceneVisualization extends Visualization {
         }
     }
 
-    public synchronized void show(UpdatedScenario updatedScenario){
-        map.getObjects().clear();
+    public synchronized void show(UpdatedScenario updatedScenario) {
+        map.clearObjects();
 
         Scenario state = updatedScenario.scenario();
         //Drawing car based on gnss
         var gnssOdom = state.odometry();
-        if(gnssOdom != null) {
-            var coord = map.toMapCoord(gnssOdom.getX(),gnssOdom.getY());
+        if (gnssOdom != null) {
+            var coord = map.toMapCoord(gnssOdom.getX(), gnssOdom.getY());
 
             gnss.setX(coord[0]);
             gnss.setY(coord[1]);
@@ -148,8 +200,8 @@ public class SceneVisualization extends Visualization {
 
         //drawing car based on ve
         var veOdom = updatedScenario.updatedByVerificationEngine();
-        if(veOdom != null) {
-            var coord = map.toMapCoord(veOdom.getX(),veOdom.getY());
+        if (veOdom != null) {
+            var coord = map.toMapCoord(veOdom.getX(), veOdom.getY());
 
             ve.setX(coord[0]);
             ve.setY(coord[1]);
@@ -159,8 +211,8 @@ public class SceneVisualization extends Visualization {
 
         //drawing car based on ve
         var gtOdom = updatedScenario.groundTruth();
-        if(gtOdom != null) {
-            var coord = map.toMapCoord(gtOdom.getX(),gtOdom.getY());
+        if (gtOdom != null) {
+            var coord = map.toMapCoord(gtOdom.getX(), gtOdom.getY());
 
             gt.setX(coord[0]);
             gt.setY(coord[1]);
@@ -169,23 +221,23 @@ public class SceneVisualization extends Visualization {
         }
 
         var yolo = state.yolo();
-        if(yolo != null) {
-            for(var detection : yolo.getYoloDetections()) {
+        if (yolo != null) {
+            for (var detection : yolo.getYoloDetections()) {
                 final URL line;
-                if(detection.type().equals("car")) {
+                if (detection.type().equals("car")) {
                     line = lineImage;
                 } else {
                     line = lineImage2;
                 }
 
-                var o = new ObjectRender(line,12,80, gnss.getX(), gnss.getY(), gnss.getTheta()+detection.angle());
+                var o = new ObjectRender(line, 12, 80, gnss.getX(), gnss.getY(), gnss.getTheta() + detection.angle());
                 map.addObject(o);
             }
         }
 
         var pointPillars = state.pointPillars();
-        if(pointPillars != null) {
-            for(var detection : pointPillars.getDetections()){
+        if (pointPillars != null) {
+            for (var detection : pointPillars.getDetections()) {
 
                 var cosT = Math.cos(gnss.theta);
                 var sinT = Math.sin(gnss.theta);
