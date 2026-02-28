@@ -22,22 +22,8 @@ public class ROSReplayer {
     private static final double DUMMY_GNSS_NOISE = 1.1;
     private static final double DUMMY_VERIFICATION_ENGINE_NOISE = 0.8;
 
-    private static WindowConfig getWindowConfig(String[] args) {
-        WindowConfig config = new WindowConfig();
-        for (String arg : args) {
-            switch (arg) {
-                case "--scene" -> config.showScene = true;
-                case "--no-scene" -> config.showScene = false;
-                case "--stats" -> config.showStats = true;
-                case "--no-stats" -> config.showStats = false;
-                // add more options later
-            }
-        }
-        return config;
-    }
-
     public static void main(String[] args) {
-        WindowConfig windowConfig = getWindowConfig(args);
+        WindowConfig windowConfig = WindowConfig.get(args);
         VerificationEngine verificationEngine = new DummyVerificationEngine(DUMMY_VERIFICATION_ENGINE_NOISE);
 
         // Map
