@@ -4,7 +4,8 @@ services:
     build: server
     image: ros-player
     volumes:
-      - ./bags:/bags:ro
+      - ./bags:/bags/bags:ro
+      - ./../../src/main/resources:/bags/resources:ro
     ports:
       - "9090:9090"
       - "9091:9091"
