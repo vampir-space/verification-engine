@@ -30,13 +30,13 @@ public class SystemTest {
                 new Yolo(0, List.of(
                         new Yolo.YoloDetection("sign", Math.PI * 0.06, 0.9)
                 )));
-        saveImage(scenario, "test-simpleTest");
+        //saveImage(scenario, "test-simpleTest");
     }
 
     @Test
     void doubleDetectionTest() {
         var scenario = getDoubleDetectionScenario();
-        saveImage(scenario, "test-doubleDetectionTest");
+       // saveImage(scenario, "test-doubleDetectionTest");
     }
 
     private Scenario getDoubleDetectionScenario() {
@@ -61,7 +61,7 @@ public class SystemTest {
                         new Yolo.YoloDetection("sign", Math.PI * 0.06, 0.5),
                         new Yolo.YoloDetection("sign", Math.PI * 0.136, 0.3)
                 )));
-        saveImage(scenario, "test-yoloDetectionTest");
+        //saveImage(scenario, "test-yoloDetectionTest");
     }
 
     @Test
@@ -72,7 +72,7 @@ public class SystemTest {
                 )),
                 new Yolo(0, List.of(
                 )));
-        saveImage(scenario, "test-odometryDetectionTest");
+       // saveImage(scenario, "test-odometryDetectionTest");
     }
 
     @Test
