@@ -5,20 +5,17 @@ import okhttp3.Request;
 import space.vampir.engine.communication.ROSListener;
 import space.vampir.engine.communication.StateListener;
 import space.vampir.engine.communication.StateRecorder;
-import space.vampir.engine.message.Scenario;
 import space.vampir.engine.verification.DummyVerificationEngine;
-import space.vampir.engine.verification.UpdatedScenario;
+import space.vampir.engine.verification.VerificationCase;
 import space.vampir.engine.verification.VerificationEngine;
+import space.vampir.engine.visualization.CliConfig;
 import space.vampir.engine.visualization.MapRender;
 import space.vampir.engine.visualization.SceneVisualization;
-import space.vampir.engine.visualization.CliConfig;
 
 import java.util.HashSet;
 import java.util.concurrent.CountDownLatch;
 
 public class ROSReplayer {
-
-    private static final double DUMMY_GNSS_NOISE = 1.1;
     private static final double DUMMY_VERIFICATION_ENGINE_NOISE = 0.8;
 
     public static void main(String[] args) {
@@ -37,19 +34,9 @@ public class ROSReplayer {
 
         // Communication
         StateListener listener = recorder -> {
-            Scenario state = recorder.getLastState();
-            if (state != null && state.odometry() != null) {
-                UpdatedScenario updatedScenario = new UpdatedScenario(
-                        new Scenario(
-                                state.time(),
-                                NoiseApplier.addNoise(state.odometry(), DUMMY_GNSS_NOISE),
-                                state.pointPillars(),
-                                state.yolo()
-                        ),
-                        null,
-                        state.odometry()
-                );
-                stateReplayer.addState(updatedScenario);
+            VerificationCase state = recorder.getLastState();
+            if (state != null && state.scenario().odometry() != null) {
+                stateReplayer.addState(state);
             }
         };
 

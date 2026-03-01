@@ -6,17 +6,13 @@ import space.vampir.engine.message.PointPillars;
 import space.vampir.engine.message.Scenario;
 import space.vampir.engine.message.Yolo;
 import space.vampir.engine.verification.DummyVerificationEngine;
-import space.vampir.engine.verification.UpdatedScenario;
+import space.vampir.engine.verification.VerificationCase;
 import space.vampir.engine.verification.VerificationEngine;
-import space.vampir.engine.verification.VerificationEngineWithRefineryDebug;
 import space.vampir.engine.visualization.MapPanel;
 import space.vampir.engine.visualization.MapRender;
-import space.vampir.engine.visualization.RenderExample;
 import space.vampir.engine.visualization.SceneVisualization;
-import tools.refinery.mapconverter.map.MapHandler;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
 
 public class SystemTest {
@@ -79,7 +75,7 @@ public class SystemTest {
                         new Yolo.YoloDetection("sign", Math.PI * 0.06, 0.5),
                         new Yolo.YoloDetection("sign", Math.PI * 0.136, 0.3)
                 )));
-        map.saveImage(scenario, "test-yoloDetectionTest");
+        saveImage(scenario, "test-yoloDetectionTest");
     }
 
     @Test
@@ -112,17 +108,14 @@ public class SystemTest {
         Scenario initialScenario = getDoubleDetectionScenario();
 
         for (int i = 0; i < NUMBER_OF_GENERATED_SCENARIOS; i++) {
-            UpdatedScenario updatedScenario = new UpdatedScenario(
-                    new Scenario(
-                            i,
-                            NoiseApplier.addNoise(initialScenario.odometry(), 1.1),
-                            initialScenario.pointPillars(),
-                            initialScenario.yolo()
-                    ),
-                    null,
-                    initialScenario.odometry()
+            Scenario scenario = new Scenario(
+                    i,
+                    NoiseApplier.addNoise(initialScenario.odometry(), 1.1),
+                    initialScenario.pointPillars(),
+                    initialScenario.yolo()
             );
-            stateReplayer.addState(updatedScenario);
+            VerificationCase verificationCase = new VerificationCase(scenario, initialScenario.odometry());
+            stateReplayer.addState(verificationCase);
         }
 
         stateReplayer.start();

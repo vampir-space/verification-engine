@@ -4,6 +4,10 @@ import space.vampir.engine.message.Odometry;
 
 public class NoiseApplier {
     public static Odometry addNoise(Odometry odometry, double noise) {
+        if (odometry == null) {
+            return null;
+        }
+
         double noiseRadius = Math.random() * noise;
         double xNoise = Math.random() * noiseRadius * 2 - noiseRadius;
         double yNoise = Math.sqrt(noiseRadius * noiseRadius - xNoise * xNoise);

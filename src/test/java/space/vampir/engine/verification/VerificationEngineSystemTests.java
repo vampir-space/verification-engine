@@ -28,9 +28,10 @@ public class VerificationEngineSystemTests {
             throw new RuntimeException(e);
         }
         var updatedScenario = verificationEngine.update(scenario);
+        var updatedVerificationCase = new UpdatedVerificationCase(updatedScenario, null);
 
         SceneVisualization visualization = new SceneVisualization(map);
-        visualization.show(updatedScenario);
+        visualization.show(updatedVerificationCase);
         MapPanel mapPanel = new MapPanel(map);
         mapPanel.saveImage(new File("ve_" + name + ".png"), 10000, 4000);
     }

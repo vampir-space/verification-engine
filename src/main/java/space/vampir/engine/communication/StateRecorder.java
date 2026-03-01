@@ -1,14 +1,27 @@
 package space.vampir.engine.communication;
 
-import space.vampir.engine.message.*;
+import space.vampir.engine.NoiseApplier;
+import space.vampir.engine.message.Message;
+import space.vampir.engine.message.Odometry;
+import space.vampir.engine.message.PointPillars;
+import space.vampir.engine.message.Scenario;
+import space.vampir.engine.message.Yolo;
+import space.vampir.engine.verification.VerificationCase;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class StateRecorder {
+
+    private static final double DUMMY_GNSS_NOISE = 1.1;
+
     public static final String syncedTopic = "/synchronized_messages";
     public static final String odometryTopic = "/ground_truth/odometry";
     public static final String pointPillarsTopic = "/detections/pointpillars";
     public static final String yoloTopic = "/detections/yolo";
+    public static final String navSatTopic = "/simulated_navsat_data";
     public static final Set<String> messageTopics = Set.of(odometryTopic, pointPillarsTopic, yoloTopic);
 
     //public static final String imageTopic = "/sensor/image";
@@ -45,15 +58,18 @@ public class StateRecorder {
         }
     }
 
-    public synchronized Scenario getLastState() {
+    public synchronized VerificationCase getLastState() {
         if (!hasMessage(this.odometries, this.pointPillars, this.yolos)) return null;
         var latestTime = getLatestTime(this.odometries, this.pointPillars, this.yolos);
         var commonTime = getCommonTimeWithMostMessages(latestTime, this.odometries, this.pointPillars, this.yolos);
 
-        return new Scenario(
-                getClosest(commonTime, odometries),
-                getClosest(commonTime, pointPillars),
-                getClosest(commonTime, yolos));
+        var groundTruth = getClosest(commonTime, odometries);
+        var odometry = NoiseApplier.addNoise(groundTruth, DUMMY_GNSS_NOISE);
+        var pointPillar = getClosest(commonTime, pointPillars);
+        var yolo = getClosest(commonTime, yolos);
+
+        var scenario = new Scenario(odometry, pointPillar, yolo);
+        return new VerificationCase(scenario, groundTruth);
     }
 
     private boolean hasMessage(List<? extends Message>... messages) {

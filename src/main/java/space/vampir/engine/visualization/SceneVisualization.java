@@ -1,7 +1,7 @@
 package space.vampir.engine.visualization;
 
 import space.vampir.engine.message.Scenario;
-import space.vampir.engine.verification.UpdatedScenario;
+import space.vampir.engine.verification.UpdatedVerificationCase;
 import space.vampir.engine.visualization.controller.KeyBindingManager;
 
 import javax.swing.*;
@@ -114,8 +114,12 @@ public class SceneVisualization extends Visualization {
     }
 
     @Override
-    public void doVisualize(UpdatedScenario updatedScenario) {
-        show(updatedScenario);
+    public void doVisualize(UpdatedVerificationCase verificationCase) {
+        if (verificationCase.updatedScenario().updatedByVerificationEngine() == null) {
+            show(verificationCase.scenario());
+        } else {
+            show(verificationCase);
+        }
     }
 
     @Override
@@ -178,10 +182,10 @@ public class SceneVisualization extends Visualization {
         }
     }
 
-    public synchronized void show(UpdatedScenario updatedScenario) {
+    public synchronized void show(UpdatedVerificationCase verificationCase) {
         map.clearObjects();
 
-        Scenario state = updatedScenario.scenario();
+        Scenario state = verificationCase.scenario();
         //Drawing car based on gnss
         var gnssOdom = state.odometry();
         if (gnssOdom != null) {
@@ -200,7 +204,7 @@ public class SceneVisualization extends Visualization {
         }
 
         //drawing car based on ve
-        var veOdom = updatedScenario.updatedByVerificationEngine();
+        var veOdom = verificationCase.updatedByVerificationEngine();
         if (veOdom != null) {
             var coord = map.toMapCoord(veOdom.getX(), veOdom.getY());
 
@@ -211,7 +215,7 @@ public class SceneVisualization extends Visualization {
         }
 
         //drawing car based on ve
-        var gtOdom = updatedScenario.groundTruth();
+        var gtOdom = verificationCase.groundTruth();
         if (gtOdom != null) {
             var coord = map.toMapCoord(gtOdom.getX(), gtOdom.getY());
 

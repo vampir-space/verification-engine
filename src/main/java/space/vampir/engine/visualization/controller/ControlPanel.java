@@ -1,7 +1,6 @@
 package space.vampir.engine.visualization.controller;
 
-import space.vampir.engine.message.Scenario;
-import space.vampir.engine.verification.UpdatedScenario;
+import space.vampir.engine.verification.UpdatedVerificationCase;
 import space.vampir.engine.visualization.Visualization;
 
 import javax.swing.*;
@@ -146,7 +145,7 @@ public class ControlPanel extends Visualization {
     }
 
     @Override
-    public void doVisualize(UpdatedScenario updatedScenario) {
+    public void doVisualize(UpdatedVerificationCase verificationCase) {
     }
 
     @Override

@@ -1,7 +1,6 @@
 package space.vampir.engine.visualization;
 
-import space.vampir.engine.message.Scenario;
-import space.vampir.engine.verification.UpdatedScenario;
+import space.vampir.engine.verification.UpdatedVerificationCase;
 import space.vampir.engine.visualization.controller.KeyBindingManager;
 
 import java.awt.*;
@@ -17,11 +16,11 @@ public abstract class Visualization {
         this.defaultDimension = defaultDimension;
     }
 
-    protected abstract void doVisualize(UpdatedScenario updatedScenario);
+    protected abstract void doVisualize(UpdatedVerificationCase verificationCase);
 
-    public void visualize(UpdatedScenario updatedScenario) {
+    public void visualize(UpdatedVerificationCase verificationCase) {
         if (enabled) {
-            doVisualize(updatedScenario);
+            doVisualize(verificationCase);
         }
     }
 

@@ -1,6 +1,6 @@
 package space.vampir.engine;
 
-import space.vampir.engine.verification.UpdatedScenario;
+import space.vampir.engine.verification.UpdatedVerificationCase;
 import space.vampir.engine.visualization.Visualization;
 import space.vampir.engine.visualization.controller.ControllerObserver;
 import space.vampir.engine.visualization.controller.KeyBindingManager;
@@ -92,12 +92,12 @@ public class VisualStatRepresentation extends Visualization implements Observer,
     }
 
     @Override
-    public void doVisualize(UpdatedScenario updatedScenario) {
-        long time = updatedScenario.scenario().time();
+    public void doVisualize(UpdatedVerificationCase updatedVerificationCase) {
+        long time = updatedVerificationCase.scenario().time();
         evaluation.addOdometries(
-                Map.of(time, updatedScenario.groundTruth()),
-                Map.of(time, updatedScenario.scenario().odometry()),
-                Map.of(time, updatedScenario.updatedByVerificationEngine())
+                Map.of(time, updatedVerificationCase.groundTruth()),
+                Map.of(time, updatedVerificationCase.scenario().odometry()),
+                Map.of(time, updatedVerificationCase.updatedByVerificationEngine())
         );
     }
 

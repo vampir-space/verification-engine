@@ -14,11 +14,11 @@ public class DummyVerificationEngine implements VerificationEngine {
 
     @Override
     public UpdatedScenario update(Scenario scenario) {
-        Odometry groundTruth = scenario.odometry();
-        if (groundTruth == null) {
-            return new UpdatedScenario(scenario, null, null);
+        Odometry odometry = scenario.odometry();
+        if (odometry == null) {
+            return new UpdatedScenario(scenario, null);
         }
-        Odometry newValue = NoiseApplier.addNoise(groundTruth, noise);
-        return new UpdatedScenario(scenario, newValue, groundTruth);
+        Odometry newValue = NoiseApplier.addNoise(odometry, noise);
+        return new UpdatedScenario(scenario, newValue);
     }
 }

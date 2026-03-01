@@ -1,6 +1,5 @@
 package space.vampir.engine.verification;
 
-import org.eclipse.xtext.xbase.formatting2.ObjectEntry;
 import org.jetbrains.annotations.NotNull;
 import space.vampir.engine.geometry.GeometrySolver;
 import space.vampir.engine.message.Odometry;
@@ -12,12 +11,24 @@ import tools.refinery.mapconverter.map.Converter;
 import tools.refinery.mapconverter.map.MapHandler;
 import tools.refinery.mapconverter.map.MapObject;
 import tools.refinery.mapconverter.map.ObjectType;
-import tools.refinery.mapconverter.scope.*;
-import tools.refinery.mapconverter.transform.*;
+import tools.refinery.mapconverter.scope.Circle;
+import tools.refinery.mapconverter.scope.Point;
+import tools.refinery.mapconverter.scope.Scope;
+import tools.refinery.mapconverter.scope.Sector;
+import tools.refinery.mapconverter.scope.Size;
+import tools.refinery.mapconverter.transform.BasicWithTypeRefinementStrategy;
+import tools.refinery.mapconverter.transform.ComplexityStrategy;
+import tools.refinery.mapconverter.transform.MapGenerationProblemProvider;
+import tools.refinery.mapconverter.transform.ModelSeedFragment;
+import tools.refinery.mapconverter.transform.ModelSeedStrategy;
 import tools.refinery.store.reasoning.seed.ModelSeed;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class VerificationEngineWithRefinery implements VerificationEngine {
     final Converter<ModelSeedFragment> converter;
@@ -85,7 +96,7 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
 
         var coordsInGeo = mapRender.toGeoCoord(geometrySolution.x, geometrySolution.y);
 
-        return new UpdatedScenario(rawScenario,new Odometry(rawScenario.time(),coordsInGeo[0],coordsInGeo[1],geometrySolution.alpha),null);
+        return new UpdatedScenario(rawScenario, new Odometry(rawScenario.time(),coordsInGeo[0],coordsInGeo[1],geometrySolution.alpha));
     }
 
     private @NotNull Scope<ModelSeedFragment> translateToScope(Scenario rawScenario, Map<String,Yolo.YoloDetection> observationYoloMap) {

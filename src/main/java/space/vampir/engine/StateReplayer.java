@@ -2,6 +2,8 @@ package space.vampir.engine;
 
 import space.vampir.engine.message.Scenario;
 import space.vampir.engine.verification.UpdatedScenario;
+import space.vampir.engine.verification.UpdatedVerificationCase;
+import space.vampir.engine.verification.VerificationCase;
 import space.vampir.engine.verification.VerificationEngine;
 import space.vampir.engine.visualization.Visualization;
 import space.vampir.engine.visualization.controller.ControlPanel;
@@ -19,7 +21,7 @@ public class StateReplayer {
     private final VerificationEngine verificationEngine;
     private final Controller controller;
     private final List<Visualization> visualizations = new ArrayList<>();
-    private final Map<Long, UpdatedScenario> states = new LinkedHashMap<>();
+    private final Map<Long, UpdatedVerificationCase> states = new LinkedHashMap<>();
 
     public StateReplayer(VerificationEngine verificationEngine) {
         this.verificationEngine = verificationEngine;
@@ -27,10 +29,10 @@ public class StateReplayer {
         controller = new Controller();
         ControlPanel controlPanel = new ControlPanel(controller);
         controller.addObserver((time, size) -> {
-            UpdatedScenario updatedScenario = states.get(time);
-            if (updatedScenario != null) {
+            UpdatedVerificationCase verificationCase = states.get(time);
+            if (verificationCase != null) {
                 for (Visualization visualization : visualizations) {
-                    visualization.visualize(updatedScenario);
+                    visualization.visualize(verificationCase);
                     visualization.updateWindow();
                 }
             }
@@ -46,20 +48,23 @@ public class StateReplayer {
         controller.addObserver(observer);
     }
 
-    private void add(UpdatedScenario state) {
+    private void add(UpdatedVerificationCase state) {
         long time = state.scenario().time();
         states.put(time, state);
         controller.addTimestampLive(time);
     }
 
-    public void addState(Scenario state) {
-        UpdatedScenario updatedScenario = verificationEngine.update(state);
-        add(updatedScenario);
+    public void addState(Scenario scenario) {
+        UpdatedScenario updatedScenario = verificationEngine.update(scenario);
+        UpdatedVerificationCase updatedVerificationCase = new UpdatedVerificationCase(updatedScenario, null);
+        add(updatedVerificationCase);
     }
 
-    public void addState(UpdatedScenario scenario) {
+    public void addState(VerificationCase verificationCase) {
+        Scenario scenario = verificationCase.scenario();
         UpdatedScenario updatedScenario = verificationEngine.update(scenario);
-        add(updatedScenario);
+        UpdatedVerificationCase updatedVerificationCase = verificationCase.update(updatedScenario);
+        add(updatedVerificationCase);
     }
 
     public void start() {
