@@ -387,15 +387,30 @@ public class VisualStatRepresentation extends Visualization implements Observer,
 
                 // B) Merge "VerificationEngine" (Row: 0, Columns: 5, 6, 7) - 3 columns wide
                 if (row == 0) {
-                    if (column == 5) { r = 0; } // Col 5 is just empty background
-                    if (column == 6) { l = 0; r = 0; c.setHorizontalAlignment(JLabel.RIGHT); } // "Verification "
-                    if (column == 7) { l = 0; c.setHorizontalAlignment(JLabel.LEFT); } // "Engine"
+                    if (column == 5) {
+                        r = 0;
+                    } // Col 5 is just empty background
+                    if (column == 6) {
+                        l = 0;
+                        r = 0;
+                        c.setHorizontalAlignment(JLabel.RIGHT);
+                    } // "Verification "
+                    if (column == 7) {
+                        l = 0;
+                        c.setHorizontalAlignment(JLabel.LEFT);
+                    } // "Engine"
                 }
 
                 // C) Merge "USE" and "%" horizontally (Rows: 1 and 2, Columns: 5, 6)
                 if (row == 1 || row == 2) {
-                    if (column == 5) { r = 0; c.setHorizontalAlignment(JLabel.RIGHT); } // "US", "9"
-                    if (column == 6) { l = 0; c.setHorizontalAlignment(JLabel.LEFT); }  // "E", "8%"
+                    if (column == 5) {
+                        r = 0;
+                        c.setHorizontalAlignment(JLabel.RIGHT);
+                    } // "US", "9"
+                    if (column == 6) {
+                        l = 0;
+                        c.setHorizontalAlignment(JLabel.LEFT);
+                    }  // "E", "8%"
                 }
 
 
@@ -460,90 +475,92 @@ public class VisualStatRepresentation extends Visualization implements Observer,
      * This is called whenever the slider is moved.
      */
     private void updateDashboard() {
-        if (this.tableModel == null) {
-            return; // dashboard not initialized yet, skip update
-        }
+        SwingUtilities.invokeLater(() -> {
+            if (this.tableModel == null) {
+                return; // dashboard not initialized yet, skip update
+            }
 
-        // 1. Recalculate the matrix based on the new threshold
-        int[][] matrix = evaluation.getMatrix(actualTime, timeWindow);
+            // 1. Recalculate the matrix based on the new threshold
+            int[][] matrix = evaluation.getMatrix(actualTime, timeWindow);
 
-        // 2. Update the Table
-        // Since the new table structure has 8 columns, we need to adjust the column count
-        // (Note: Make sure your specific DefaultTableModel initialization allows this)
-        tableModel.setRowCount(0); // Clear existing rows
+            // 2. Update the Table
+            // Since the new table structure has 8 columns, we need to adjust the column count
+            // (Note: Make sure your specific DefaultTableModel initialization allows this)
+            tableModel.setRowCount(0); // Clear existing rows
 
-        // --- TABLE HEADER SECTION (Verification Engine breakdown) ---
-        tableModel.addRow(new Object[]{"", "", "", "", "", "", "Verification ", "Engine"});
+            // --- TABLE HEADER SECTION (Verification Engine breakdown) ---
+            tableModel.addRow(new Object[]{"", "", "", "", "", "", "Verification ", "Engine"});
 
-        // We split "USE" and "%" across columns 5 and 6 to perfectly center them
-        tableModel.addRow(new Object[]{"", "", "", "", "", "US", "E", "DoNotUse"});
+            // We split "USE" and "%" across columns 5 and 6 to perfectly center them
+            tableModel.addRow(new Object[]{"", "", "", "", "", "US", "E", "DoNotUse"});
 
-        int sum = matrix[0][0] + matrix[0][1] + matrix[0][2] + matrix[1][0] + matrix[1][1] + matrix[1][2] + matrix[2][0] + matrix[2][1] + matrix[2][2];
+            int sum = matrix[0][0] + matrix[0][1] + matrix[0][2] + matrix[1][0] + matrix[1][1] + matrix[1][2] + matrix[2][0] + matrix[2][1] + matrix[2][2];
 
-        // Note for dynamic data later: you can use substring to split your percentage variable!
-        int dontUseVE = (int) ((((double) matrix[0][2] + (double) matrix[1][2] + (double) matrix[2][2])/ (double) sum * 100));
-        int useVE = 100-dontUseVE;
-        int tensPlace =  useVE /10;
-        int onesPlace = useVE-tensPlace*10;
+            // Note for dynamic data later: you can use substring to split your percentage variable!
+            int dontUseVE = (int) ((((double) matrix[0][2] + (double) matrix[1][2] + (double) matrix[2][2]) / (double) sum * 100));
+            int useVE = 100 - dontUseVE;
+            int tensPlace = useVE / 10;
+            int onesPlace = useVE - tensPlace * 10;
 
-        tableModel.addRow(new Object[]{"", "", "", "", "", tensPlace, onesPlace +"%", ""});
+            tableModel.addRow(new Object[]{"", "", "", "", "", tensPlace, onesPlace + "%", ""});
 
-        tableModel.addRow(new Object[]{"", "", "", "", "", "VALID", "Misleading", dontUseVE+"%"});
-        int validVE = (int) ((((double) matrix[0][0] + (double) matrix[1][0] + (double) matrix[2][0])/((double) matrix[0][0] + (double) matrix[1][0] + (double) matrix[2][0] + (double) matrix[0][1] + (double) matrix[1][1] + (double) matrix[2][1])) * 100);
-        int misleadingVE = 100-validVE;
+            tableModel.addRow(new Object[]{"", "", "", "", "", "VALID", "Misleading", dontUseVE + "%"});
+            int validVE = (int) ((((double) matrix[0][0] + (double) matrix[1][0] + (double) matrix[2][0]) / ((double) matrix[0][0] + (double) matrix[1][0] + (double) matrix[2][0] + (double) matrix[0][1] + (double) matrix[1][1] + (double) matrix[2][1])) * 100);
+            int misleadingVE = 100 - validVE;
 
-        tableModel.addRow(new Object[]{"", "", "", "", "", validVE + "%", misleadingVE + "%", ""});
+            tableModel.addRow(new Object[]{"", "", "", "", "", validVE + "%", misleadingVE + "%", ""});
 
-        // --- TABLE DATA SECTION (GNSS breakdown) ---
+            // --- TABLE DATA SECTION (GNSS breakdown) ---
 
-        int validGNSS = (int) ((((double) matrix[0][0] + (double) matrix[0][1] + (double) matrix[0][2])/ ((double) matrix[0][0] + (double) matrix[0][1] + (double) matrix[0][2] + (double) matrix[1][0] + (double) matrix[1][1] + (double) matrix[1][2])) * 100);
-        int misleadingGNSS = 100-validGNSS;
-        int dontUseGNSS = (int) ((((double) matrix[2][0] + (double) matrix[2][1] + (double) matrix[2][2])/sum) * 100);
-        int useGNSS = 100-dontUseGNSS;
-        tableModel.addRow(new Object[]{
-                "", "USE",useGNSS+"%", "VALID", validGNSS+"%", matrix[0][0],  matrix[0][1],  matrix[0][2]
+            int validGNSS = (int) ((((double) matrix[0][0] + (double) matrix[0][1] + (double) matrix[0][2]) / ((double) matrix[0][0] + (double) matrix[0][1] + (double) matrix[0][2] + (double) matrix[1][0] + (double) matrix[1][1] + (double) matrix[1][2])) * 100);
+            int misleadingGNSS = 100 - validGNSS;
+            int dontUseGNSS = (int) ((((double) matrix[2][0] + (double) matrix[2][1] + (double) matrix[2][2]) / sum) * 100);
+            int useGNSS = 100 - dontUseGNSS;
+            tableModel.addRow(new Object[]{
+                    "", "USE", useGNSS + "%", "VALID", validGNSS + "%", matrix[0][0], matrix[0][1], matrix[0][2]
+            });
+            tableModel.addRow(new Object[]{
+                    "GNSS", "", "", "Misleading", misleadingGNSS + "%", matrix[1][0], matrix[1][1], matrix[1][2]
+            });
+
+            tableModel.addRow(new Object[]{
+                    "", "DoNotUse", dontUseGNSS + "%", "", "", matrix[2][0], matrix[2][1], matrix[2][2]
+            });
+
+            // 3. Update the Metrics Labels
+  /*        int sum = matrix[0][0] + matrix[0][1] + matrix[1][0] + matrix[1][1];
+            if (sum == 0) sum = 1; // Prevent division by zero
+
+            // Calculation logic
+            // 1. Calculate Availability Metrics
+            double gnssAvail = (double) (matrix[0][0] + matrix[0][1]) / sum;
+            double veAvail = (double) (matrix[0][0] + matrix[1][0]) / sum;
+
+            // 2. Calculate Availability Improvement (Safe from division by zero)
+            // If GNSS availability is 0, we define improvement as 0 to avoid Infinity/NaN
+            double availImp = (gnssAvail == 0) ? 0 : (veAvail - gnssAvail) / gnssAvail;
+
+            // 3. Calculate Integrity Metrics
+            double gnssInteg = (double) (matrix[0][0] + matrix[0][1] + matrix[0][2]) / sum;
+            double veInteg = (double) (matrix[0][0] + matrix[1][0] + matrix[0][2] + matrix[1][2]) / sum;
+
+            // 4. Calculate Integrity Improvement (Safe from division by zero)
+            double integImp = (gnssInteg == 0) ? 0 : (veInteg - gnssInteg) / gnssInteg;
+
+            // Set text
+            availabilityGNSSLabel.setText(String.format("GNSS Availability: %.2f", gnssAvail));
+            availabilityVerificationEngineLabel.setText(String.format("VE Availability: %.2f", veAvail));
+            availabilityImprovementLabel.setText(String.format("Availability improvement: %d%%", (int) (availImp * 100)));
+
+            integrityGNSSLabel.setText(String.format("GNSS Integrity: %.2f", gnssInteg));
+            integrityVELabel.setText(String.format("VE Integrity: %.2f", veInteg));
+            integrityImprovementLabel.setText(String.format("Integrity improvement: %d%%", (int) (integImp * 100)));*/
+
+            // 4. Update the Histogram
+            if (histogramPanel != null) {
+                histogramPanel.repaint();
+            }
         });
-        tableModel.addRow(new Object[]{
-                "GNSS", "", "", "Misleading", misleadingGNSS+"%",  matrix[1][0],  matrix[1][1],  matrix[1][2]
-        });
-
-        tableModel.addRow(new Object[]{
-                "", "DoNotUse", dontUseGNSS+"%", "", "", matrix[2][0],  matrix[2][1],  matrix[2][2]
-        });
-
-        // 3. Update the Metrics Labels
-  /*      int sum = matrix[0][0] + matrix[0][1] + matrix[1][0] + matrix[1][1];
-        if (sum == 0) sum = 1; // Prevent division by zero
-
-        // Calculation logic
-        // 1. Calculate Availability Metrics
-        double gnssAvail = (double) (matrix[0][0] + matrix[0][1]) / sum;
-        double veAvail = (double) (matrix[0][0] + matrix[1][0]) / sum;
-
-        // 2. Calculate Availability Improvement (Safe from division by zero)
-        // If GNSS availability is 0, we define improvement as 0 to avoid Infinity/NaN
-        double availImp = (gnssAvail == 0) ? 0 : (veAvail - gnssAvail) / gnssAvail;
-
-        // 3. Calculate Integrity Metrics
-        double gnssInteg = (double) (matrix[0][0] + matrix[0][1] + matrix[0][2]) / sum;
-        double veInteg = (double) (matrix[0][0] + matrix[1][0] + matrix[0][2] + matrix[1][2]) / sum;
-
-        // 4. Calculate Integrity Improvement (Safe from division by zero)
-        double integImp = (gnssInteg == 0) ? 0 : (veInteg - gnssInteg) / gnssInteg;
-
-        // Set text
-        availabilityGNSSLabel.setText(String.format("GNSS Availability: %.2f", gnssAvail));
-        availabilityVerificationEngineLabel.setText(String.format("VE Availability: %.2f", veAvail));
-        availabilityImprovementLabel.setText(String.format("Availability improvement: %d%%", (int) (availImp * 100)));
-
-        integrityGNSSLabel.setText(String.format("GNSS Integrity: %.2f", gnssInteg));
-        integrityVELabel.setText(String.format("VE Integrity: %.2f", veInteg));
-        integrityImprovementLabel.setText(String.format("Integrity improvement: %d%%", (int) (integImp * 100)));*/
-
-        // 4. Update the Histogram
-        if (histogramPanel != null) {
-            histogramPanel.repaint();
-        }
     }
 
     /**
