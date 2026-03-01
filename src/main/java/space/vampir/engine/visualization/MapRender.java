@@ -135,6 +135,17 @@ public class MapRender {
         return new double[]{x, y};
     }
 
+    public double[] toGeoCoord(double x, double y) {
+        double EARTH_RADIUS_EQUA = 6378137.0;
+        var dLat = y / EARTH_RADIUS_EQUA;
+        var dLon = x / (Math.cos(geoRefLatRad) * EARTH_RADIUS_EQUA);
+        var latRad = geoRefLatRad + dLat;
+        var lonRad = geoRefLonRad + dLon;
+        var latDeg = Math.toDegrees(latRad);
+        var lonDeg = Math.toDegrees(lonRad);
+        return new double[]{latDeg, lonDeg};
+    }
+
     public void addObject(ObjectRender object) {
         objects.add(object);
     }

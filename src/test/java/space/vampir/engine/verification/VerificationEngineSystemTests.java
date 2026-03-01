@@ -17,12 +17,13 @@ import java.util.List;
 
 public class VerificationEngineSystemTests {
     final MapRender map = new MapRender("/CrossWalk_6/CrossWalk_6.json");
-    final File mapFile = new File(this.getClass().getResource("/Crosswalk_6.xodr").getFile());
+    final File mapFile = new File(this.getClass().getResource("/CrossWalk_6/Crosswalk_6.xodr").getFile());
 
     public void saveImage(Scenario scenario, String name)  {
         VerificationEngine verificationEngine = null;
         try {
-            verificationEngine = new VerificationEngineWithRefinery(new MapHandler());
+            verificationEngine = new VerificationEngineWithRefinery(new MapHandler(mapFile),map);
+            //verificationEngine = new VerificationEngineWithRefineryDebug(new MapHandler(mapFile),map);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

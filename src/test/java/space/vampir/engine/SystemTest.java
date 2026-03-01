@@ -8,17 +8,35 @@ import space.vampir.engine.message.Yolo;
 import space.vampir.engine.verification.DummyVerificationEngine;
 import space.vampir.engine.verification.UpdatedScenario;
 import space.vampir.engine.verification.VerificationEngine;
+import space.vampir.engine.verification.VerificationEngineWithRefineryDebug;
 import space.vampir.engine.visualization.MapPanel;
 import space.vampir.engine.visualization.MapRender;
 import space.vampir.engine.visualization.RenderExample;
 import space.vampir.engine.visualization.SceneVisualization;
+import tools.refinery.mapconverter.map.MapHandler;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 
 public class SystemTest {
     // Map
     final MapRender map = new MapRender("/CrossWalk_6/CrossWalk_6.json");
+
+    public void saveImage(Scenario scenario, String name)  {
+        VerificationEngine verificationEngine = null;
+//        try {
+//            verificationEngine = new VerificationEngineWithRefineryDebug(new MapHandler());
+//        } catch (IOException e) {
+//            throw new RuntimeException(e);
+//        }
+//        var updatedScenario = verificationEngine.update(scenario);
+
+        SceneVisualization visualization = new SceneVisualization(map);
+        visualization.show(scenario);
+        MapPanel mapPanel = new MapPanel(map);
+        mapPanel.saveImage(new File("s_" + name + ".png"), 10000, 4000);
+    }
 
     @Test
     void simpleTest() {
