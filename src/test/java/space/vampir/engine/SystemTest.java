@@ -79,7 +79,7 @@ public class SystemTest {
                         new Yolo.YoloDetection("sign", Math.PI * 0.06, 0.5),
                         new Yolo.YoloDetection("sign", Math.PI * 0.136, 0.3)
                 )));
-        saveImage(scenario, "test-yoloDetectionTest");
+        map.saveImage(scenario, "test-yoloDetectionTest");
     }
 
     @Test

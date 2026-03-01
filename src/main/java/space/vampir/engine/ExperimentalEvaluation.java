@@ -18,7 +18,6 @@ public class ExperimentalEvaluation {
     private final HashMap<Long, Odometry> GNSS = new HashMap<>();
     private final HashMap<Long, Odometry> verificationEngine = new HashMap<>();
 
-    // The agreement matrix
 
     // The threshold variable controlled by the slider
     double diff = 0.5;
@@ -52,6 +51,16 @@ public class ExperimentalEvaluation {
         return verificationEngine;
     }
 
+    /**
+     * Adds odometry data from multiple sources to the respective collections and notifies observers.
+     * This method updates the reference, GNSS, and verification engine maps by adding entries
+     * from the provided odometry data. It also updates the list of timestamps and notifies all
+     * registered observers about the changes.
+     *
+     * @param ref the map containing reference odometry data
+     * @param gnss the map containing GNSS odometry data
+     * @param ver the map containing verification engine odometry data
+     */
     public void addOdometries(Map<Long, Odometry> ref, Map<Long, Odometry> gnss, Map<Long, Odometry> ver) {
         putAll(reference, ref);
         putAll(GNSS, gnss);
@@ -60,6 +69,13 @@ public class ExperimentalEvaluation {
         observers.forEach(Observer::update);
     }
 
+    /**
+     * Copies all entries from the source map into the target map.
+     * Only entries with non-null values in the source map are added to the target map.
+     *
+     * @param target the map to which entries will be copied
+     * @param source the map from which entries will be copied
+     */
     private void putAll(Map<Long, Odometry> target, Map<Long, Odometry> source) {
         for (Map.Entry<Long, Odometry> entry : source.entrySet()) {
             if (entry.getValue() != null) {
@@ -68,6 +84,10 @@ public class ExperimentalEvaluation {
         }
     }
 
+    /**
+     * Marks the end of the evaluation process by notifying all registered observers.
+     * This method iterates through the list of observers and invokes their {@code finish()} method.
+     */
     public void endEvaluation() {
         observers.forEach(Observer::finish);
     }
@@ -86,38 +106,81 @@ public class ExperimentalEvaluation {
         return getMatrix((index, timeStamp) -> index > actualTime - timeWindow && index <= actualTime);
     }
 
+    /**
+     * Computes a 2x3 matrix based on the provided filtering criteria for timestamp indices
+     * and corresponding timestamps. The matrix represents validation results under
+     * specific conditions:
+     *
+     * [ [tt, tf, to],
+     *   [ft, ff, fo] ]
+     *
+     * where:
+     * - tt: True positives for GNSS and verification engine.
+     * - tf: GNSS true positives but verification engine false negatives.
+     * - to: GNSS true positives but verification engine is off.
+     * - ft: GNSS false negatives but verification engine true positives.
+     * - ff: False negatives for both GNSS and verification engine.
+     * - fo: GNSS false negatives but verification engine is off.
+     *
+     * @param timeFilter A {@code BiPredicate} that filters the indices and timestamps to be
+     *                   included in the evaluation.
+     * @return A 2x3 integer matrix containing counts calculated based on the given filter.
+     */
     private int[][] getMatrix(BiPredicate<Integer, Long> timeFilter) {
-        int tt = 0, ft = 0, tf = 0, ff = 0, to = 0, fo = 0;
+        // Row 0: GNSS Valid
+        int tt = 0, tf = 0, to = 0;
+        // Row 1: GNSS Invalid
+        int ft = 0, ff = 0, fo = 0;
+        // Row 2: GNSS Off (New states)
+        int ot = 0, of = 0, oo = 0;
+
         for (int i = 0; i < timestamps.size(); i++) {
             Long timeStamp = timestamps.get(i);
+
             if (timeFilter.test(i, timeStamp)) {
-                if ((GNSS.get(timeStamp).getX() - reference.get(timeStamp).getX() < diff) && (GNSS.get(timeStamp).getY() - reference.get(timeStamp).getY() < diff)) {
-                    if (verificationEngine.containsKey(timeStamp)) {
-                        if (verificationEngine.get(timeStamp).getX() - reference.get(timeStamp).getX() < diff) {
-                            tt++;
-                        } else {
-                            tf++;
-                        }
-                    } else {
-                        to++;
-                    }
-                } else {
-                    if (verificationEngine.containsKey(timeStamp)) {
-                        if (verificationEngine.get(timeStamp).getX() - reference.get(timeStamp).getX() < diff) {
-                            ft++;
-                        } else {
-                            ff++;
-                        }
-                    } else {
-                        fo++;
-                    }
+
+                // 1. Determine GNSS Status
+                boolean isGnssOff = !GNSS.containsKey(timeStamp);
+                boolean isGnssValid = false;
+
+                if (!isGnssOff) {
+                    isGnssValid = (GNSS.get(timeStamp).getX() - reference.get(timeStamp).getX() < diff) &&
+                            (GNSS.get(timeStamp).getY() - reference.get(timeStamp).getY() < diff);
+                }
+
+                // 2. Determine Verification Engine (VE) Status
+                boolean isVeOff = !verificationEngine.containsKey(timeStamp);
+                boolean isVeValid = false;
+
+                if (!isVeOff) {
+                    isVeValid = verificationEngine.get(timeStamp).getX() - reference.get(timeStamp).getX() < diff;
+                }
+
+                // 3. Categorize into the 3x3 Matrix
+                if (isGnssOff) {
+                    if (isVeOff) oo++;
+                    else if (isVeValid) ot++;
+                    else of++;
+                } else if (isGnssValid) {
+                    if (isVeOff) to++;
+                    else if (isVeValid) tt++;
+                    else tf++;
+                } else { // GNSS is Present but Invalid
+                    if (isVeOff) fo++;
+                    else if (isVeValid) ft++;
+                    else ff++;
                 }
             }
         }
 
+        // Return the updated 3x3 matrix
+        // Row 0: GNSS Valid   (VE Valid, VE Invalid, VE Off)
+        // Row 1: GNSS Invalid (VE Valid, VE Invalid, VE Off)
+        // Row 2: GNSS Off     (VE Valid, VE Invalid, VE Off)
         return new int[][]{
                 {tt, tf, to},
-                {ft, ff, fo}
+                {ft, ff, fo},
+                {ot, of, oo}
         };
     }
 

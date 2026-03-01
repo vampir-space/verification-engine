@@ -112,7 +112,7 @@ public class EvaluationTest {
         var visualRepresentation = new VisualStatRepresentation(experimentalEvaluation);
         visualRepresentation.startWindow();
 
-        Thread.sleep(2000);
+        Thread.sleep(20000);
         experimentalEvaluation.endEvaluation();
     }
 
