@@ -592,6 +592,35 @@ public class VisualStatRepresentation extends Visualization implements Observer,
             g2.rotate(-Math.PI / 2);
             g2.drawString("Proportion (%)", -(topMargin + graphHeight / 2) - 40, leftMargin - 45);
             g2.rotate(Math.PI / 2);
+
+            double diff = evaluation.getDiff();
+
+            // Drawing line in the actual range of x axis
+            //TODO discuss with Oscar
+            if (diff >= 0 && diff <= MAX_ERROR_RANGE) {
+                double binSize = MAX_ERROR_RANGE / BIN_COUNT; // Size of one bin (e.g., 2.5 / 5 = 0.5)
+
+                // Calculate which bin (index) the diff falls into
+                // E.g., diff = 0.2 -> 0.2 / 0.5 = 0.4 -> (int) = bin 0
+                // diff = 0.8 -> 0.8 / 0.5 = 1.6 -> (int) = bin 1
+                int binIndex = (int) (diff / binSize);
+
+                // Handle the edge case where diff is exactly the maximum (2.5) to prevent out-of-bounds index:
+                if (binIndex >= BIN_COUNT) {
+                    binIndex = BIN_COUNT - 1;
+                }
+
+                // Starting X coordinate of the specific bin
+                int groupX = leftMargin + (binIndex * groupWidth) + 10;
+
+                // Place the line exactly in the gap between the blue and green bars (centered)
+                int lineX = groupX + barWidth + 1;
+
+                // Draw the line
+                g2.setColor(Color.RED);
+                g2.setStroke(new BasicStroke(3));
+                g2.drawLine(lineX, topMargin, lineX, h - bottomMargin);
+            }
         }
 
         private void drawBar(Graphics2D g2, int x, int baseLineY, int width, double percentage, int maxHeight, Color color) {
