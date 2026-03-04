@@ -93,7 +93,7 @@ public class SystemTest {
     void statePlayerTestWithDummyGNSSAndDummyVerificationEngine() throws InterruptedException {
         final int NUMBER_OF_GENERATED_SCENARIOS = 100;
 
-        VerificationEngine verificationEngine = new DummyVerificationEngine(0.8);
+        VerificationEngine verificationEngine = new DummyVerificationEngine(0.8, Math.PI / 180);
 
         StateReplayer stateReplayer = new StateReplayer(verificationEngine);
 
@@ -110,7 +110,7 @@ public class SystemTest {
         for (int i = 0; i < NUMBER_OF_GENERATED_SCENARIOS; i++) {
             Scenario scenario = new Scenario(
                     i,
-                    NoiseApplier.addNoise(initialScenario.odometry(), 1.1),
+                    NoiseApplier.addNoise(initialScenario.odometry(), 1.1, 1.5 * Math.PI / 180),
                     initialScenario.pointPillars(),
                     initialScenario.yolo()
             );

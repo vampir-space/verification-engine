@@ -6,10 +6,12 @@ import space.vampir.engine.message.Scenario;
 
 public class DummyVerificationEngine implements VerificationEngine {
 
-    private final double noise;
+    private final double radiusStdDev;
+    private final double angleStdDev;
 
-    public DummyVerificationEngine(double noise) {
-        this.noise = noise;
+    public DummyVerificationEngine(double radiusStdDev, double angleStdDev) {
+        this.radiusStdDev = radiusStdDev;
+        this.angleStdDev = angleStdDev;
     }
 
     @Override
@@ -18,7 +20,7 @@ public class DummyVerificationEngine implements VerificationEngine {
         if (odometry == null) {
             return new UpdatedScenario(scenario, null);
         }
-        Odometry newValue = NoiseApplier.addNoise(odometry, noise);
+        Odometry newValue = NoiseApplier.addNoise(odometry, radiusStdDev, angleStdDev);
         return new UpdatedScenario(scenario, newValue);
     }
 }

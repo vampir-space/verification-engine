@@ -21,7 +21,8 @@ import java.util.HashSet;
 import java.util.concurrent.CountDownLatch;
 
 public class ROSReplayer {
-    private static final double DUMMY_VERIFICATION_ENGINE_NOISE = 0.8;
+    private static final double DUMMY_VERIFICATION_ENGINE_RADIUS_NOISE = 0.8;
+    private static final double DUMMY_VERIFICATION_ENGINE_ANGLE_NOISE = Math.PI / 180;
 
     public static class NoVerificationEngineRunConfiguration {
         public static void main(String[] args) {
@@ -34,7 +35,7 @@ public class ROSReplayer {
 
     public static class DummyVerificationEngineRunConfiguration {
         public static void main(String[] args) {
-            VerificationEngine verificationEngine = new DummyVerificationEngine(DUMMY_VERIFICATION_ENGINE_NOISE);
+            VerificationEngine verificationEngine = new DummyVerificationEngine(DUMMY_VERIFICATION_ENGINE_RADIUS_NOISE, DUMMY_VERIFICATION_ENGINE_ANGLE_NOISE);
             play(verificationEngine);
         }
     }
@@ -51,7 +52,7 @@ public class ROSReplayer {
 
     public static void main(String[] args) {
         CliConfig cliConfig = CliConfig.get(args);
-        VerificationEngine verificationEngine = new DummyVerificationEngine(DUMMY_VERIFICATION_ENGINE_NOISE);
+        VerificationEngine verificationEngine = new DummyVerificationEngine(DUMMY_VERIFICATION_ENGINE_RADIUS_NOISE, DUMMY_VERIFICATION_ENGINE_ANGLE_NOISE);
         play(verificationEngine, cliConfig);
     }
 
