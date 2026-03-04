@@ -24,36 +24,6 @@ public class DisplayUpdatedScenario {
     public static void main(String[] args) {
         // Map
         final MapRender mapRender = new MapRender("/CrossWalk_6/CrossWalk_6.json");
-        /* URL url = DisplayUpdatedScenario.class.getResource("/CrossWalk_6/CrossWalk_6.xodr");
-        MapHandler mapHandler = null;
-        if (url != null) {
-            mapHandler = new MapHandler(new File(url.getFile()));
-        }
-
-        LinkedHashMap<Integer, MapObject> objects = mapHandler.getObjects();
-
-        List<PointPillars.PointPillarsDetection> detections  = new java.util.ArrayList<>();
-
-       for(MapObject o : objects.values()) {
-            //todo theta and size
-            System.out.println(o.getCoordinate().getX() + "," + o.getCoordinate().getY());
-            detections.add(new PointPillars.PointPillarsDetection(o.getCoordinate().getX(), o.getCoordinate().getY(), 0.0, 2.0, 2.0));
-        }
-
-        UpdatedScenario updatedScenario = new UpdatedScenario(
-                new Scenario(
-                        new Odometry(0,47.47869148915325,19.0572,Math.PI*1.5),
-                        new PointPillars(0, detections
-                        ),
-                        new Yolo(0, List.of(
-                                new Yolo.YoloDetection("car",Math.PI*0.05,0),
-                                new Yolo.YoloDetection("car",Math.PI*0.08,0)))
-                ),
-                new Odometry(0,47.47859,19.057058607914573,Math.PI*1.5),
-                new Odometry(0,47.47869148915325,19.057058607914573,Math.PI*1.5)
-        );
-
-        new DisplayUpdatedScenario(mapRender).showOnPanel(updatedScenario);*/
 
         new DisplayUpdatedScenario(mapRender).showOnPanel(
                 new UpdatedVerificationCase(

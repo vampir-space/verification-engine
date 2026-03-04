@@ -28,12 +28,8 @@ public class VisualStatRepresentation extends Visualization implements Observer,
     private JLabel timeWindowSliderValueLabel;
 
     // Metric Labels
-    private JLabel availabilityGNSSLabel;
-    private JLabel availabilityVerificationEngineLabel;
-    private JLabel availabilityImprovementLabel;
-    private JLabel integrityGNSSLabel;
-    private JLabel integrityVELabel;
-    private JLabel integrityImprovementLabel;
+    private JLabel integrityRiskOfGNSSLabel;
+    private JLabel integrityRiskImprovementLabel;
 
     int actualTime;
     int timeWindow;
@@ -308,24 +304,17 @@ public class VisualStatRepresentation extends Visualization implements Observer,
         metricsPanel.setBorder(new EmptyBorder(20, 10, 0, 0));
 
         // Initialize labels with placeholders
-        availabilityGNSSLabel = new JLabel("GNSS Availability: -");
-        availabilityVerificationEngineLabel = new JLabel("VE Availability: -");
-        availabilityImprovementLabel = new JLabel("Availability improvement: -");
-        integrityGNSSLabel = new JLabel("GNSS Integrity: -");
-        integrityVELabel = new JLabel("VE Integrity: -");
-        integrityImprovementLabel = new JLabel("Integrity improvement: -");
+        integrityRiskOfGNSSLabel = new JLabel("Integrity Risk of GNSS: ");
+        integrityRiskImprovementLabel = new JLabel("Integrity Risk Improvement: ");
+
 
         Font metricsFont = new Font("SansSerif", Font.BOLD, 14);
-        JLabel[] labels = {availabilityGNSSLabel, availabilityVerificationEngineLabel, availabilityImprovementLabel,
-                integrityGNSSLabel, integrityVELabel, integrityImprovementLabel};
+        JLabel[] labels = {integrityRiskOfGNSSLabel, integrityRiskImprovementLabel};
 
         // Apply styling and add to panel
         for (JLabel lbl : labels) {
             lbl.setFont(metricsFont);
             metricsPanel.add(lbl);
-            // Add a spacer after the Availability section
-            if (lbl == availabilityImprovementLabel)
-                metricsPanel.add(Box.createRigidArea(new Dimension(0, 8)));
         }
 
         return metricsPanel;
@@ -528,33 +517,13 @@ public class VisualStatRepresentation extends Visualization implements Observer,
             });
 
             // 3. Update the Metrics Labels
-  /*        int sum = matrix[0][0] + matrix[0][1] + matrix[1][0] + matrix[1][1];
-            if (sum == 0) sum = 1; // Prevent division by zero
 
             // Calculation logic
-            // 1. Calculate Availability Metrics
-            double gnssAvail = (double) (matrix[0][0] + matrix[0][1]) / sum;
-            double veAvail = (double) (matrix[0][0] + matrix[1][0]) / sum;
-
-            // 2. Calculate Availability Improvement (Safe from division by zero)
-            // If GNSS availability is 0, we define improvement as 0 to avoid Infinity/NaN
-            double availImp = (gnssAvail == 0) ? 0 : (veAvail - gnssAvail) / gnssAvail;
-
-            // 3. Calculate Integrity Metrics
-            double gnssInteg = (double) (matrix[0][0] + matrix[0][1] + matrix[0][2]) / sum;
-            double veInteg = (double) (matrix[0][0] + matrix[1][0] + matrix[0][2] + matrix[1][2]) / sum;
-
-            // 4. Calculate Integrity Improvement (Safe from division by zero)
-            double integImp = (gnssInteg == 0) ? 0 : (veInteg - gnssInteg) / gnssInteg;
+            double risk = (((double) matrix[1][0] + (double) matrix[1][2])/(double) sum);
 
             // Set text
-            availabilityGNSSLabel.setText(String.format("GNSS Availability: %.2f", gnssAvail));
-            availabilityVerificationEngineLabel.setText(String.format("VE Availability: %.2f", veAvail));
-            availabilityImprovementLabel.setText(String.format("Availability improvement: %d%%", (int) (availImp * 100)));
-
-            integrityGNSSLabel.setText(String.format("GNSS Integrity: %.2f", gnssInteg));
-            integrityVELabel.setText(String.format("VE Integrity: %.2f", veInteg));
-            integrityImprovementLabel.setText(String.format("Integrity improvement: %d%%", (int) (integImp * 100)));*/
+            integrityRiskOfGNSSLabel.setText(String.format("Integrity risk of GNSS: %d%%", misleadingGNSS));
+            integrityRiskImprovementLabel.setText(String.format("Integrity risk improvement: %.2f", risk));
 
             // 4. Update the Histogram
             if (histogramPanel != null) {
@@ -623,6 +592,35 @@ public class VisualStatRepresentation extends Visualization implements Observer,
             g2.rotate(-Math.PI / 2);
             g2.drawString("Proportion (%)", -(topMargin + graphHeight / 2) - 40, leftMargin - 45);
             g2.rotate(Math.PI / 2);
+
+            double diff = evaluation.getDiff();
+
+            // Drawing line in the actual range of x axis
+            //TODO discuss with Oscar
+            if (diff >= 0 && diff <= MAX_ERROR_RANGE) {
+                double binSize = MAX_ERROR_RANGE / BIN_COUNT; // Size of one bin (e.g., 2.5 / 5 = 0.5)
+
+                // Calculate which bin (index) the diff falls into
+                // E.g., diff = 0.2 -> 0.2 / 0.5 = 0.4 -> (int) = bin 0
+                // diff = 0.8 -> 0.8 / 0.5 = 1.6 -> (int) = bin 1
+                int binIndex = (int) (diff / binSize);
+
+                // Handle the edge case where diff is exactly the maximum (2.5) to prevent out-of-bounds index:
+                if (binIndex >= BIN_COUNT) {
+                    binIndex = BIN_COUNT - 1;
+                }
+
+                // Starting X coordinate of the specific bin
+                int groupX = leftMargin + (binIndex * groupWidth) + 10;
+
+                // Place the line exactly in the gap between the blue and green bars (centered)
+                int lineX = groupX + barWidth + 1;
+
+                // Draw the line
+                g2.setColor(Color.RED);
+                g2.setStroke(new BasicStroke(3));
+                g2.drawLine(lineX, topMargin, lineX, h - bottomMargin);
+            }
         }
 
         private void drawBar(Graphics2D g2, int x, int baseLineY, int width, double percentage, int maxHeight, Color color) {
