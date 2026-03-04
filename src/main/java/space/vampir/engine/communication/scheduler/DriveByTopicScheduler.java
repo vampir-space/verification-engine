@@ -10,6 +10,7 @@ public class DriveByTopicScheduler implements NewVerificationCaseScheduler {
 
     private final String topic;
     private final int delay; // ms
+    private boolean scheduled = false;
 
     public DriveByTopicScheduler(String topic, int delay) {
         this.topic = topic;
@@ -18,18 +19,20 @@ public class DriveByTopicScheduler implements NewVerificationCaseScheduler {
 
     @Override
     public boolean shouldScheduleNewVerificationCase(StateRecorder recorder) {
-        if (recorder.messageQueues.get(recorder.topicIndices.get(topic)).isEmpty()) {
+        if (scheduled || recorder.messageQueues.get(recorder.topicIndices.get(topic)).isEmpty()) {
             return false;
         }
         if (delay == 0) {
             return true;
         }
 
+        scheduled = true;
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
         scheduler.schedule(() -> {
             try {
                 recorder.tryNewVerificationCase();
             } finally {
+                scheduled = false;
                 scheduler.shutdown();
             }
         }, delay, TimeUnit.MILLISECONDS);
