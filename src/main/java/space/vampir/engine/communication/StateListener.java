@@ -1,5 +1,7 @@
 package space.vampir.engine.communication;
 
+import space.vampir.engine.verification.VerificationCase;
+
 public interface StateListener {
-    void stateInvalidated(StateRecorder recorder);
+    void stateInvalidated(VerificationCase newState);
 }

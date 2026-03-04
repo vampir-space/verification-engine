@@ -208,8 +208,8 @@ public class SceneVisualization extends Visualization {
         if (veOdom != null) {
             var coord = map.toMapCoord(veOdom.getX(), veOdom.getY());
 
-            gnss.setX(coord[0]);
-            gnss.setY(coord[1]);
+            ve.setX(coord[0]);
+            ve.setY(coord[1]);
             ve.setTheta(veOdom.getTheta());
             map.addObject(ve);
         }

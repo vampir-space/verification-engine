@@ -1,0 +1,31 @@
+{
+  "showStats": false,
+  "map": "/CrossWalk_6/CrossWalk_6.json",
+  "minWaitTime": 200,
+  "maxTimeDifference": 100,
+  "dropOlderThan": 100,
+  "relevantTopics": [
+    "/ground_truth/odometry",
+    "/detections/pointpillars",
+    "/detections/yolo",
+    "/simulated_navsat_data"
+  ],
+  "verificationEngine": {
+    "type": "None"
+  },
+  "verificationCaseProvider": {
+    "type": "NavSatOdometryProvider",
+    "thetaStdDev": 1,
+    "thetaStdDevUnit": "deg"
+  },
+  "newVerificationCaseScheduler": {
+    "type": "AlwaysScheduler"
+  },
+  "messageSynchronizer": {
+    "type": "LatestMessageSynchronizer",
+    "requiredTopics": [
+      "/ground_truth/odometry",
+      "/simulated_navsat_data"
+    ]
+  }
+}

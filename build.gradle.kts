@@ -24,7 +24,10 @@ tasks.register("generateMapIndex") {
 
     doLast {
         val jsonFiles = fileTree(resourcesDir)
-            .matching { include("**/*.json") }
+            .matching {
+                include("**/*.json")
+                exclude("RunConfigurations/**")
+            }
             .map { "/${resourcesDir.toURI().relativize(it.toURI())}" }
 
         val outputFile = outputDir.get().file("map-list.txt").asFile

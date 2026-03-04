@@ -124,7 +124,7 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
         MapObject car = new MapObject(1, ObjectType.Car, egoPosition, new Size(1.0, 1.0));
         scope.addEgo(car);
 
-        final List<Yolo.YoloDetection> yoloDetections = rawScenario.yolo().getYoloDetections();
+        final List<Yolo.YoloDetection> yoloDetections = rawScenario.yolo() == null ? List.of() : rawScenario.yolo().getYoloDetections();
         for(int i = 0; i<yoloDetections.size(); i++) {
             final var yoloDetection = yoloDetections.get(i);
 

@@ -11,7 +11,8 @@ public class PointPillars extends Message {
         this.detections = detections;
     }
 
-    public record PointPillarsDetection(double posX, double posY, double theta, double sizeX, double sizeY) {
+    public record PointPillarsDetection(double posX, double posY, double theta, double sizeX,
+                                        double sizeY) {
     }
 
     public static PointPillars fromMap(Object map) {
@@ -24,19 +25,23 @@ public class PointPillars extends Message {
             var position = readMap(center, "position");
             double posX = (double) readMap(position, "y");
             double posY = (double) readMap(position, "x");
-            var quat = readMap(center,"orientation");
+            var quat = readMap(center, "orientation");
             var euler = MathUtility.quaternionToEuler(
-                    (double) readMap(quat,"x"),
-                    (double) readMap(quat,"y"),
-                    (double) readMap(quat,"z"),
-                    (double) readMap(quat,"w"));
-            double theta = Math.toRadians(euler[2]) + Math.PI/2;
+                    (double) readMap(quat, "x"),
+                    (double) readMap(quat, "y"),
+                    (double) readMap(quat, "z"),
+                    (double) readMap(quat, "w"));
+            double theta = Math.toRadians(euler[2]) + Math.PI / 2;
 
             var size = readMap(bbox, "size");
             var sizeX = (double) readMap(size, "x");
             var sizeY = (double) readMap(size, "y");
 
             detections.add(new PointPillarsDetection(posX, posY, theta, sizeX, sizeY));
+        }
+
+        if (detections.isEmpty()) {
+            return null; // TODO remove this and handle empty detections in verification engine
         }
 
         return new PointPillars(time, detections);

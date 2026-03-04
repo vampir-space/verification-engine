@@ -3,8 +3,9 @@ package space.vampir.engine.communication;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
-import okhttp3.WebSocket;
+import space.vampir.engine.communication.synchronizer.LatestMessageSynchronizer;
 
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
@@ -22,9 +23,16 @@ public class Communication {
                 "/ground_truth/imu",
                 "/ground_truth/odometry");
 
-        StateRecorder stateRecorder = new StateRecorder(recorder -> {});
+        StateRecorder stateRecorder = new StateRecorder(
+                recorder -> {
+                },
+                s -> null,
+                m -> false,
+                new LatestMessageSynchronizer(1000000000L, List.of()),
+                1000000000L/10,
+                1000000000L/10);
 
-        WebSocket ws = client.newWebSocket(request, new ROSListener(stateRecorder, latch, relevantTopics));
+        client.newWebSocket(request, new ROSListener(stateRecorder, latch, relevantTopics));
 
         // Block until the socket closes
         latch.await();

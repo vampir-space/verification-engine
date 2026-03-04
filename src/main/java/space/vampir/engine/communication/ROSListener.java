@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class ROSListener extends WebSocketListener {
     final String synchronizedURL = "ws://localhost:9091";
-    final boolean synchronizeMessages = true;
+    final static boolean USE_ROS_SYNC_NODE = false;
 
     final StateRecorder stateRecorder;
     final ObjectMapper mapper = new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL);
@@ -46,7 +46,7 @@ public class ROSListener extends WebSocketListener {
         scheduler.scheduleAtFixedRate(() -> {
             if (this.seenTopics.containsAll(relevantTopics)) {
                 System.out.println("▶ All topics discovered, stop polling");
-                if (synchronizeMessages) {
+                if (USE_ROS_SYNC_NODE) {
                     System.out.println("▶ Connecting to synchronizer node...");
                     OkHttpClient client = new OkHttpClient();
                     CountDownLatch latch = new CountDownLatch(1);
@@ -93,7 +93,7 @@ public class ROSListener extends WebSocketListener {
             if (seenTopics.add(topic)) {
                 boolean toSubscribe = this.relevantTopics.contains(topic);
                 System.out.println("\uD83D\uDEC8 New topic: " + topic + ", type: " + type + ", subscribe: " + toSubscribe);
-                if (toSubscribe && !synchronizeMessages) {
+                if (toSubscribe && !USE_ROS_SYNC_NODE) {
                     String subId = String.valueOf(idCounter.getAndIncrement());
                     ROSSubscribeMessage sub = new ROSSubscribeMessage(topic, type, subId);
                     send(ws, sub);

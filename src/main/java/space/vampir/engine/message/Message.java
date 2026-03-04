@@ -6,16 +6,15 @@ import java.util.Map;
 public abstract class Message {
     long time;
 
-    Message(long time) {
+    public Message(long time) {
         this.time = time;
     }
 
     public static long readTime(Object map) {
-        var timeStamp = readMap(readMap(map,"header"),"stamp");
-        int sec = (int) readMap(timeStamp,"sec");
-        int nano = (int) readMap(timeStamp,"nanosec");
-        long time = sec*1000000000l+nano;
-        return time;
+        var timeStamp = readMap(readMap(map, "header"), "stamp");
+        int sec = (int) readMap(timeStamp, "sec");
+        int nano = (int) readMap(timeStamp, "nanosec");
+        return sec * 1000000000L + nano;
     }
 
     protected static Object readMap(Object map, String key) {

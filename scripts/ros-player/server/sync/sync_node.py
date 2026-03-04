@@ -9,6 +9,7 @@ from nav_msgs.msg import Odometry
 from vision_msgs.msg import Detection3DArray
 from object_angles.msg import ObjectAngles
 from sensor_msgs.msg import NavSatFix
+from sensor_msgs.msg import Imu
 import websockets
 
 class SyncNode(Node):
@@ -20,6 +21,7 @@ class SyncNode(Node):
         self.topics = []
         self.topic_types = {
             '/ground_truth/odometry': Odometry,
+            '/ground_truth/imu': Imu,
             '/detections/pointpillars': Detection3DArray,
             '/detections/yolo': ObjectAngles,
             '/simulated_navsat_data': NavSatFix,

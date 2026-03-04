@@ -69,6 +69,14 @@ public class ExperimentalEvaluation {
         observers.forEach(Observer::update);
     }
 
+    public void clearOdometries() {
+        reference.clear();
+        GNSS.clear();
+        verificationEngine.clear();
+        timestamps.clear();
+        observers.forEach(Observer::update);
+    }
+
     /**
      * Copies all entries from the source map into the target map.
      * Only entries with non-null values in the source map are added to the target map.

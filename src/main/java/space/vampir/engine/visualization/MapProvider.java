@@ -14,11 +14,16 @@ import java.util.stream.Collectors;
 public class MapProvider {
 
     public static List<String> getMapConfigs() {
-        try (InputStream is = MapProvider.class.getClassLoader().getResourceAsStream("map-list.txt");
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
-            return reader.lines()
-                    .filter(l -> !l.isBlank())
-                    .collect(Collectors.toList());
+        try (InputStream is = MapProvider.class.getClassLoader().getResourceAsStream("map-list.txt")) {
+            if (is == null) {
+                System.err.println("Map index file not found in resources.");
+                return List.of();
+            }
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
+                return reader.lines()
+                        .filter(l -> !l.isBlank())
+                        .collect(Collectors.toList());
+            }
         } catch (IOException e) {
             System.err.println("Error reading map index from resources: " + e.getMessage());
             return List.of();
