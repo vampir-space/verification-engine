@@ -1,6 +1,5 @@
 package space.vampir.engine.geometry;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.awt.*;
 import java.awt.geom.*;
@@ -17,18 +16,8 @@ import java.io.IOException;
  */
 public class GeometrySolver {
 
-    // Convergence thresholds
-    private static final double EPSILON_POS = 0.01;      // meters
-    private static final double EPSILON_ANGLE = 0.1;     // degrees
-    private static final int MAX_ITERATIONS = 100;
-
-    // Regularization constants
-    private static final double EPSILON_LOC = 0.01;      // m^2
-    private static final double EPSILON_YOLO = 3e-6;     // rad^2
-    private static final double LAMBDA_REG = 1e-12;      // numerical stability
-
-    // Confidence visualization parameter
-    private static final double ORIENTATION_CONE_SCALE = 0.5;
+    // Regularization constant for numerical stability
+    private static final double LAMBDA_REG = 1e-12;
 
     /**
      * Odometry prior: position, orientation, and confidence
@@ -36,15 +25,17 @@ public class GeometrySolver {
     public static class OdometryPrior {
         public double x;
         public double y;
-        public double alpha;  // radians
-        public double confidence;  // [0, 1]
+        public double xyRadius;
+        public double theta;  // radians, known with certainty
 
-        public OdometryPrior(double x, double y, double alpha, double confidence) {
+        public OdometryPrior(double x, double y, double xyRadius, double theta) {
             this.x = x;
             this.y = y;
-            this.alpha = alpha;
-            this.confidence = Math.max(0, Math.min(1, confidence));
+            this.xyRadius = xyRadius;
+            this.theta = theta;
         }
+
+        public double getWeight() { return 0.5; }
     }
 
     /**
@@ -61,9 +52,7 @@ public class GeometrySolver {
             this.radius = radius;
         }
 
-        public double getWeight() {
-            return 1.0 / (radius * radius + EPSILON_LOC);
-        }
+        public double getWeight() { return 1.0; }
     }
 
     /**
@@ -72,20 +61,17 @@ public class GeometrySolver {
     public static class YoloDetection {
         public double landmarkX;
         public double landmarkY;
-        public double bearing;  // degrees, relative to vehicle forward direction
-        public double angularUncertainty;  // degrees, half-angle of confidence cone
+        public double bearing;  // radians, relative to vehicle forward direction
+        public double bearingHalfCone;  // radians, half-angle of confidence cone
 
-        public YoloDetection(double landmarkX, double landmarkY, double bearing, double angularUncertainty) {
+        public YoloDetection(double landmarkX, double landmarkY, double bearing, double bearingHalfCone) {
             this.landmarkX = landmarkX;
             this.landmarkY = landmarkY;
             this.bearing = bearing;
-            this.angularUncertainty = angularUncertainty;
+            this.bearingHalfCone = bearingHalfCone;
         }
 
-        public double getWeight() {
-            double sigmaRad = angularUncertainty * Math.PI / 180.0;
-            return 1.0 / (sigmaRad * sigmaRad + EPSILON_YOLO);
-        }
+        public double getWeight() { return 1.0; }
     }
 
     /**
@@ -94,185 +80,119 @@ public class GeometrySolver {
     public static class Solution {
         public double x;
         public double y;
-        public double alpha;  // radians
-        public int iterations;
-        public boolean converged;
+        public double theta;  // radians
+        public boolean ok;
 
         // Position confidence (covariance matrix)
         public double[][] positionCovariance = new double[2][2];
 
         // Orientation confidence
         public double orientationConcentration;  // [0, 1]
-        public double orientationUncertainty;    // degrees, half-angle
+        public double orientationUncertainty;    // radians, half-angle
 
-        public Solution(double x, double y, double alpha) {
+        public Solution(double x, double y, double theta) {
             this.x = x;
             this.y = y;
-            this.alpha = alpha;
+            this.theta = theta;
         }
     }
 
     /**
-     * Solve for vehicle pose given constraints
+     * Solve for vehicle position given constraints.
+     * Orientation theta is taken as certain from odometry.
+     * Finds (x, y) minimizing weighted squared error across all constraints.
+     * Sets ok=true if every constraint is individually satisfied by the solution.
      */
     public static Solution solve(
             OdometryPrior odometry,
             List<LocationDetection> locationDetections,
             List<YoloDetection> yoloDetections) {
 
-        // Initialize with odometry prior
-        double x = odometry.x;
-        double y = odometry.y;
-        double alpha = odometry.alpha;
+        double theta = odometry.theta;
+        double[] position = estimatePosition(theta, odometry, locationDetections, yoloDetections);
 
-        Solution solution = new Solution(x, y, alpha);
+        Solution solution = new Solution(position[0], position[1], theta);
+        solution.ok = checkConstraints(solution, odometry, locationDetections, yoloDetections);
 
-        // Iterative optimization
-        for (int iter = 0; iter < MAX_ITERATIONS; iter++) {
-            double oldX = x;
-            double oldY = y;
-            double oldAlpha = alpha;
-
-            // Step 1: Estimate position (fix orientation)
-            double[] position = estimatePosition(x, y, alpha, odometry, locationDetections, yoloDetections);
-            x = position[0];
-            y = position[1];
-
-            // Step 2: Estimate orientation (fix position)
-            alpha = estimateOrientation(x, y, alpha, odometry, yoloDetections);
-
-            // Check convergence
-            double posDelta = Math.sqrt((x - oldX) * (x - oldX) + (y - oldY) * (y - oldY));
-            double angleDelta = Math.abs(normalizeAngle(alpha - oldAlpha)) * 180.0 / Math.PI;
-
-            solution.iterations = iter + 1;
-
-            if (posDelta < EPSILON_POS && angleDelta < EPSILON_ANGLE) {
-                solution.converged = true;
-                break;
-            }
-        }
-
-        solution.x = x;
-        solution.y = y;
-        solution.alpha = alpha;
-
-        // Compute confidence measures
         computeConfidence(solution, odometry, locationDetections, yoloDetections);
 
         return solution;
     }
 
     /**
-     * Estimate position using weighted least squares (orientation fixed)
+     * Returns true if every constraint is satisfied by the solution:
+     *   - OdometryPrior: solution within xyRadius
+     *   - LocationDetection: solution within radius
+     *   - YoloDetection: bearing to landmark within bearingHalfCone
      */
-    private static double[] estimatePosition(
-            double x, double y, double alpha,
+    private static boolean checkConstraints(
+            Solution solution,
             OdometryPrior odometry,
             List<LocationDetection> locationDetections,
             List<YoloDetection> yoloDetections) {
 
-        // Normal equations: M * [x, y]^T = b
-        double[][] M = new double[2][2];
-        double[] b = new double[2];
+        if (Math.hypot(solution.x - odometry.x, solution.y - odometry.y) > odometry.xyRadius) return false;
 
-        double totalWeight = 0;
-        double c = odometry.confidence;
-        double wOdo = c;
-
-        // Compute total non-odometry weight for normalization
         for (LocationDetection loc : locationDetections) {
-            totalWeight += loc.getWeight();
+            if (Math.hypot(solution.x - loc.x, solution.y - loc.y) > loc.radius) return false;
         }
-        for (YoloDetection yolo : yoloDetections) {
-            totalWeight += yolo.getWeight();
-        }
-
-        // Odometry constraint
-        addPointConstraint(M, b, odometry.x, odometry.y, wOdo);
-
-        // Location detection constraints
-        for (LocationDetection loc : locationDetections) {
-            double w = loc.getWeight() * (1 - c);
-            addPointConstraint(M, b, loc.x, loc.y, w);
-        }
-
-        // YOLO ray constraints
-        double cosA = Math.cos(alpha);
-        double sinA = Math.sin(alpha);
 
         for (YoloDetection yolo : yoloDetections) {
-            double w = yolo.getWeight() * (1 - c);
-
-            // Rotate forward direction by bearing angle
-            double betaRad = yolo.bearing * Math.PI / 180.0;
-            double cosBeta = Math.cos(betaRad);
-            double sinBeta = Math.sin(betaRad);
-
-            // Ray direction: -R(beta) * d
-            double rx = -(cosBeta * cosA - sinBeta * sinA);
-            double ry = -(sinBeta * cosA + cosBeta * sinA);
-
-            // Check if point is in front of or behind landmark
-            double dx = x - yolo.landmarkX;
-            double dy = y - yolo.landmarkY;
-            double t = dx * rx + dy * ry;  // projection along ray
-
-            if (t >= 0) {
-                // Active ray constraint
-                addRayConstraint(M, b, yolo.landmarkX, yolo.landmarkY, rx, ry, w);
-            } else {
-                // Inactive: treat as point constraint at landmark
-                addPointConstraint(M, b, yolo.landmarkX, yolo.landmarkY, w);
-            }
+            double dx = yolo.landmarkX - solution.x;
+            double dy = yolo.landmarkY - solution.y;
+            double actualBearing = normalizeAngle(Math.atan2(dy, dx) - solution.theta);
+            if (Math.abs(normalizeAngle(actualBearing - yolo.bearing)) > yolo.bearingHalfCone) return false;
         }
 
-        // Add regularization
-        M[0][0] += LAMBDA_REG;
-        M[1][1] += LAMBDA_REG;
-
-        // Solve M * p = b
-        return solve2x2(M, b);
+        return true;
     }
 
     /**
-     * Estimate orientation using weighted circular mean (position fixed)
+     * Weighted least squares position estimate with theta fixed.
+     * Active-set check uses the odometry position as reference.
      */
-    private static double estimateOrientation(
-            double x, double y, double alpha,
+    private static double[] estimatePosition(
+            double theta,
             OdometryPrior odometry,
+            List<LocationDetection> locationDetections,
             List<YoloDetection> yoloDetections) {
 
-        double Sx = 0;
-        double Sy = 0;
-        double totalWeight = 0;
+        double[][] M = new double[2][2];
+        double[] b = new double[2];
 
-        // Odometry orientation
-        double wOdo = odometry.confidence;
-        Sx += wOdo * Math.cos(odometry.alpha);
-        Sy += wOdo * Math.sin(odometry.alpha);
-        totalWeight += wOdo;
+        double cosT = Math.cos(theta);
+        double sinT = Math.sin(theta);
 
-        // YOLO-derived orientations
-        for (YoloDetection yolo : yoloDetections) {
-            double w = yolo.getWeight() * (1 - odometry.confidence);
+        addPointConstraint(M, b, odometry.x, odometry.y, odometry.getWeight());
 
-            // Angle from vehicle to landmark
-            double dx = yolo.landmarkX - x;
-            double dy = yolo.landmarkY - y;
-            double theta = Math.atan2(dy, dx);
-
-            // Vehicle heading that would produce this bearing
-            double betaRad = yolo.bearing * Math.PI / 180.0;
-            double alphaEst = theta - betaRad;
-
-            Sx += w * Math.cos(alphaEst);
-            Sy += w * Math.sin(alphaEst);
-            totalWeight += w;
+        for (LocationDetection loc : locationDetections) {
+            addPointConstraint(M, b, loc.x, loc.y, loc.getWeight());
         }
 
-        // Weighted circular mean
-        return Math.atan2(Sy, Sx);
+        for (YoloDetection yolo : yoloDetections) {
+            double cosBeta = Math.cos(yolo.bearing);
+            double sinBeta = Math.sin(yolo.bearing);
+
+            // Ray direction from landmark toward vehicle: -R(bearing) * d
+            double rx = -(cosBeta * cosT - sinBeta * sinT);
+            double ry = -(sinBeta * cosT + cosBeta * sinT);
+
+            // Active-set: use odometry position to determine which side of the landmark we're on
+            double dx = odometry.x - yolo.landmarkX;
+            double dy = odometry.y - yolo.landmarkY;
+            double t = dx * rx + dy * ry;
+
+            if (t >= 0) {
+                addRayConstraint(M, b, yolo.landmarkX, yolo.landmarkY, rx, ry, yolo.getWeight());
+            } else {
+                addPointConstraint(M, b, yolo.landmarkX, yolo.landmarkY, yolo.getWeight());
+            }
+        }
+
+        M[0][0] += LAMBDA_REG;
+        M[1][1] += LAMBDA_REG;
+
+        return solve2x2(M, b);
     }
 
     /**
@@ -332,97 +252,60 @@ public class GeometrySolver {
         return new double[]{x, y};
     }
 
-private static void computeConfidence(
-        Solution solution,
-        OdometryPrior odometry,
-        List<LocationDetection> locationDetections,
-        List<YoloDetection> yoloDetections) {
+    private static void computeConfidence(
+            Solution solution,
+            OdometryPrior odometry,
+            List<LocationDetection> locationDetections,
+            List<YoloDetection> yoloDetections) {
 
-    // Recompute M matrix for position covariance
-    double[][] M = new double[2][2];
-    double[] dummy = new double[2];
+        // Rebuild M from the same constraints used in estimatePosition to get position covariance
+        double[][] M = new double[2][2];
+        double[] dummy = new double[2];
 
-    double c = odometry.confidence;
-    double wOdo = c;
+        double cosT = Math.cos(solution.theta);
+        double sinT = Math.sin(solution.theta);
 
-    addPointConstraint(M, dummy, odometry.x, odometry.y, wOdo);
+        addPointConstraint(M, dummy, odometry.x, odometry.y, odometry.getWeight());
 
-    for (LocationDetection loc : locationDetections) {
-        double w = loc.getWeight() * (1 - c);
-        addPointConstraint(M, dummy, loc.x, loc.y, w);
-    }
-
-    double cosA = Math.cos(solution.alpha);
-    double sinA = Math.sin(solution.alpha);
-
-    for (YoloDetection yolo : yoloDetections) {
-        double w = yolo.getWeight() * (1 - c);
-
-        double betaRad = yolo.bearing * Math.PI / 180.0;
-        double cosBeta = Math.cos(betaRad);
-        double sinBeta = Math.sin(betaRad);
-
-        double rx = -(cosBeta * cosA - sinBeta * sinA);
-        double ry = -(sinBeta * cosA + cosBeta * sinA);
-
-        double dx = solution.x - yolo.landmarkX;
-        double dy = solution.y - yolo.landmarkY;
-        double t = dx * rx + dy * ry;
-
-        if (t >= 0) {
-            addRayConstraint(M, dummy, yolo.landmarkX, yolo.landmarkY, rx, ry, w);
-        } else {
-            addPointConstraint(M, dummy, yolo.landmarkX, yolo.landmarkY, w);
+        for (LocationDetection loc : locationDetections) {
+            addPointConstraint(M, dummy, loc.x, loc.y, loc.getWeight());
         }
+
+        for (YoloDetection yolo : yoloDetections) {
+            double cosBeta = Math.cos(yolo.bearing);
+            double sinBeta = Math.sin(yolo.bearing);
+
+            double rx = -(cosBeta * cosT - sinBeta * sinT);
+            double ry = -(sinBeta * cosT + cosBeta * sinT);
+
+            double dx = solution.x - yolo.landmarkX;
+            double dy = solution.y - yolo.landmarkY;
+            double t = dx * rx + dy * ry;
+
+            if (t >= 0) {
+                addRayConstraint(M, dummy, yolo.landmarkX, yolo.landmarkY, rx, ry, yolo.getWeight());
+            } else {
+                addPointConstraint(M, dummy, yolo.landmarkX, yolo.landmarkY, yolo.getWeight());
+            }
+        }
+
+        M[0][0] += LAMBDA_REG;
+        M[1][1] += LAMBDA_REG;
+
+        // Position covariance = M^{-1}
+        double det = M[0][0] * M[1][1] - M[0][1] * M[1][0];
+        if (Math.abs(det) > 1e-15) {
+            double invDet = 1.0 / det;
+            solution.positionCovariance[0][0] = invDet * M[1][1];
+            solution.positionCovariance[0][1] = -invDet * M[0][1];
+            solution.positionCovariance[1][0] = -invDet * M[1][0];
+            solution.positionCovariance[1][1] = invDet * M[0][0];
+        }
+
+        // Theta is known with certainty
+        solution.orientationConcentration = 1.0;
+        solution.orientationUncertainty = 0.0;
     }
-
-    M[0][0] += LAMBDA_REG;
-    M[1][1] += LAMBDA_REG;
-
-    // Position covariance = M^{-1}
-    double det = M[0][0] * M[1][1] - M[0][1] * M[1][0];
-    if (Math.abs(det) > 1e-15) {
-        double invDet = 1.0 / det;
-        solution.positionCovariance[0][0] = invDet * M[1][1];
-        solution.positionCovariance[0][1] = -invDet * M[0][1];
-        solution.positionCovariance[1][0] = -invDet * M[1][0];
-        solution.positionCovariance[1][1] = invDet * M[0][0];
-    }
-
-    double Sx = 0, Sy = 0, totalWeight = 0;
-
-    // Odometry orientation contribution
-    Sx += wOdo * Math.cos(odometry.alpha);
-    Sy += wOdo * Math.sin(odometry.alpha);
-    totalWeight += wOdo;
-
-    for (YoloDetection yolo : yoloDetections) {
-        double w = yolo.getWeight() * (1 - c);
-        
-        // Angle from vehicle to landmark
-        double dx = yolo.landmarkX - solution.x;
-        double dy = yolo.landmarkY - solution.y;
-        double theta = Math.atan2(dy, dx);
-        
-        // Vehicle heading that would produce this bearing
-        double betaRad = yolo.bearing * Math.PI / 180.0;
-        double alphaEst = theta - betaRad;
-        
-        // Add to circular mean
-        Sx += w * Math.cos(alphaEst);
-        Sy += w * Math.sin(alphaEst);
-        totalWeight += w;
-    }
-
-    // Concentration measure: length of mean vector
-    double r = Math.sqrt(Sx * Sx + Sy * Sy) / totalWeight;
-    solution.orientationConcentration = r;
-    
-    // Convert concentration to uncertainty (inverse relationship)
-    // When r=1 (perfect agreement), uncertainty should be small
-    // When r=0 (total disagreement), uncertainty should be large
-    solution.orientationUncertainty = ORIENTATION_CONE_SCALE * (1 - r) * 180.0;
-}
 
     /**
      * Solve with visualization output
@@ -578,15 +461,12 @@ private static void computeConfidence(
             double dist = Math.sqrt(dx * dx + dy * dy);
 
             if (dist > 0.01) {
-                // Base angle from solution to landmark
-                double angleToLandmark = Math.atan2(dy, dx);
-
                 // Expected angle based on bearing measurement
-                double bearingRad = yolo.bearing * Math.PI / 180.0;
-                double expectedAngle = solution.alpha + bearingRad;
+                double bearingRad = yolo.bearing;
+                double expectedAngle = solution.theta + bearingRad;
 
                 // Cone half-angle
-                double coneHalfAngle = yolo.angularUncertainty * Math.PI / 180.0;
+                double coneHalfAngle = yolo.bearingHalfCone;
 
                 // Draw cone
                 int solX = ct.toScreenX(solution.x);
@@ -640,8 +520,7 @@ private static void computeConfidence(
         int odoX = ct.toScreenX(odometry.x);
         int odoY = ct.toScreenY(odometry.y);
 
-        // Odometry uncertainty circle (use a reasonable default radius for visualization)
-        double odoRadius = (maxX - minX) * 0.05;  // 5% of range
+        double odoRadius = odometry.xyRadius;
         int odoRadiusPx = (int)ct.toScreenScale(odoRadius);
         g.setColor(new Color(255, 0, 0, 50));
         g.fillOval(odoX - odoRadiusPx, odoY - odoRadiusPx, odoRadiusPx * 2, odoRadiusPx * 2);
@@ -655,7 +534,7 @@ private static void computeConfidence(
         g.fillOval(odoX - 6, odoY - 6, 12, 12);
 
         // Odometry orientation arrow
-        drawArrow(g, odoX, odoY, odometry.alpha, (int)ct.toScreenScale(odoRadius * 0.8), Color.RED);
+        drawArrow(g, odoX, odoY, odometry.theta, (int)ct.toScreenScale(odoRadius * 0.8), Color.RED);
 
         // Draw solution (black dot and arrow)
         int solX = ct.toScreenX(solution.x);
@@ -665,7 +544,7 @@ private static void computeConfidence(
         g.fillOval(solX - 7, solY - 7, 14, 14);
 
         // Solution orientation arrow
-        drawArrow(g, solX, solY, solution.alpha, (int)ct.toScreenScale(odoRadius * 0.8), Color.BLACK);
+        drawArrow(g, solX, solY, solution.theta, (int)ct.toScreenScale(odoRadius * 0.8), Color.BLACK);
 
         // === NEW: Location confidence ellipse (black, semi-transparent, ~95%) ===
         drawLocationConfidenceEllipse(g, ct, solution);
@@ -688,7 +567,7 @@ private static void computeConfidence(
         g.fillOval(legendX, legendY + row * lineHeight - 6, 12, 12);
         g.setColor(Color.BLACK);
         g.drawString(String.format("Solution: (%.2f, %.2f), orientation %.1f°",
-                        solution.x, solution.y, solution.alpha * 180.0 / Math.PI),
+                        solution.x, solution.y, solution.theta * 180.0 / Math.PI),
                 legendX + 22, legendY + row * lineHeight);
         row++;
 
@@ -706,14 +585,13 @@ private static void computeConfidence(
         drawMiniConeKey(g, legendX, legendY + row * lineHeight - 12);
         g.setColor(Color.BLACK);
         g.drawString(String.format("Confidence (orientation): ±%.1f° cone",
-                        solution.orientationUncertainty),
+                        Math.toDegrees(solution.orientationUncertainty)),
                 legendX + 22, legendY + row * lineHeight);
         row++;
 
         // 3) Convergence: converged? and steps
         g.setColor(Color.BLACK);
-        g.drawString(String.format("Convergence: %s, steps: %d",
-                        solution.converged ? "Yes" : "No", solution.iterations),
+        g.drawString(String.format("Constraints satisfied: %s", solution.ok ? "Yes" : "No"),
                 legendX, legendY + row * lineHeight);
         row++;
 
@@ -731,11 +609,10 @@ private static void computeConfidence(
         g.setFont(new Font("Arial", Font.BOLD, 13));
         g.setColor(Color.BLACK);
         g.drawString(String.format("Solution: (%.2f, %.2f) | %.1f°",
-                solution.x, solution.y, solution.alpha * 180.0 / Math.PI), 20, infoY);
+                solution.x, solution.y, solution.theta * 180.0 / Math.PI), 20, infoY);
         g.drawString(String.format("Confidence: ellipse ~95%% | ±%.1f°",
-                solution.orientationUncertainty), 20, infoY + 20);
-        g.drawString(String.format("Convergence: %s | Steps: %d",
-                solution.converged ? "Yes" : "No", solution.iterations), 20, infoY + 40);
+                Math.toDegrees(solution.orientationUncertainty)), 20, infoY + 20);
+        g.drawString(String.format("Constraints satisfied: %s", solution.ok ? "Yes" : "No"), 20, infoY + 40);
 
         // Cleanup
         g.dispose();
@@ -805,8 +682,8 @@ private static void computeConfidence(
         double length = 0.35 * scene; // 35% of the larger span
         double L = ct.toScreenScale(length);
 
-        double alpha = solution.alpha;
-        double half = Math.toRadians(solution.orientationUncertainty);
+        double alpha = solution.theta;
+        double half = solution.orientationUncertainty;
 
         double a1 = alpha + half;
         double a2 = alpha - half;
@@ -886,3 +763,4 @@ private static void computeConfidence(
         return angle;
     }
 }
+ 
