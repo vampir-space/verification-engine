@@ -35,9 +35,9 @@ public class GeometryTest {
         GeometrySolver.Solution solution = GeometrySolver.solveWithVisualization(
                 odometry, locations, yolos, "geometryTests/test_warehouse.png");
 
-        assertTrue(solution.converged);
+        assertTrue(solution.ok);
         System.out.printf("Estimated position: (%.2f, %.2f)\n", solution.x, solution.y);
-        System.out.printf("Estimated heading: %.1f°\n", Math.toDegrees(solution.alpha));
+        System.out.printf("Estimated heading: %.1f°\n", Math.toDegrees(solution.theta));
         System.out.printf("Position uncertainty: σx=%.2f, σy=%.2f\n",
                 Math.sqrt(solution.positionCovariance[0][0]),
                 Math.sqrt(solution.positionCovariance[1][1]));
@@ -72,9 +72,9 @@ public class GeometryTest {
         GeometrySolver.Solution solution = GeometrySolver.solveWithVisualization(
                 odometry, locations, yolos, "geometryTests/test_parking.png");
 
-        assertTrue(solution.converged);
+        assertTrue(solution.ok);
         System.out.printf("Vehicle position: (%.2f, %.2f)\n", solution.x, solution.y);
-        System.out.printf("Vehicle heading: %.1f°\n", Math.toDegrees(solution.alpha));
+        System.out.printf("Vehicle heading: %.1f°\n", Math.toDegrees(solution.theta));
 
         // Should refine GPS position using visual landmarks
         assertTrue(Math.abs(solution.x - 100) < 3.0);
@@ -105,7 +105,7 @@ public class GeometryTest {
         GeometrySolver.Solution solution = GeometrySolver.solveWithVisualization(
                 odometry, locations, yolos, "geometryTests/test_corridor.png");
 
-        assertTrue(solution.converged);
+        assertTrue(solution.ok);
         System.out.printf("Position in corridor: (%.2f, %.2f)\n", solution.x, solution.y);
 
         // Should have good longitudinal localization
@@ -139,7 +139,7 @@ public class GeometryTest {
         GeometrySolver.Solution solution = GeometrySolver.solveWithVisualization(
                 odometry, locations, yolos, "geometryTests/test_drift.png");
 
-        assertTrue(solution.converged);
+        assertTrue(solution.ok);
         System.out.printf("Corrected position: (%.2f, %.2f)\n", solution.x, solution.y);
         System.out.printf("Drift correction: %.2fm\n",
                 Math.sqrt(Math.pow(solution.x - 50, 2) + Math.pow(solution.y - 50, 2)));
@@ -174,9 +174,9 @@ public class GeometryTest {
         GeometrySolver.Solution solution = GeometrySolver.solveWithVisualization(
                 odometry, locations, yolos, "geometryTests/test_intersection.png");
 
-        assertTrue(solution.converged);
+        assertTrue(solution.ok);
         System.out.printf("Position at intersection: (%.2f, %.2f)\n", solution.x, solution.y);
-        System.out.printf("Heading: %.1f°\n", Math.toDegrees(solution.alpha));
+        System.out.printf("Heading: %.1f°\n", Math.toDegrees(solution.theta));
 
         // Should be near origin with good accuracy from multiple landmarks
         assertTrue(Math.abs(solution.x) < 2.0);
@@ -209,9 +209,9 @@ public class GeometryTest {
         GeometrySolver.Solution solution = GeometrySolver.solveWithVisualization(
                 odometry, locations, yolos, "geometryTests/test_uturn.png");
 
-        assertTrue(solution.converged);
+        assertTrue(solution.ok);
         System.out.printf("Post-turn position: (%.2f, %.2f)\n", solution.x, solution.y);
-        System.out.printf("Post-turn heading: %.1f°\n", Math.toDegrees(solution.alpha));
+        System.out.printf("Post-turn heading: %.1f°\n", Math.toDegrees(solution.theta));
 
         // Should correct heading error from rapid rotation
         assertTrue(Math.abs(solution.x - 6) < 1.5);
@@ -243,7 +243,7 @@ public class GeometryTest {
         GeometrySolver.Solution solution = GeometrySolver.solveWithVisualization(
                 odometry, locations, yolos, "geometryTests/test_multifloor.png");
 
-        assertTrue(solution.converged);
+        assertTrue(solution.ok);
         System.out.printf("Position on floor 2: (%.2f, %.2f)\n", solution.x, solution.y);
 
         // Landmarks should override unreliable GPS
@@ -275,7 +275,7 @@ public class GeometryTest {
         GeometrySolver.Solution solution = GeometrySolver.solveWithVisualization(
                 odometry, locations, yolos, "geometryTests/test_highspeed.png");
 
-        assertTrue(solution.converged);
+        assertTrue(solution.ok);
         System.out.printf("High-speed position: (%.2f, %.2f)\n", solution.x, solution.y);
         System.out.printf("Position uncertainty: %.2fm\n",
                 Math.sqrt(solution.positionCovariance[0][0] + solution.positionCovariance[1][1]));
@@ -302,9 +302,9 @@ public class GeometryTest {
 
         GeometrySolver.Solution solution = GeometrySolver.solve(odometry, locations, yolos);
 
-        assertTrue(solution.converged);
+        assertTrue(solution.ok);
         System.out.printf("Minimal constraint solution: (%.2f, %.2f) @ %.1f°\n",
-                solution.x, solution.y, Math.toDegrees(solution.alpha));
+                solution.x, solution.y, Math.toDegrees(solution.theta));
     }
 
     @Test
@@ -339,7 +339,7 @@ public class GeometryTest {
         GeometrySolver.Solution solution = GeometrySolver.solveWithVisualization(
                 odometry, locations, yolos, "geometryTests/test_overconstrained.png");
 
-        assertTrue(solution.converged);
+        assertTrue(solution.ok);
         System.out.printf("Overconstrained solution: (%.2f, %.2f)\n", solution.x, solution.y);
         System.out.printf("Used %d location constraints, %d landmarks\n",
                 locations.size(), yolos.size());

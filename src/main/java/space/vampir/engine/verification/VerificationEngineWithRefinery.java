@@ -39,7 +39,12 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
     // TODO: remove this dependency, reorganize
     final MapRender mapRender;
 
+    final VerificationEngineConfiguration configuration;
+
     public VerificationEngineWithRefinery(MapHandler map, MapRender mapRender) throws IOException {
+        this(map,mapRender,new VerificationEngineConfiguration());
+    }
+    public VerificationEngineWithRefinery(MapHandler map, MapRender mapRender, VerificationEngineConfiguration configuration) throws IOException {
         this.outputStrategy = new ModelSeedStrategy();
 
         complexityStrategy = new BasicWithTypeRefinementStrategy<>(outputStrategy);
@@ -48,12 +53,14 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
         problemProvider = new MapGenerationProblemProvider(complexityStrategy.getMetaModelString());
 
         this.mapRender = mapRender;
+
+        this.configuration = configuration;
     }
 
     @Override
     public UpdatedScenario update(Scenario rawScenario) {
-        Map<String,Yolo.YoloDetection> observationYoloMap = new HashMap<>();
-        Scope<ModelSeedFragment> scope = translateToScope(rawScenario,observationYoloMap);
+        Map<String, Yolo.YoloDetection> observationYoloMap = new HashMap<>();
+        Scope<ModelSeedFragment> scope = translateToScope(rawScenario, observationYoloMap);
 
         ModelSeedFragment refineryFragment = scope.translateMap();
         ModelSeed modelSeed = refineryFragment.buildSeed();
@@ -62,15 +69,15 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
 
         // todo
         var xyCoords = mapRender.toMapCoord(rawScenario.odometry().getX(), rawScenario.odometry().getY());
+        var theta = Math.PI / 2 - rawScenario.odometry().getTheta();
         GeometrySolver.OdometryPrior odometryPrior = new GeometrySolver.OdometryPrior(
                 xyCoords[0],
                 xyCoords[1],
-                rawScenario.odometry().getTheta(),
-                0.4);
-
+                2.0,
+                theta);
 
         List<GeometrySolver.LocationDetection> locations = new ArrayList<>();
-        locations.add(new GeometrySolver.LocationDetection(rawScenario.odometry().getX(), rawScenario.odometry().getY(), 10.0));
+        locations.add(new GeometrySolver.LocationDetection(xyCoords[0], xyCoords[1], 2.0));
 
         List<GeometrySolver.YoloDetection> yolos = new ArrayList<>();
 
@@ -89,14 +96,21 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
                 var landmarkCoordinate = scope.getCoordinate(landmark);
 
 
-                yolos.add(new GeometrySolver.YoloDetection(landmarkCoordinate.getX(), landmarkCoordinate.getY(), observation.angle(), Math.PI/12));
+                yolos.add(new GeometrySolver.YoloDetection(landmarkCoordinate.getX(), landmarkCoordinate.getY(), observation.angle(), Math.PI / 12));
             }
         }
-        GeometrySolver.Solution geometrySolution = GeometrySolver.solve(odometryPrior,locations,yolos);
+        //yolos.add(new GeometrySolver.YoloDetection(-34, 28, -0.18849555921538758, Math.PI / 120));
+        try {
+            GeometrySolver.Solution geometrySolution = GeometrySolver.solveWithVisualization(odometryPrior, locations, yolos, "C:\\NemkinVikiDebug\\vizualis.png");
 
         var coordsInGeo = mapRender.toGeoCoord(geometrySolution.x, geometrySolution.y);
 
-        return new UpdatedScenario(rawScenario, new Odometry(rawScenario.time(),coordsInGeo[0],coordsInGeo[1],geometrySolution.alpha));
+        return new UpdatedScenario(rawScenario, new Odometry(rawScenario.time(),coordsInGeo[0],coordsInGeo[1],rawScenario.odometry().getTheta()));
+        } catch (IOException e)
+        {
+            System.out.println("IOEXCEPTION: " + e.toString());
+        }
+        return null;
     }
 
     private @NotNull Scope<ModelSeedFragment> translateToScope(Scenario rawScenario, Map<String,Yolo.YoloDetection> observationYoloMap) {
@@ -105,10 +119,10 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
 
         Point egoPosition = new Point(xyCoords[0], xyCoords[1]);
 
-        Circle relevantMap = new Circle(egoPosition, 50.0);
+        Circle relevantMap = new Circle(egoPosition, 100.0);
 
         Scope<ModelSeedFragment> scope = converter.getScope(relevantMap);
-        scope.roadCutter(10.0);
+        //scope.roadCutter(10.0);
 
 
 ////        Circle egoPlacement = new Circle(
@@ -128,7 +142,7 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
         for(int i = 0; i<yoloDetections.size(); i++) {
             final var yoloDetection = yoloDetections.get(i);
 
-            final Sector sector = new Sector(egoPosition, 100.0,
+            final Sector sector = new Sector(egoPosition, 1000.0,
                     rawScenario.odometry().getTheta()+yoloDetection.angle(),
                     Math.PI/12,
                     100.0,// TODO

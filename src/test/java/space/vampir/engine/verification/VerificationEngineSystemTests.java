@@ -41,7 +41,7 @@ public class VerificationEngineSystemTests {
         var scenario = new Scenario(
                 new Odometry(0,47.47900448915325,19.056188607914573,Math.PI*1.5),
                 new PointPillars(0, java.util.List.of(
-                        new PointPillars.PointPillarsDetection(-3.9, 1.2, Math.PI*0,5,3)
+                        //new PointPillars.PointPillarsDetection(-3.9, 1.2, Math.PI*0,5,3)
                 )),
                 new Yolo(0, List.of(
                         new Yolo.YoloDetection("sign",Math.PI*0.06,0.9)
