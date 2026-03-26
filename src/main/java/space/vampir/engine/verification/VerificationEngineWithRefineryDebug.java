@@ -57,7 +57,7 @@ public class VerificationEngineWithRefineryDebug implements VerificationEngine{
         Circle relevantMap = new Circle(egoPosition, 50.0);
 
         Scope<String> scope = converter.getScope(relevantMap);
-        scope.roadCutter(10.0);
+        //scope.roadCutter(10.0);
 
 
 ////        Circle egoPlacement = new Circle(
@@ -69,9 +69,9 @@ public class VerificationEngineWithRefineryDebug implements VerificationEngine{
 //        egoType.add(ObjectType.Car);
 //        LinkedHashMap
 
-        complexityStrategy.setEgoRange(25);
-        MapObject car = new MapObject(1, ObjectType.Car, egoPosition, new Size(1.0, 1.0));
-        scope.addEgo(car);
+//        complexityStrategy.setEgoRange(25);
+//        MapObject car = new MapObject(1, ObjectType.Car, egoPosition, new Size(1.0, 1.0));
+//        scope.addEgo(car);
 
         final List<Yolo.YoloDetection> yoloDetections = rawScenario.yolo().getYoloDetections();
         for(int i = 0; i<yoloDetections.size(); i++) {

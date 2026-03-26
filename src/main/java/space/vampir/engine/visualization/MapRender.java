@@ -110,7 +110,7 @@ public class MapRender {
             for(MapObject o : objects.values()) {
                 //todo theta and size
                 if(o.getType().equals(ObjectType.Signal)){
-                    this.staticObjects.add(new ObjectRender(MapRender.class.getResource("/signal.svg"),4.0, 6.0, o.getCoordinate().getX(), o.getCoordinate().getY(), 0.0));
+                    this.staticObjects.add(new ObjectRender(MapRender.class.getResource("/signal.svg"),"Sign" +o.getId(),4.0, 6.0, o.getCoordinate().getX(), o.getCoordinate().getY(), 0.0));
                 }
             }
         }

@@ -85,6 +85,20 @@ public class MapPanel extends JPanel {
         object.getBackground().render(this, g2d);
         // Reset
         g2d.setTransform(old);
+
+
+        if(object.getName() != null) {
+            int textX = (int) (getWidth() / 2.0 + xOffset * mapScale);
+            int textY = (int) (getHeight() / 2.0 - yOffset * mapScale);
+
+//        int textXSize =
+            int fontSize = (int) (mapScale*object.getSizeY()/4);
+            int textOffset = (int) (mapScale*object.getSizeX()/4);
+
+            var font = new Font(g2d.getFont().getName(),Font.PLAIN,fontSize);
+            g2d.setFont(font);
+            g2d.drawString(object.getName(), textX+textOffset, textY+fontSize/2);
+        }
     }
 
     @Override
