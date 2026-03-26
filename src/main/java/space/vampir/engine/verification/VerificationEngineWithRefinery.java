@@ -59,6 +59,15 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
 
     @Override
     public UpdatedScenario update(Scenario rawScenario) {
+        if(rawScenario.yolo().getYoloDetections().isEmpty()) {
+            return new UpdatedScenario(rawScenario,
+                    new Odometry(
+                            rawScenario.time(),
+                            rawScenario.odometry().getX(),
+                            rawScenario.odometry().getY(),
+                            rawScenario.odometry().getTheta()));
+        }
+
         Map<String, Yolo.YoloDetection> observationYoloMap = new HashMap<>();
         Scope<ModelSeedFragment> scope = translateToScope(rawScenario, observationYoloMap);
 
@@ -66,6 +75,9 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
         ModelSeed modelSeed = refineryFragment.buildSeed();
 
         ModelGenerator model = outputStrategy.problemProvider.solve(modelSeed);
+        if(!model.isLastGenerationSuccessful()) {
+            return new UpdatedScenario(rawScenario,null);
+        }
 
         var xyCoords = mapRender.toMapCoord(rawScenario.odometry().getX(), rawScenario.odometry().getY());
         var theta = Math.PI / 2 - rawScenario.odometry().getTheta();
