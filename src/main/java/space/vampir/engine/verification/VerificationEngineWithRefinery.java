@@ -80,7 +80,6 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
 
         List<GeometrySolver.YoloDetection> yolos = new ArrayList<>();
 
-
         if (model != null) {
             System.out.println(model.isLastGenerationSuccessful());
             System.out.println("Associations:");
@@ -97,7 +96,7 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
                 var landmarkCoordinate = scope.getCoordinate(landmark);
                 System.out.println(landmark);
 
-                yolos.add(new GeometrySolver.YoloDetection(landmarkCoordinate.getX(), landmarkCoordinate.getY(), observation.angle(), Math.PI / 12));
+                yolos.add(new GeometrySolver.YoloDetection(landmarkCoordinate.getX(), landmarkCoordinate.getY(), -observation.angle(), Math.PI / 12));
             }
 //            model.serialize()
         }
