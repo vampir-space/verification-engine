@@ -33,7 +33,7 @@ public class SceneVisualization extends Visualization {
     final ObjectRender circle = new ObjectRender(RenderExample.class.getResource("/blue-circle.svg"), 30, 30, 0, 0, 0);
     final ObjectRender gnss = new ObjectRender(gnssImage, 3, 5, 0, 0, 0);
     final ObjectRender ve = new ObjectRender(veImage, 3, 5, 0, 0, 0);
-    final ObjectRender gt = new ObjectRender(gtImage, 3, 5, 0, 0, 0);
+    final ObjectRender gt = new ObjectRender(gtImage, "gt", 3, 5, 0, 0, 0);
 
     public SceneVisualization(MapRender map, boolean enabled) {
         super(enabled, new Dimension(700, 700));
