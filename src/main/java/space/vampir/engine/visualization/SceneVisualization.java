@@ -187,16 +187,7 @@ public class SceneVisualization extends Visualization {
 
         Scenario state = verificationCase.scenario();
 
-        //drawing car based on ve
-        var gtOdom = verificationCase.groundTruth();
-        if (gtOdom != null) {
-            var coord = map.toMapCoord(gtOdom.getX(), gtOdom.getY());
 
-            gt.setX(coord[0]);
-            gt.setY(coord[1]);
-            gt.setTheta(gtOdom.getTheta());
-            map.addObject(gt);
-        }
 
         //Drawing car based on gnss
         var gnssOdom = state.odometry();
@@ -209,10 +200,19 @@ public class SceneVisualization extends Visualization {
             circle.setX(coord[0]);
             circle.setY(coord[1]);
 
-            map.addObject(gnss);
             map.addObject(circle);
+            map.addObject(gnss);
+        }
 
-            //map.addObject(new ObjectRender(lineImage, circle.getSizeX(), circle.getSizeY(), gnss.getX(), gnss.getY(), gnss.getTheta()));
+        //drawing car based on ground truth
+        var gtOdom = verificationCase.groundTruth();
+        if (gtOdom != null) {
+            var coord = map.toMapCoord(gtOdom.getX(), gtOdom.getY());
+
+            gt.setX(coord[0]);
+            gt.setY(coord[1]);
+            gt.setTheta(gtOdom.getTheta());
+            map.addObject(gt);
         }
 
         //drawing car based on ve
@@ -236,7 +236,13 @@ public class SceneVisualization extends Visualization {
                     line = lineImage2;
                 }
 
-                var o = new ObjectRender(line, 12, 80, gnss.getX(), gnss.getY(), gnss.getTheta() + detection.angle());
+                final ObjectRender source;
+                if (gtOdom != null) {
+                    source = gt;
+                } else {
+                    source = gnss;
+                }
+                var o = new ObjectRender(line, 12, 80, source.getX(), source.getY(), source.getTheta() + detection.angle());
                 map.addObject(o);
             }
         }
