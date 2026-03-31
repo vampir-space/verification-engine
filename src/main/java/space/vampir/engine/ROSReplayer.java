@@ -85,12 +85,12 @@ public class ROSReplayer {
     public static class RefineryVerificationEngineRunConfiguration {
         public static void main(String[] args) throws IOException {
             // TODO remove hardcoded maps in the long run
-            final MapRender map = new MapRender("/CrossWalk_6/CrossWalk_6.json");
-            final File mapFile = new File(map.getClass().getResource("/CrossWalk_6/Crosswalk_6.xodr").getFile());
+            final MapRender map = new MapRender("/BME_Town_small/BME_Town_small.json");
+            final File mapFile = new File(map.getClass().getResource("/BME_Town_small/BME_Town_small.xodr").getFile());
             VerificationEngine verificationEngine = new VerificationEngineWithRefinery(new MapHandler(mapFile), map);
             CliConfig cliConfig = new CliConfig();
             cliConfig.verificationEngine = verificationEngine;
-            cliConfig.relevantTopics = Set.of(StateRecorder.odometryTopic, StateRecorder.pointPillarsTopic, StateRecorder.yoloTopic);
+            cliConfig.relevantTopics = Set.of(StateRecorder.odometryTopic, StateRecorder.pointPillarsTopic, StateRecorder.yoloTopic, StateRecorder.navSatTopic);
             cliConfig.verificationCaseProvider = new DummyNoiseOdometryProvider(4.0, Math.PI / 180);
             cliConfig.verificationCaseScheduler = new DriveByTopicScheduler(StateRecorder.odometryTopic, 0);
             cliConfig.messageSynchronizer = new ClosestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.odometryTopic, StateRecorder.yoloTopic), Map.of());
