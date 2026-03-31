@@ -76,7 +76,11 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
 
         ModelGenerator model = outputStrategy.problemProvider.solve(modelSeed);
         if(!model.isLastGenerationSuccessful()) {
-            return new UpdatedScenario(rawScenario,null);
+            return new UpdatedScenario(rawScenario,new Odometry(
+                    rawScenario.time(),
+                    rawScenario.odometry().getX(),
+                    rawScenario.odometry().getY(),
+                    rawScenario.odometry().getTheta()));
         }
 
         var xyCoords = mapRender.toMapCoord(rawScenario.odometry().getX(), rawScenario.odometry().getY());

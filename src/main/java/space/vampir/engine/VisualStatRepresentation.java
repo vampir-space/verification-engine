@@ -574,10 +574,10 @@ public class VisualStatRepresentation extends Visualization implements Observer,
                 int groupX = leftMargin + i * groupWidth + 10;
 
                 // Draw GNSS Bar (Blue)
-                drawBar(g2, groupX, h - bottomMargin, barWidth, GNSSStats[i], graphHeight, new Color(0, 0, 255));
+                drawBar(g2, groupX, h - bottomMargin, barWidth, GNSSStats[i], graphHeight, new Color(161, 218, 180));
 
                 // Draw Verifier Bar (Green)
-                drawBar(g2, groupX + barWidth + 2, h - bottomMargin, barWidth, verifierStats[i], graphHeight, new Color(0, 255, 0));
+                drawBar(g2, groupX + barWidth + 2, h - bottomMargin, barWidth, verifierStats[i], graphHeight, new Color(44, 127, 184));
 
                 // X-axis Labels
                 g2.setColor(Color.BLACK);
