@@ -51,7 +51,7 @@ public interface VerificationCaseProvider {
 
         @Override
         public VerificationCase getVerificationCase(SynchronizedMessages sync) {
-            Scenario scenario = new Scenario(sync.lowEndOdometry(), sync.pointPillars(), sync.yolo());
+            Scenario scenario = new Scenario(sync.odometry(), sync.pointPillars(), sync.yolo());
             return new VerificationCase(scenario, sync.odometry());
         }
     }

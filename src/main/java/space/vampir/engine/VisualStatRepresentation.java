@@ -91,9 +91,9 @@ public class VisualStatRepresentation extends Visualization implements Observer,
     public void doVisualize(UpdatedVerificationCase updatedVerificationCase) {
         long time = updatedVerificationCase.scenario().time();
         evaluation.addOdometries(
-                Map.of(time, updatedVerificationCase.groundTruth()),
-                Map.of(time, updatedVerificationCase.scenario().odometry()),
-                Map.of(time, updatedVerificationCase.updatedByVerificationEngine())
+                updatedVerificationCase.groundTruth() != null ? Map.of(time, updatedVerificationCase.groundTruth()) : Map.of(),
+                updatedVerificationCase.scenario().odometry() != null ? Map.of(time, updatedVerificationCase.scenario().odometry()) : Map.of(),
+                updatedVerificationCase.updatedByVerificationEngine() != null ? Map.of(time, updatedVerificationCase.updatedByVerificationEngine()) : Map.of()
         );
     }
 

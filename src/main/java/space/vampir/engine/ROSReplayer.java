@@ -13,10 +13,7 @@ import space.vampir.engine.communication.scheduler.AlwaysScheduler;
 import space.vampir.engine.communication.scheduler.DriveByTopicScheduler;
 import space.vampir.engine.communication.synchronizer.ClosestMessageSynchronizer;
 import space.vampir.engine.communication.synchronizer.LatestMessageSynchronizer;
-import space.vampir.engine.verification.DummyVerificationEngine;
-import space.vampir.engine.verification.UpdatedScenario;
-import space.vampir.engine.verification.VerificationEngine;
-import space.vampir.engine.verification.VerificationEngineWithRefinery;
+import space.vampir.engine.verification.*;
 import space.vampir.engine.visualization.CliConfig;
 import space.vampir.engine.visualization.MapRender;
 import space.vampir.engine.visualization.SceneVisualization;
@@ -92,6 +89,21 @@ public class ROSReplayer {
             cliConfig.verificationEngine = verificationEngine;
             cliConfig.relevantTopics = Set.of(StateRecorder.odometryTopic, StateRecorder.pointPillarsTopic, StateRecorder.yoloTopic, StateRecorder.navSatTopic);
             cliConfig.verificationCaseProvider = new DummyNoiseOdometryProvider(4.0, Math.PI / 180);
+            cliConfig.verificationCaseScheduler = new DriveByTopicScheduler(StateRecorder.odometryTopic, 0);
+            cliConfig.messageSynchronizer = new ClosestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.odometryTopic, StateRecorder.yoloTopic), Map.of());
+            play(cliConfig);
+        }
+    }
+
+    public static class YoloErrorCalculation{
+        public static void main(String[] args) throws IOException {
+            final MapRender map = new MapRender("/BME_Town_small/BME_Town_small.json");
+            final File mapFile = new File(map.getClass().getResource("/BME_Town_small/BME_Town_small.xodr").getFile());
+            VerificationEngine verificationEngine = new AIErrorCalculator(new MapHandler(mapFile), map, 99);
+            CliConfig cliConfig = new CliConfig();
+            cliConfig.verificationEngine = verificationEngine;
+            cliConfig.relevantTopics = Set.of(StateRecorder.odometryTopic, StateRecorder.pointPillarsTopic, StateRecorder.yoloTopic, StateRecorder.navSatTopic);
+            cliConfig.verificationCaseProvider = new RealScenarioProvider();
             cliConfig.verificationCaseScheduler = new DriveByTopicScheduler(StateRecorder.odometryTopic, 0);
             cliConfig.messageSynchronizer = new ClosestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.odometryTopic, StateRecorder.yoloTopic), Map.of());
             play(cliConfig);
