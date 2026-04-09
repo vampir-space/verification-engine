@@ -55,7 +55,7 @@ public class ROSListener extends WebSocketListener {
                 }
                 scheduler.shutdown();
             } else {
-                System.out.println("↻ Polling topics...");
+//                System.out.println("↻ Polling topics...");
                 String reqId = String.valueOf(idCounter.getAndIncrement());
                 ROSCallServiceMessage poll = new ROSCallServiceMessage(
                         "call_service", "/rosapi/topics", Map.of(), reqId
@@ -131,7 +131,7 @@ public class ROSListener extends WebSocketListener {
 
     private void send(@NotNull WebSocket ws, Object message) {
         try {
-            System.out.println("Sending: " + mapper.writeValueAsString(message));
+//            System.out.println("Sending: " + mapper.writeValueAsString(message));
             ws.send(mapper.writeValueAsString(message));
         } catch (JsonProcessingException e) {
             System.err.println("Error serializing message: " + e.getMessage());
