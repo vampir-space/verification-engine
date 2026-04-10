@@ -5,7 +5,10 @@ import tools.refinery.mapconverter.map.ObjectType;
 import tools.refinery.mapconverter.scope.Scope;
 import tools.refinery.mapconverter.transform.ModelSeedFragment;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.SortedMap;
 
 public class ObjectSelection {
     final Scope<ModelSeedFragment> scope;
@@ -19,6 +22,7 @@ public class ObjectSelection {
             double posError, double thetaError,
             double maxDistance,
             ObjectType targetType) {
+        //List<ObjectSelectionRecord> selected = new ArrayList<>();
         LinkedHashMap<Integer, MapObject> selected = new LinkedHashMap<>();
         var objects = scope.getAllElements().getObjects();
 
@@ -39,22 +43,12 @@ public class ObjectSelection {
                 // otherwise, if it is not too far, we can check if it is visible
                 else if (distance <= maxDistance + posError) {
 
-                    double backToObjectY = targetY - backPositionY;
-                    double backToObjectX = targetX - backPositionX;
-                    double angle = Math.atan2(backToObjectY, backToObjectX);
-                    double angleDiff = theta - angle;
-//                    while (angleDiff < 0) {
-//                        angleDiff += Math.PI * 2;
-//                    }
-//                    angleDiff = angleDiff % (Math.PI*2);
-                    while (angleDiff < -Math.PI) {
-                        angleDiff += Math.PI * 2;
-                    }
-                    while (angleDiff > Math.PI) {
-                        angleDiff -= Math.PI * 2;
-                    }
+                    final double backToObjectY = targetY - backPositionY;
+                    final double backToObjectX = targetX - backPositionX;
 
-                    if (Math.abs(angleDiff) <= thetaError) {
+                    double angleDiff = calculateAngleDiff(targetX,targetY,backPositionX,backPositionY,theta);
+
+                    if (angleDiff <= thetaError) {
                         if (Math.sqrt(backToObjectX * backToObjectX + backToObjectY * backToObjectY) > backDistance) {
                             selected.put(object.getKey(), object.getValue());
                         }
@@ -64,5 +58,19 @@ public class ObjectSelection {
             }
         }
         return selected;
+    }
+    
+    private double calculateAngleDiff(double targetX, double targetY, double backPositionX, double backPositionY, double theta) {
+        final double backToObjectY = targetY - backPositionY;
+        final double backToObjectX = targetX - backPositionX;
+        final double angle = Math.atan2(backToObjectY, backToObjectX);
+        double angleDiff = theta - angle;
+        while (angleDiff < -Math.PI) {
+            angleDiff += Math.PI * 2;
+        }
+        while (angleDiff > Math.PI) {
+            angleDiff -= Math.PI * 2;
+        }
+        return Math.abs(angleDiff);
     }
 }

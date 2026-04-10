@@ -494,7 +494,7 @@ public class VisualStatRepresentation extends Visualization implements Observer,
 
             tableModel.addRow(new Object[]{"", "", "", "", "", tensPlace, onesPlace + "%", ""});
 
-            tableModel.addRow(new Object[]{"", "", "", "", "", "VALID", "Misleading", dontUseVE + "%"});
+            tableModel.addRow(new Object[]{"", "", "", "", "", "VALID", "MISLEADING", dontUseVE + "%"});
             int validVE = (int) ((((double) matrix[0][0] + (double) matrix[1][0] + (double) matrix[2][0]) / ((double) matrix[0][0] + (double) matrix[1][0] + (double) matrix[2][0] + (double) matrix[0][1] + (double) matrix[1][1] + (double) matrix[2][1])) * 100);
             int misleadingVE = 100 - validVE;
 
@@ -510,7 +510,7 @@ public class VisualStatRepresentation extends Visualization implements Observer,
                     "", "USE", useGNSS + "%", "VALID", validGNSS + "%", matrix[0][0], matrix[0][1], matrix[0][2]
             });
             tableModel.addRow(new Object[]{
-                    "GNSS", "", "", "Misleading", misleadingGNSS + "%", matrix[1][0], matrix[1][1], matrix[1][2]
+                    "GNSS", "", "", "MISLEADING", misleadingGNSS + "%", matrix[1][0], matrix[1][1], matrix[1][2]
             });
 
             tableModel.addRow(new Object[]{

@@ -68,14 +68,16 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
                             rawScenario.odometry().getTheta()));
         }
 
+        List<String> inc = new ArrayList<>();
         Map<String, Yolo.YoloDetection> observationYoloMap = new HashMap<>();
-        Scope<ModelSeedFragment> scope = translateToScope(rawScenario, observationYoloMap);
+        Scope<ModelSeedFragment> scope = translateToScope(rawScenario, observationYoloMap, inc);
 
         ModelSeedFragment refineryFragment = scope.translateMap();
         ModelSeed modelSeed = refineryFragment.buildSeed();
 
         ModelGenerator model = outputStrategy.problemProvider.solve(modelSeed);
         if(!model.isLastGenerationSuccessful()) {
+//            System.out.println("donotuse");
             return new UpdatedScenario(rawScenario,null);
         }
 
@@ -84,11 +86,11 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
         GeometrySolver.OdometryPrior odometryPrior = new GeometrySolver.OdometryPrior(
                 xyCoords[0],
                 xyCoords[1],
-                rawScenario.odometry().getUncertaintyInMeters()*2,
+                rawScenario.odometry().getUncertaintyInMeters(),
                 theta);
 
         List<GeometrySolver.LocationDetection> locations = new ArrayList<>();
-        locations.add(new GeometrySolver.LocationDetection(xyCoords[0], xyCoords[1], rawScenario.odometry().getUncertaintyInMeters()*2));
+        locations.add(new GeometrySolver.LocationDetection(xyCoords[0], xyCoords[1], rawScenario.odometry().getUncertaintyInMeters()));
 
         List<GeometrySolver.YoloDetection> yolos = new ArrayList<>();
 
@@ -108,7 +110,7 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
                 var landmarkCoordinate = scope.getCoordinate(landmark);
 //                System.out.println(landmark);
 
-                yolos.add(new GeometrySolver.YoloDetection(landmarkCoordinate.getX(), landmarkCoordinate.getY(), -observation.angle(), Math.PI / 12));
+                yolos.add(new GeometrySolver.YoloDetection(landmarkCoordinate.getX(), landmarkCoordinate.getY(), -observation.angle(), configuration.yoloAngleOfView));
             }
 //            model.serialize()
             GeometrySolver.Solution geometrySolution = GeometrySolver.solve(odometryPrior, locations, yolos);
@@ -116,11 +118,12 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
 
             return new UpdatedScenario(rawScenario, new Odometry(rawScenario.time(), coordsInGeo[0], coordsInGeo[1], rawScenario.odometry().getTheta()));
         } else {
+            System.out.println("Strange");
             return new UpdatedScenario(rawScenario, null);
         }
     }
 
-    private Scope<ModelSeedFragment> translateToScope(Scenario rawScenario, Map<String, Yolo.YoloDetection> observationYoloMap) {
+    private Scope<ModelSeedFragment> translateToScope(Scenario rawScenario, Map<String, Yolo.YoloDetection> observationYoloMap, List<String> s) {
         var xyCoords = mapRender.toMapCoord(rawScenario.odometry().getX(), rawScenario.odometry().getY());
         var theta = Math.PI / 2 - rawScenario.odometry().getTheta();
         Point egoPosition = new Point(xyCoords[0], xyCoords[1]);
@@ -142,33 +145,26 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
         for (int i = 0; i < yoloDetections.size(); i++) {
             final var yoloDetection = yoloDetections.get(i);
             if(yoloDetection.confidence()>=configuration.yoloMinConfidence) {
-                //            final Sector sector = new Sector(
-//                    egoPosition,
-//                    configuration.yoloRange,
-//                    theta-yoloDetection.angle(),
-//                    0.1,
-//                    1,
-//                    0.1);
-//            final ArrayList<ObjectType> types = new ArrayList<>();
-//            types.add(ObjectType.Signal);
-//            LinkedHashMap<Integer, MapObject> objects2  = scope.getMapObjects(sector, types);
-//
+
                 LinkedHashMap<Integer, MapObject> objects2 = objectSelection.getObjects(
                         egoPosition.getX(),
                         egoPosition.getY(),
                         theta - yoloDetection.angle(),
-                        rawScenario.odometry().getUncertaintyInMeters()*2,
+                        rawScenario.odometry().getUncertaintyInMeters(),
                         configuration.yoloAngleOfView,
                         configuration.yoloRange,
                         ObjectType.Signal);
 
                 var observation = scope.addObjectObservations(objects2, "yolo_"+i, ObjectType.Signal);
                 observationYoloMap.put(observation.getId(),yoloDetection);
-//            System.out.println(observation.getId()+":");
-//            for(var possible : objects2.values()) {
-//                System.out.println(possible.getId());
-//            }
-//            System.out.println("end");
+            System.out.println(observation.getId()+":");
+            for(var possible : observation.getObjects().keySet()) {
+                System.out.println(possible);
+            }
+            System.out.println("end");
+            if(observation.getObjects().keySet().isEmpty()) {
+                s.add(observation.getId());
+            }
             }
         }
         return scope;
