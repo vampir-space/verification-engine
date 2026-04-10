@@ -77,7 +77,6 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
 
         ModelGenerator model = outputStrategy.problemProvider.solve(modelSeed);
         if(!model.isLastGenerationSuccessful()) {
-//            System.out.println("donotuse");
             return new UpdatedScenario(rawScenario,null);
         }
 
@@ -146,7 +145,7 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
             final var yoloDetection = yoloDetections.get(i);
             if(yoloDetection.confidence()>=configuration.yoloMinConfidence) {
 
-                LinkedHashMap<Integer, MapObject> objects2 = objectSelection.getObjects(
+                var objects2 = objectSelection.getObjects(
                         egoPosition.getX(),
                         egoPosition.getY(),
                         theta - yoloDetection.angle(),
@@ -155,13 +154,20 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
                         configuration.yoloRange,
                         ObjectType.Signal);
 
-                var observation = scope.addObjectObservations(objects2, "yolo_"+i, ObjectType.Signal);
+                objects2.sort((x,y) -> Double.compare(x.angleDiff(),y.angleDiff()));
+                var objects3 = new LinkedHashMap<Integer, MapObject>();
+                if(!objects2.isEmpty()) {
+                    var r = objects2.getFirst();
+                    objects3.put(r.id(),r.mapObject());
+                }
+
+                var observation = scope.addObjectObservations(objects3, "yolo_"+i, ObjectType.Signal);
                 observationYoloMap.put(observation.getId(),yoloDetection);
-            System.out.println(observation.getId()+":");
-            for(var possible : observation.getObjects().keySet()) {
-                System.out.println(possible);
-            }
-            System.out.println("end");
+//            System.out.println(observation.getId()+":");
+//            for(var possible : observation.getObjects().keySet()) {
+//                System.out.println(possible);
+//            }
+//            System.out.println("end");
             if(observation.getObjects().keySet().isEmpty()) {
                 s.add(observation.getId());
             }

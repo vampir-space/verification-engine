@@ -17,13 +17,13 @@ public class ObjectSelection {
         this.scope = scope;
     }
 
-    public LinkedHashMap<Integer, MapObject> getObjects(
+    public List<ObjectSelectionRecord> getObjects(
             double posX, double posY, double theta,
             double posError, double thetaError,
             double maxDistance,
             ObjectType targetType) {
-        //List<ObjectSelectionRecord> selected = new ArrayList<>();
-        LinkedHashMap<Integer, MapObject> selected = new LinkedHashMap<>();
+        List<ObjectSelectionRecord> selected = new ArrayList<>();
+        //LinkedHashMap<Integer, MapObject> selected = new LinkedHashMap<>();
         var objects = scope.getAllElements().getObjects();
 
         double backDistance = posError / Math.tan(thetaError);
@@ -37,22 +37,22 @@ public class ObjectSelection {
 
                 // if inside posError circle, then it is ok
                 var distance = Math.sqrt((posX - targetX) * (posX - targetX) + (posY - targetY) * (posY - targetY));
+                final double backToObjectY = targetY - backPositionY;
+                final double backToObjectX = targetX - backPositionX;
+
                 if (distance <= posError) {
-                    selected.put(object.getKey(), object.getValue());
+                    final double angleDiff = calculateAngleDiff(targetX,targetY,backPositionX,backPositionY,theta);
+                    selected.add(new ObjectSelectionRecord(angleDiff,object.getKey(),object.getValue()));
                 }
                 // otherwise, if it is not too far, we can check if it is visible
                 else if (distance <= maxDistance + posError) {
-
-                    final double backToObjectY = targetY - backPositionY;
-                    final double backToObjectX = targetX - backPositionX;
 
                     double angleDiff = calculateAngleDiff(targetX,targetY,backPositionX,backPositionY,theta);
 
                     if (angleDiff <= thetaError) {
                         if (Math.sqrt(backToObjectX * backToObjectX + backToObjectY * backToObjectY) > backDistance) {
-                            selected.put(object.getKey(), object.getValue());
+                            selected.add(new ObjectSelectionRecord(angleDiff,object.getKey(),object.getValue()));
                         }
-
                     }
                 }
             }
