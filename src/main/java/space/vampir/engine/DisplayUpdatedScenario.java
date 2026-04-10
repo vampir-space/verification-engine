@@ -74,7 +74,7 @@ public class DisplayUpdatedScenario {
         verificationEngineExample.put(3L, new Odometry(3L, 0.4, 0.4, 0)); //T
         verificationEngineExample.put(4L, new Odometry(4L, 1, 1, 0)); //F
 
-        ExperimentalEvaluation experimentalEvaluation = new ExperimentalEvaluation();
+        ExperimentalEvaluation experimentalEvaluation = new ExperimentalEvaluation(mapRender);
         experimentalEvaluation.addOdometries(referenceExample, GNSS, verificationEngineExample);
 
         //todo this way?

@@ -1,6 +1,7 @@
 package space.vampir.engine;
 
 import space.vampir.engine.message.Odometry;
+import space.vampir.engine.visualization.MapRender;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -10,6 +11,7 @@ import java.util.function.BiPredicate;
 
 
 public class ExperimentalEvaluation {
+    private final MapRender mapRender;
 
     private final ArrayList<Observer> observers = new ArrayList<>();
     // Data storage
@@ -19,8 +21,16 @@ public class ExperimentalEvaluation {
     private final HashMap<Long, Odometry> verificationEngine = new HashMap<>();
 
 
+
     // The threshold variable controlled by the slider
     double diff = 0.5;
+
+    public ExperimentalEvaluation(MapRender mapRender) {
+        if(mapRender == null) {
+            throw new IllegalArgumentException("MapRender not defined");
+        }
+        this.mapRender = mapRender;
+    }
 
     public void attach(Observer observer) {
         this.observers.add(observer);
@@ -152,8 +162,8 @@ public class ExperimentalEvaluation {
                 boolean isGnssValid = false;
 
                 if (!isGnssOff) {
-                    isGnssValid = (GNSS.get(timeStamp).getX() - reference.get(timeStamp).getX() < diff) &&
-                            (GNSS.get(timeStamp).getY() - reference.get(timeStamp).getY() < diff);
+                    var distance =  getDistanceInM(GNSS.get(timeStamp),reference.get(timeStamp));
+                    isGnssValid = distance < diff;
                 }
 
                 // 2. Determine Verification Engine (VE) Status
@@ -161,7 +171,8 @@ public class ExperimentalEvaluation {
                 boolean isVeValid = false;
 
                 if (!isVeOff) {
-                    isVeValid = verificationEngine.get(timeStamp).getX() - reference.get(timeStamp).getX() < diff;
+                    var distance =  getDistanceInM(verificationEngine.get(timeStamp),reference.get(timeStamp));
+                    isVeValid = distance < diff;
                 }
 
                 // 3. Categorize into the 3x3 Matrix
@@ -190,6 +201,14 @@ public class ExperimentalEvaluation {
                 {ft, ff, fo},
                 {ot, of, oo}
         };
+    }
+
+    protected double getDistanceInM(Odometry o1, Odometry o2) {
+        var m1 = mapRender.toMapCoord(o1.getX(), o1.getY());
+        var m2 = mapRender.toMapCoord(o2.getX(), o2.getY());
+        var xdiff = m1[0]-m2[0];
+        var ydiff = m1[1]-m2[1];
+        return Math.sqrt(xdiff*xdiff + ydiff*ydiff);
     }
 
     /**

@@ -34,7 +34,7 @@ public class ROSReplayer {
             cliConfig.verificationEngine = scenario -> new UpdatedScenario(scenario, null);
             cliConfig.showStats = false;
             cliConfig.relevantTopics = Set.of(StateRecorder.odometryTopic, StateRecorder.pointPillarsTopic, StateRecorder.yoloTopic, StateRecorder.navSatTopic);
-            cliConfig.verificationCaseProvider = new NavSatOdometryProvider(Math.PI / 180);
+            cliConfig.verificationCaseProvider = new NavSatOdometryProvider(1,1);
             cliConfig.verificationCaseScheduler = new AlwaysScheduler();
             cliConfig.messageSynchronizer = new LatestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.odometryTopic, StateRecorder.navSatTopic));
             play(cliConfig);
@@ -87,10 +87,12 @@ public class ROSReplayer {
             VerificationEngine verificationEngine = new VerificationEngineWithRefinery(new MapHandler(mapFile), map);
             CliConfig cliConfig = new CliConfig();
             cliConfig.verificationEngine = verificationEngine;
-            cliConfig.relevantTopics = Set.of(StateRecorder.odometryTopic, StateRecorder.pointPillarsTopic, StateRecorder.yoloTopic, StateRecorder.navSatTopic);
-            cliConfig.verificationCaseProvider = new DummyNoiseOdometryProvider(4.0, Math.PI / 180);
+            cliConfig.relevantTopics = Set.of(StateRecorder.odometryTopic, StateRecorder.yoloTopic, StateRecorder.navSatTopic);
+            //cliConfig.verificationCaseProvider = new DummyNoiseOdometryProvider(4.0, Math.PI / 180);
+            cliConfig.verificationCaseProvider = new NavSatOdometryProvider(5,1.5);
             cliConfig.verificationCaseScheduler = new DriveByTopicScheduler(StateRecorder.odometryTopic, 0);
             cliConfig.messageSynchronizer = new ClosestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.odometryTopic, StateRecorder.yoloTopic), Map.of());
+            cliConfig.map = "/BME_Town_small/BME_Town_small.json";
             play(cliConfig);
         }
     }
@@ -117,7 +119,7 @@ public class ROSReplayer {
         SceneVisualization sceneVisualization = new SceneVisualization(map, cliConfig.showScene);
         stateReplayer.addVisualization(sceneVisualization);
 
-        ExperimentalEvaluation experimentalEvaluation = new ExperimentalEvaluation();
+        ExperimentalEvaluation experimentalEvaluation = new ExperimentalEvaluation(map);
         VisualStatRepresentation statsVisualization = new VisualStatRepresentation(experimentalEvaluation, cliConfig.showStats, false);
         stateReplayer.addControllerObserver(statsVisualization);
         stateReplayer.addVisualization(statsVisualization);

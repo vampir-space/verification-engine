@@ -29,19 +29,43 @@ public interface VerificationCaseProvider {
     }
 
     class NavSatOdometryProvider implements VerificationCaseProvider {
+        final double noiseMultiplier;
+        final double confidenceMultiplier;
 
-        private final double thetaStdDev;
-
-        public NavSatOdometryProvider(double thetaStdDev) {
-            this.thetaStdDev = thetaStdDev;
+        public NavSatOdometryProvider(double noiseMultiplier, double confidenceMultiplier) {
+            this.noiseMultiplier = noiseMultiplier;
+            this.confidenceMultiplier = confidenceMultiplier;
         }
 
         @Override
         public VerificationCase getVerificationCase(SynchronizedMessages sync) {
-            Odometry odometry = new Odometry(sync.navSat().getTime(),
-                    sync.navSat().getLat(),
-                    sync.navSat().getLon(),
-                    NoiseApplier.addGaussianNoise(sync.odometry().getTheta(), thetaStdDev));
+            final Odometry odometry;
+            if(sync.navSat() != null) {
+                if(noiseMultiplier == 1.0) {
+                    odometry = new Odometry(sync.navSat().getTime(),
+                            sync.navSat().getLat(),
+                            sync.navSat().getLon(),
+                            sync.odometry().getTheta(),
+                            sync.navSat().getPositionCovariance()*confidenceMultiplier
+                            //NoiseApplier.addGaussianNoise(sync.odometry().getTheta(), thetaStdDev)
+                    );
+                } else {
+                    var dif1 = sync.navSat().getLat() - sync.odometry().getX();
+                    var dif2 = sync.navSat().getLon() - sync.odometry().getY();
+                    odometry = new Odometry(sync.navSat().getTime(),
+                            sync.odometry().getX() + dif1*noiseMultiplier,
+                            sync.odometry().getY() + dif2*noiseMultiplier,
+                            sync.odometry().getTheta(),
+                            sync.navSat().getPositionCovariance()*confidenceMultiplier
+                            //NoiseApplier.addGaussianNoise(sync.odometry().getTheta(), thetaStdDev)
+                    );
+                }
+            } else {
+                odometry = new Odometry(sync.odometry().getTime(),
+                        sync.odometry().getX(),
+                        sync.odometry().getY(),
+                        sync.odometry().getTheta());
+            }
             Scenario scenario = new Scenario(odometry, sync.pointPillars(), sync.yolo());
             return new VerificationCase(scenario, sync.odometry());
         }

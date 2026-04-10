@@ -124,8 +124,8 @@ public class CliConfig {
                                             subConfig.get("radiusStdDev").asDouble(),
                                             getAngle(subConfig, "thetaStdDev")
                                     );
-                                    case "NavSatOdometry" -> new NavSatOdometryProvider(
-                                            getAngle(subConfig, "thetaStdDev")
+                                    case "NavSatOdometry" -> new NavSatOdometryProvider(1,1
+                                            //getAngle(subConfig, "thetaStdDev")
                                     );
                                     case "RealScenario" -> new RealScenarioProvider();
                                     default ->

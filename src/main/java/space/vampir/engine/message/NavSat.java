@@ -20,7 +20,7 @@ public class NavSat extends Message {
 
         var covarianceMap = readArray(map, "position_covariance");
         var cx = covarianceMap.get(0);
-        var cy = covarianceMap.get(3);
+        var cy = covarianceMap.get(4);
         double positionCovariance = Math.max((Double) cx, (Double) cy);
 
         return new NavSat(time, lat, lon, positionCovariance);
@@ -32,5 +32,9 @@ public class NavSat extends Message {
 
     public double getLon() {
         return lon;
+    }
+
+    public double getPositionCovariance() {
+        return this.positionCovariance;
     }
 }

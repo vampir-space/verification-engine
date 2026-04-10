@@ -4,12 +4,18 @@ public class Odometry extends Message{
     final double x;
     final double y;
     final double theta;
+    final double uncertaintyInMeters;
 
-    public Odometry(long time, double x, double y, double theta) {
+    public Odometry(long time, double x, double y, double theta, double uncertaintyInMeters) {
         super(time);
         this.x = x;
         this.y = y;
         this.theta = theta;
+        this.uncertaintyInMeters = uncertaintyInMeters;
+    }
+
+    public Odometry(long time, double x, double y, double theta) {
+        this(time,x,y,theta,0);
     }
 
     public static Odometry fromMap(Object map) {
@@ -40,5 +46,9 @@ public class Odometry extends Message{
 
     public double getTheta() {
         return theta;
+    }
+
+    public double getUncertaintyInMeters() {
+        return uncertaintyInMeters;
     }
 }

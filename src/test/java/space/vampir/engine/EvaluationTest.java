@@ -2,12 +2,15 @@ package space.vampir.engine;
 
 import org.junit.jupiter.api.Test;
 import space.vampir.engine.message.Odometry;
+import space.vampir.engine.visualization.MapRender;
 
 import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class EvaluationTest {
+    final MapRender map = new MapRender("/CrossWalk_6/CrossWalk_6.json");
+
     @Test
     void calculateTableContentUniformTest() {
         HashMap<Long, Odometry> referenceExample = new HashMap<>();
@@ -34,7 +37,7 @@ public class EvaluationTest {
         verificationEngineExample.put(2L, new Odometry(2, 1, 1, 0)); //F
         verificationEngineExample.put(3L, new Odometry(3, 1, 1, 0)); //F
 
-        ExperimentalEvaluation experimentalEvaluation = new ExperimentalEvaluation();
+        ExperimentalEvaluation experimentalEvaluation = new ExperimentalEvaluation(map);
         experimentalEvaluation.addOdometries(referenceExample, GNSS, verificationEngineExample);
 
         var tableContent = experimentalEvaluation.getMatrix();
@@ -68,7 +71,7 @@ public class EvaluationTest {
         verificationEngineExample.put(2L, new Odometry(2, 1, 1, 0)); //F
         verificationEngineExample.put(3L, new Odometry(3, 0.4, 0.4, 0)); //T
 
-        ExperimentalEvaluation experimentalEvaluation = new ExperimentalEvaluation();
+        ExperimentalEvaluation experimentalEvaluation = new ExperimentalEvaluation(map);
         experimentalEvaluation.addOdometries(referenceExample, sensorAnAIExample, verificationEngineExample);
 
         var tableContent = experimentalEvaluation.getMatrix();
@@ -106,7 +109,7 @@ public class EvaluationTest {
         verificationEngineExample.put(3L, new Odometry(3L, 0.4, 0.4, 0)); //T
         verificationEngineExample.put(4L, new Odometry(4L, 1, 1, 0)); //F
 
-        ExperimentalEvaluation experimentalEvaluation = new ExperimentalEvaluation();
+        ExperimentalEvaluation experimentalEvaluation = new ExperimentalEvaluation(map);
         experimentalEvaluation.addOdometries(referenceExample, GNSS, verificationEngineExample);
 
         var visualRepresentation = new VisualStatRepresentation(experimentalEvaluation);
@@ -144,7 +147,7 @@ public class EvaluationTest {
         verificationEngineExample.put(3L, new Odometry(3L, 0.4, 0.4, 0)); //T
         verificationEngineExample.put(4L, new Odometry(4L, 1, 1, 0)); //F
 
-        ExperimentalEvaluation experimentalEvaluation = new ExperimentalEvaluation();
+        ExperimentalEvaluation experimentalEvaluation = new ExperimentalEvaluation(map);
         experimentalEvaluation.addOdometries(referenceExample, GNSS, verificationEngineExample);
 
         experimentalEvaluation.attach(new SaveToCSV(experimentalEvaluation));

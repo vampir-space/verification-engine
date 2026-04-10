@@ -200,6 +200,9 @@ public class SceneVisualization extends Visualization {
             circle.setX(coord[0]);
             circle.setY(coord[1]);
 
+            circle.setSizeX(gnssOdom.getUncertaintyInMeters()*4);
+            circle.setSizeY(gnssOdom.getUncertaintyInMeters()*4);
+
             map.addObject(circle);
             map.addObject(gnss);
         }

@@ -100,7 +100,7 @@ public class SystemTest {
         SceneVisualization sceneVisualization = new SceneVisualization(map);
         stateReplayer.addVisualization(sceneVisualization);
 
-        ExperimentalEvaluation experimentalEvaluation = new ExperimentalEvaluation();
+        ExperimentalEvaluation experimentalEvaluation = new ExperimentalEvaluation(map);
         VisualStatRepresentation statsVisualization = new VisualStatRepresentation(experimentalEvaluation, true, false);
         stateReplayer.addControllerObserver(statsVisualization);
         stateReplayer.addVisualization(statsVisualization);

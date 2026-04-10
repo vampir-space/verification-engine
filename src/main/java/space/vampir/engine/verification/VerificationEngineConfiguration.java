@@ -7,10 +7,7 @@ public class VerificationEngineConfiguration {
 
     double gnssConfidenceRange=5;
     double yoloRange=30;
-    double yoloAngleOfView=Math.PI/120;
+    double yoloAngleOfView=0.075;
     //double yoloAngleError=Math.PI/12;
-
-    double odometryConfidence = 0.4;
-//    double
-
+    double yoloMinConfidence = 0.4;
 }
