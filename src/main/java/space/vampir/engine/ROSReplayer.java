@@ -89,7 +89,7 @@ public class ROSReplayer {
             cliConfig.verificationEngine = verificationEngine;
             cliConfig.relevantTopics = Set.of(StateRecorder.odometryTopic, StateRecorder.yoloTopic, StateRecorder.navSatTopic);
             //cliConfig.verificationCaseProvider = new DummyNoiseOdometryProvider(4.0, Math.PI / 180);
-            cliConfig.verificationCaseProvider = new NavSatOdometryProvider(1,0.3);
+            cliConfig.verificationCaseProvider = new NavSatOdometryProvider(2,1);
             cliConfig.verificationCaseScheduler = new DriveByTopicScheduler(StateRecorder.odometryTopic, 0);
             cliConfig.messageSynchronizer = new ClosestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.odometryTopic, StateRecorder.yoloTopic), Map.of());
             cliConfig.map = "/BME_Town_small/BME_Town_small.json";

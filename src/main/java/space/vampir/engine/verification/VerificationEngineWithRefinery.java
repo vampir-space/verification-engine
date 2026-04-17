@@ -1,5 +1,6 @@
 package space.vampir.engine.verification;
 
+import org.jetbrains.annotations.NotNull;
 import space.vampir.engine.geometry.GeometrySolver;
 import space.vampir.engine.message.Odometry;
 import space.vampir.engine.message.Scenario;
@@ -60,12 +61,7 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
     @Override
     public UpdatedScenario update(Scenario rawScenario) {
         if(rawScenario.yolo().getYoloDetections().isEmpty()) {
-            return new UpdatedScenario(rawScenario,
-                    new Odometry(
-                            rawScenario.time(),
-                            rawScenario.odometry().getX(),
-                            rawScenario.odometry().getY(),
-                            rawScenario.odometry().getTheta()));
+            return noUpdate(rawScenario);
         }
 
         List<String> inc = new ArrayList<>();
@@ -77,7 +73,7 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
 
         ModelGenerator model = outputStrategy.problemProvider.solve(modelSeed);
         if(!model.isLastGenerationSuccessful()) {
-            return new UpdatedScenario(rawScenario,null);
+            return rejectUpdate(rawScenario);
         }
 
         var xyCoords = mapRender.toMapCoord(rawScenario.odometry().getX(), rawScenario.odometry().getY());
@@ -94,8 +90,6 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
         List<GeometrySolver.YoloDetection> yolos = new ArrayList<>();
 
         if (model != null) {
-//            System.out.println(model.isLastGenerationSuccessful());
-//            System.out.println("Associations:");
             var pr = model.getProblemTrace().getPartialRelation("object");
 
             var observationMappingCursor = model.getPartialInterpretation(pr).getAll();
@@ -107,7 +101,7 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
                 int landMarkIndex = observationMappingCursor.getKey().get(1);
                 var landmark = refineryFragment.getName(landMarkIndex);
                 var landmarkCoordinate = scope.getCoordinate(landmark);
-//                System.out.println(landmark);
+
 
                 yolos.add(new GeometrySolver.YoloDetection(landmarkCoordinate.getX(), landmarkCoordinate.getY(), -observation.angle(), configuration.yoloAngleOfView));
             }
@@ -117,9 +111,21 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
 
             return new UpdatedScenario(rawScenario, new Odometry(rawScenario.time(), coordsInGeo[0], coordsInGeo[1], rawScenario.odometry().getTheta()));
         } else {
-            System.out.println("Strange");
-            return new UpdatedScenario(rawScenario, null);
+            return rejectUpdate(rawScenario);
         }
+    }
+
+    private static @NotNull UpdatedScenario rejectUpdate(Scenario rawScenario) {
+        return new UpdatedScenario(rawScenario, null);
+    }
+
+    private static @NotNull UpdatedScenario noUpdate(Scenario rawScenario) {
+        return new UpdatedScenario(rawScenario,
+                new Odometry(
+                        rawScenario.time(),
+                        rawScenario.odometry().getX(),
+                        rawScenario.odometry().getY(),
+                        rawScenario.odometry().getTheta()));
     }
 
     private Scope<ModelSeedFragment> translateToScope(Scenario rawScenario, Map<String, Yolo.YoloDetection> observationYoloMap, List<String> s) {
@@ -133,13 +139,8 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
             scope.roadCutter(configuration.roadCutterGranularity);
         }
 
-//        complexityStrategy.setEgoRange(rawScenario.odometry().getUncertaintyInMeters()*2);
-//        MapObject car = new MapObject(1, ObjectType.Car, egoPosition, new Size(1.0, 1.0));
-//        scope.addEgo(car);
-
         var objectSelection = new ObjectSelection(scope);
 
-//        System.out.println("YoloDetections:");
         final List<Yolo.YoloDetection> yoloDetections = rawScenario.yolo() == null ? List.of() : rawScenario.yolo().getYoloDetections();
         for (int i = 0; i < yoloDetections.size(); i++) {
             final var yoloDetection = yoloDetections.get(i);
@@ -163,11 +164,7 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
 
                 var observation = scope.addObjectObservations(objects3, "yolo_"+i, ObjectType.Signal);
                 observationYoloMap.put(observation.getId(),yoloDetection);
-//            System.out.println(observation.getId()+":");
-//            for(var possible : observation.getObjects().keySet()) {
-//                System.out.println(possible);
-//            }
-//            System.out.println("end");
+
             if(observation.getObjects().keySet().isEmpty()) {
                 s.add(observation.getId());
             }

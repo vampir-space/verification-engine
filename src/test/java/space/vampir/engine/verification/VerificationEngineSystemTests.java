@@ -39,7 +39,7 @@ public class VerificationEngineSystemTests {
     @Test
     void simpleTest() {
         var scenario = new Scenario(
-                new Odometry(0,47.47900448915325,19.056188607914573,Math.PI*1.5),
+                new Odometry(0,47.47900448915325,19.056188607914573,Math.PI*1.5,5),
                 new PointPillars(0, java.util.List.of(
                         //new PointPillars.PointPillarsDetection(-3.9, 1.2, Math.PI*0,5,3)
                 )),
@@ -50,14 +50,30 @@ public class VerificationEngineSystemTests {
     }
 
     @Test
+    void invalidTest() {
+        var scenario = new Scenario(
+                new Odometry(0,47.47900448915325,19.056188607914573,Math.PI*1.5,2),
+                new PointPillars(0, java.util.List.of(
+                        //new PointPillars.PointPillarsDetection(-3.9, 1.2, Math.PI*0,5,3)
+                )),
+                new Yolo(0, List.of(
+                        new Yolo.YoloDetection("sign",Math.PI*0.455,0.9),
+                        new Yolo.YoloDetection("sign",Math.PI*0.45,0.9)
+                )));
+        saveImage(scenario, "invalid");
+    }
+
+
+
+    @Test
     void doubleDetectionTest() {
         var scenario = new Scenario(
-                new Odometry(0,47.47903748915325,19.056240607914573,Math.PI*1.5),
+                new Odometry(0,47.47903748915325,19.056240607914573,Math.PI*1.5,5),
                 new PointPillars(0, java.util.List.of(
                 )),
                 new Yolo(0, List.of(
-                        new Yolo.YoloDetection("sign",Math.PI*0.03,0.5),
-                        new Yolo.YoloDetection("sign",Math.PI*0.14,0.3)
+                        new Yolo.YoloDetection("sign",Math.PI*0.03,0.8),
+                        new Yolo.YoloDetection("sign",Math.PI*0.14,0.8)
                 )));
         saveImage(scenario, "doubleDetectionTest");
     }
@@ -65,9 +81,9 @@ public class VerificationEngineSystemTests {
     @Test
     void yoloDetectionTest() {
         var scenario = new Scenario(
-                new Odometry(0,47.47861548915325,19.057146607914573,Math.PI*1.6),
+                new Odometry(0,47.47861548915325,19.057146607914573,Math.PI*1.5,50),
                 new PointPillars(0, java.util.List.of(
-                        new PointPillars.PointPillarsDetection(-11.2, 5.78, Math.PI*1.9,5,3)
+                        //new PointPillars.PointPillarsDetection(-11.2, 5.78, Math.PI*1.9,5,3)
                 )),
                 new Yolo(0, List.of(
                         new Yolo.YoloDetection("sign",Math.PI*0.06,0.5),
@@ -79,7 +95,7 @@ public class VerificationEngineSystemTests {
     @Test
     void odometryDetectionTest() {
         var scenario = new Scenario(
-                new Odometry(0,47.47904448915325,19.056378607914573,Math.PI*1.5),
+                new Odometry(0,47.47904448915325,19.056378607914573,Math.PI*1.5,50),
                 new PointPillars(0, java.util.List.of(
                 )),
                 new Yolo(0, List.of(
