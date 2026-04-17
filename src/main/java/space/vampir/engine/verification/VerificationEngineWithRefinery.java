@@ -58,21 +58,30 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
         this.configuration = configuration;
     }
 
+    Scope<ModelSeedFragment> mapOnlyScope;
+
     @Override
     public UpdatedScenario update(Scenario rawScenario) {
-        if(rawScenario.yolo().getYoloDetections().isEmpty()) {
+        if (mapOnlyScope == null) {
+            var xyCoords = mapRender.toMapCoord(rawScenario.odometry().getX(), rawScenario.odometry().getY());
+            Point egoPosition = new Point(xyCoords[0], xyCoords[1]);
+            this.mapOnlyScope = translateMapToScope(egoPosition);
+        }
+
+        if (rawScenario.yolo().getYoloDetections().isEmpty()) {
             return noUpdate(rawScenario);
         }
 
         List<String> inc = new ArrayList<>();
         Map<String, Yolo.YoloDetection> observationYoloMap = new HashMap<>();
-        Scope<ModelSeedFragment> scope = translateToScope(rawScenario, observationYoloMap, inc);
+        Scope<ModelSeedFragment> updatedScope = new Scope<>(this.mapOnlyScope);
+        Scope<ModelSeedFragment> scope = translateToScope(rawScenario, updatedScope, observationYoloMap, inc);
 
         ModelSeedFragment refineryFragment = scope.translateMap();
         ModelSeed modelSeed = refineryFragment.buildSeed();
 
         ModelGenerator model = outputStrategy.problemProvider.solve(modelSeed);
-        if(!model.isLastGenerationSuccessful()) {
+        if (!model.isLastGenerationSuccessful()) {
             return rejectUpdate(rawScenario);
         }
 
@@ -128,23 +137,30 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
                         rawScenario.odometry().getTheta()));
     }
 
-    private Scope<ModelSeedFragment> translateToScope(Scenario rawScenario, Map<String, Yolo.YoloDetection> observationYoloMap, List<String> s) {
-        var xyCoords = mapRender.toMapCoord(rawScenario.odometry().getX(), rawScenario.odometry().getY());
-        var theta = Math.PI / 2 - rawScenario.odometry().getTheta();
-        Point egoPosition = new Point(xyCoords[0], xyCoords[1]);
-
+    Scope<ModelSeedFragment> translateMapToScope(Point egoPosition) {
         Circle relevantMap = new Circle(egoPosition, configuration.relevantMapSegmentSize);
         Scope<ModelSeedFragment> scope = converter.getScope(relevantMap);
         if (configuration.doRoadCutting) {
             scope.roadCutter(configuration.roadCutterGranularity);
         }
+        return scope;
+    }
+
+    private Scope<ModelSeedFragment> translateToScope(
+            Scenario rawScenario,
+            Scope<ModelSeedFragment> scope,
+            Map<String, Yolo.YoloDetection> observationYoloMap,
+            List<String> s) {
+        var xyCoords = mapRender.toMapCoord(rawScenario.odometry().getX(), rawScenario.odometry().getY());
+        var theta = Math.PI / 2 - rawScenario.odometry().getTheta();
+        Point egoPosition = new Point(xyCoords[0], xyCoords[1]);
 
         var objectSelection = new ObjectSelection(scope);
 
         final List<Yolo.YoloDetection> yoloDetections = rawScenario.yolo() == null ? List.of() : rawScenario.yolo().getYoloDetections();
         for (int i = 0; i < yoloDetections.size(); i++) {
             final var yoloDetection = yoloDetections.get(i);
-            if(yoloDetection.confidence()>=configuration.yoloMinConfidence) {
+            if (yoloDetection.confidence() >= configuration.yoloMinConfidence) {
 
                 var objects2 = objectSelection.getObjects(
                         egoPosition.getX(),
@@ -155,19 +171,19 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
                         configuration.yoloRange,
                         ObjectType.Signal);
 
-                objects2.sort((x,y) -> Double.compare(x.angleDiff(),y.angleDiff()));
+                objects2.sort((x, y) -> Double.compare(x.angleDiff(), y.angleDiff()));
                 var objects3 = new LinkedHashMap<Integer, MapObject>();
-                if(!objects2.isEmpty()) {
+                if (!objects2.isEmpty()) {
                     var r = objects2.getFirst();
-                    objects3.put(r.id(),r.mapObject());
+                    objects3.put(r.id(), r.mapObject());
                 }
 
-                var observation = scope.addObjectObservations(objects3, "yolo_"+i, ObjectType.Signal);
-                observationYoloMap.put(observation.getId(),yoloDetection);
+                var observation = scope.addObjectObservations(objects3, "yolo_" + i, ObjectType.Signal);
+                observationYoloMap.put(observation.getId(), yoloDetection);
 
-            if(observation.getObjects().keySet().isEmpty()) {
-                s.add(observation.getId());
-            }
+                if (observation.getObjects().keySet().isEmpty()) {
+                    s.add(observation.getId());
+                }
             }
         }
         return scope;

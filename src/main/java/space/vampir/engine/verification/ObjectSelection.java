@@ -1,14 +1,11 @@
 package space.vampir.engine.verification;
 
-import tools.refinery.mapconverter.map.MapObject;
 import tools.refinery.mapconverter.map.ObjectType;
 import tools.refinery.mapconverter.scope.Scope;
 import tools.refinery.mapconverter.transform.ModelSeedFragment;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.SortedMap;
 
 public class ObjectSelection {
     final Scope<ModelSeedFragment> scope;
