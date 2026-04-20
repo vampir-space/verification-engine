@@ -1,5 +1,6 @@
 {
-  "mapURL": "/CrossWalk_6/CrossWalk_6.svg",
+  "mapURL": "CrossWalk_6.svg",
+  "xodrPath": "CrossWalk_6.xodr",
   "backgroundX1": 147.88845,
   "backgroundX2": 997.74382,
   "backgroundY1": 357.04579,

@@ -5,7 +5,6 @@ import okhttp3.Request;
 import space.vampir.engine.communication.ROSListener;
 import space.vampir.engine.communication.StateListener;
 import space.vampir.engine.communication.StateRecorder;
-import space.vampir.engine.communication.VerificationCaseProvider;
 import space.vampir.engine.communication.VerificationCaseProvider.DummyNoiseOdometryProvider;
 import space.vampir.engine.communication.VerificationCaseProvider.NavSatOdometryProvider;
 import space.vampir.engine.communication.VerificationCaseProvider.RealScenarioProvider;
@@ -81,9 +80,11 @@ public class ROSReplayer {
 
     public static class RefineryVerificationEngineRunConfiguration {
         public static void main(String[] args) throws IOException {
-            // TODO remove hardcoded maps in the long run
-            final MapRender map = new MapRender("/BME_Town_small/BME_Town_small.json");
-            final File mapFile = new File(map.getClass().getResource("/BME_Town_small/BME_Town_small.xodr").getFile());
+            String mapPath = (args != null && args.length > 0 && args[0] != null && !args[0].isBlank())
+                    ? args[0]
+                    : "/BME_Town_small/BME_Town_small.json";
+            final MapRender map = MapRender.of(mapPath);
+            final File mapFile = new File(map.getXodrURL().getFile());
             VerificationEngine verificationEngine = new VerificationEngineWithRefinery(new MapHandler(mapFile), map);
             CliConfig cliConfig = new CliConfig();
             cliConfig.verificationEngine = verificationEngine;
@@ -92,22 +93,27 @@ public class ROSReplayer {
             cliConfig.verificationCaseProvider = new NavSatOdometryProvider(2,1);
             cliConfig.verificationCaseScheduler = new DriveByTopicScheduler(StateRecorder.odometryTopic, 0);
             cliConfig.messageSynchronizer = new ClosestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.odometryTopic, StateRecorder.yoloTopic), Map.of());
-            cliConfig.map = "/BME_Town_small/BME_Town_small.json";
+            cliConfig.map = mapPath;
             play(cliConfig);
         }
     }
 
     public static class YoloErrorCalculation{
         public static void main(String[] args) throws IOException {
-            final MapRender map = new MapRender("/BME_Town_small/BME_Town_small.json");
-            final File mapFile = new File(map.getClass().getResource("/BME_Town_small/BME_Town_small.xodr").getFile());
-            VerificationEngine verificationEngine = new AIErrorCalculator(new MapHandler(mapFile), map, 99);
+            if (args == null || args.length < 2 || args[0] == null || args[1] == null || args[0].isBlank() || args[1].isBlank()) {
+                throw new IllegalArgumentException("config file (.json) and targetID are mandatory arguments");
+            }
+            String mapPath = args[0];
+            final MapRender map = MapRender.of(mapPath);
+            final File mapFile = new File(map.getXodrURL().getFile());
+            VerificationEngine verificationEngine = new AIErrorCalculator(new MapHandler(mapFile), map, Integer.valueOf(args[1]));
             CliConfig cliConfig = new CliConfig();
             cliConfig.verificationEngine = verificationEngine;
             cliConfig.relevantTopics = Set.of(StateRecorder.odometryTopic, StateRecorder.pointPillarsTopic, StateRecorder.yoloTopic, StateRecorder.navSatTopic);
             cliConfig.verificationCaseProvider = new RealScenarioProvider();
             cliConfig.verificationCaseScheduler = new DriveByTopicScheduler(StateRecorder.odometryTopic, 0);
             cliConfig.messageSynchronizer = new ClosestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.odometryTopic, StateRecorder.yoloTopic), Map.of());
+            cliConfig.map = mapPath;
             play(cliConfig);
         }
     }

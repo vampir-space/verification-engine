@@ -1,5 +1,6 @@
 {
-  "mapURL": "/BME_Town_small/BME_Town_small.svg",
+  "mapURL": "BME_Town_small.svg",
+  "xodrPath": "BME_Town_small.xodr",
   "backgroundX1": 101.684,
   "backgroundX2": 1276.387,
   "backgroundY1": 112.859,
