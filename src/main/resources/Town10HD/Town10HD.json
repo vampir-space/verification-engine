@@ -1,5 +1,6 @@
 {
-  "mapURL": "/Town10HD/Town10HD.svg",
+  "mapURL": "Town10HD.svg",
+  "xodrPath": "Town10HD.xodr",
   "backgroundX1": 158.327,
   "backgroundX2": 683.330,
   "backgroundY1": 642.063,

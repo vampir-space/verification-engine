@@ -27,14 +27,24 @@ public class AIErrorCalculator implements VerificationEngine{
     final int targetID;
 
     public AIErrorCalculator(MapHandler map, MapRender mapRender, int targetID) throws IOException {
-        this(map, mapRender, targetID, new VerificationEngineConfiguration());
+        this(map, mapRender, targetID, new VerificationEngineConfiguration(), null);
 
     }
 
     public AIErrorCalculator(MapHandler map, MapRender mapRender, int targetID, VerificationEngineConfiguration configuration) throws IOException {
+        this(map, mapRender, targetID, configuration, null);
+    }
+
+    public AIErrorCalculator(MapHandler map, MapRender mapRender, int targetID, String metamodelPath) throws IOException {
+        this(map, mapRender, targetID, new VerificationEngineConfiguration(), metamodelPath);
+    }
+
+    public AIErrorCalculator(MapHandler map, MapRender mapRender, int targetID, VerificationEngineConfiguration configuration, String metamodelPath) throws IOException {
         this.outputStrategy = new ModelSeedStrategy();
 
-        complexityStrategy = new BasicWithTypeRefinementStrategy<>(outputStrategy);
+        complexityStrategy = metamodelPath == null || metamodelPath.isBlank()
+                ? new BasicWithTypeRefinementStrategy<>(outputStrategy)
+                : new BasicWithTypeRefinementStrategy<>(outputStrategy, metamodelPath);
         converter = new Converter<>(map, complexityStrategy);
 
         this.mapRender = mapRender;

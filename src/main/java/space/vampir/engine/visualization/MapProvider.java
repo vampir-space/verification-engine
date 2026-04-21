@@ -7,8 +7,11 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.URL;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class MapProvider {
@@ -32,11 +35,34 @@ public class MapProvider {
 
     public static JsonNode getMapConfig(String path) {
         ObjectMapper mapper = new ObjectMapper();
-        URL configURL = MapProvider.class.getResource(path);
-        try {
-            return mapper.readTree(configURL);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        String configPath = Objects.requireNonNull(path, "Map config path must not be null");
+        if (configPath.isBlank()) {
+            throw new IllegalArgumentException("Map config path must not be blank");
         }
+
+        try (InputStream inputStream = openConfigStream(configPath)) {
+            return mapper.readTree(inputStream);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Unable to read map config from path: " + configPath, e);
+        }
+    }
+
+    private static InputStream openConfigStream(String path) throws IOException {
+        Path filePath = Path.of(path);
+        if (Files.isRegularFile(filePath)) {
+            return Files.newInputStream(filePath);
+        }
+
+        String resourcePath = path.replace('\\', '/');
+        while (resourcePath.startsWith("/")) {
+            resourcePath = resourcePath.substring(1);
+        }
+
+        InputStream resourceStream = MapProvider.class.getClassLoader().getResourceAsStream(resourcePath);
+        if (resourceStream != null) {
+            return resourceStream;
+        }
+
+        throw new IOException("Map config not found as file or resource: " + path);
     }
 }

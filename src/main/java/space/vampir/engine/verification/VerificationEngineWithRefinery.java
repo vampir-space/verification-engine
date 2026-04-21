@@ -50,13 +50,23 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
     ModelSeedStrategy mapOnlyFragment;
 
     public VerificationEngineWithRefinery(MapHandler map, MapRender mapRender) throws IOException {
-        this(map, mapRender, new VerificationEngineConfiguration());
+        this(map, mapRender, new VerificationEngineConfiguration(), null);
     }
 
     public VerificationEngineWithRefinery(MapHandler map, MapRender mapRender, VerificationEngineConfiguration configuration) throws IOException {
+        this(map, mapRender, configuration, null);
+    }
+
+    public VerificationEngineWithRefinery(MapHandler map, MapRender mapRender, String metamodelPath) throws IOException {
+        this(map, mapRender, new VerificationEngineConfiguration(), metamodelPath);
+    }
+
+    public VerificationEngineWithRefinery(MapHandler map, MapRender mapRender, VerificationEngineConfiguration configuration, String metamodelPath) throws IOException {
         this.outputStrategy = new ModelSeedStrategy();
 
-        complexityStrategy = new BasicWithTypeRefinementStrategy<>(outputStrategy);
+        complexityStrategy = metamodelPath == null || metamodelPath.isBlank()
+                ? new BasicWithTypeRefinementStrategy<>(outputStrategy)
+                : new BasicWithTypeRefinementStrategy<>(outputStrategy, metamodelPath);
         converter = new Converter<>(map, complexityStrategy);
 
         problemProvider = new MapGenerationProblemProvider(complexityStrategy.getMetaModelString());

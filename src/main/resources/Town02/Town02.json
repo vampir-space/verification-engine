@@ -1,5 +1,6 @@
 {
-  "mapURL": "/Town02/Town02.svg",
+  "mapURL": "Town02.svg",
+  "xodrPath": "Town02.xodr",
   "backgroundX1": 103.320,
   "backgroundX2": 678.577,
   "backgroundY1": 608.615,

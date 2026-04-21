@@ -33,6 +33,7 @@ public class CliConfig {
     // boolean showCamera = false;
     // boolean showRefinery = false;
     public String map = null;
+    public String metamodelPath = null;
 
     public long minWaitTime = 1000000000 / 5; // 200ms
     public long maxTimeDifference = 1000000000 / 5; // 200ms
@@ -57,6 +58,10 @@ public class CliConfig {
                     config.map = getValueForFlag(args, i);
                     i++;
                 }
+                case "--metamodel" -> {
+                    config.metamodelPath = getValueForFlag(args, i);
+                    i++;
+                }
                 case "--config" -> {
                     var configFile = getValueForFlag(args, i);
                     if (configFile != null) {
@@ -76,6 +81,10 @@ public class CliConfig {
 
                             if (jsonConfig.has("map")) {
                                 config.map = jsonConfig.get("map").asText();
+                            }
+
+                            if (jsonConfig.has("metamodelPath")) {
+                                config.metamodelPath = jsonConfig.get("metamodelPath").asText();
                             }
 
                             if (jsonConfig.has("minWaitTime")) {
@@ -109,7 +118,8 @@ public class CliConfig {
                                     case "VerificationEngineWithRefinery" ->
                                             new VerificationEngineWithRefinery(
                                                     new MapHandler(new File(config.getClass().getResource(subConfig.get("mapFile").asText()).getFile())),
-                                                    new MapRender(config.map)
+                                                    new MapRender(config.map),
+                                                    resolveMetamodelPath(config, subConfig)
                                             );
                                     default ->
                                             throw new IllegalArgumentException("Unknown VerificationEngine type: " + type);
@@ -195,6 +205,13 @@ public class CliConfig {
             System.err.println("Expected value after " + args[index]);
             return null;
         }
+    }
+
+    private static String resolveMetamodelPath(CliConfig config, JsonNode verificationEngineConfig) {
+        if (verificationEngineConfig.has("metamodelPath")) {
+            return verificationEngineConfig.get("metamodelPath").asText();
+        }
+        return config.metamodelPath;
     }
 
     private static double getAngle(JsonNode node, String field) {

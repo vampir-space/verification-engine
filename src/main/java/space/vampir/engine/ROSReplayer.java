@@ -5,7 +5,6 @@ import okhttp3.Request;
 import space.vampir.engine.communication.ROSListener;
 import space.vampir.engine.communication.StateListener;
 import space.vampir.engine.communication.StateRecorder;
-import space.vampir.engine.communication.VerificationCaseProvider;
 import space.vampir.engine.communication.VerificationCaseProvider.DummyNoiseOdometryProvider;
 import space.vampir.engine.communication.VerificationCaseProvider.NavSatOdometryProvider;
 import space.vampir.engine.communication.VerificationCaseProvider.RealScenarioProvider;
@@ -81,10 +80,11 @@ public class ROSReplayer {
 
     public static class RefineryVerificationEngineRunConfiguration {
         public static void main(String[] args) throws IOException {
-            // TODO remove hardcoded maps in the long run
-            final MapRender map = new MapRender("/BME_Town_small/BME_Town_small.json");
-            final File mapFile = new File(map.getClass().getResource("/BME_Town_small/BME_Town_small.xodr").getFile());
-            VerificationEngine verificationEngine = new VerificationEngineWithRefinery(new MapHandler(mapFile), map);
+            String mapPath = extractMapPath(args, "/BME_Town_small/BME_Town_small.json");
+            String metamodelPath = extractArgumentValue(args, "--metamodel");
+            final MapRender map = MapRender.of(mapPath);
+            final File mapFile = new File(map.getXodrURL().getFile());
+            VerificationEngine verificationEngine = new VerificationEngineWithRefinery(new MapHandler(mapFile), map, metamodelPath);
             CliConfig cliConfig = new CliConfig();
             cliConfig.verificationEngine = verificationEngine;
             cliConfig.relevantTopics = Set.of(StateRecorder.odometryTopic, StateRecorder.yoloTopic, StateRecorder.navSatTopic);
@@ -92,22 +92,29 @@ public class ROSReplayer {
             cliConfig.verificationCaseProvider = new NavSatOdometryProvider(2,1);
             cliConfig.verificationCaseScheduler = new DriveByTopicScheduler(StateRecorder.odometryTopic, 0);
             cliConfig.messageSynchronizer = new ClosestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.odometryTopic, StateRecorder.yoloTopic), Map.of());
-            cliConfig.map = "/BME_Town_small/BME_Town_small.json";
+            cliConfig.map = mapPath;
             play(cliConfig);
         }
     }
 
     public static class YoloErrorCalculation{
         public static void main(String[] args) throws IOException {
-            final MapRender map = new MapRender("/BME_Town_small/BME_Town_small.json");
-            final File mapFile = new File(map.getClass().getResource("/BME_Town_small/BME_Town_small.xodr").getFile());
-            VerificationEngine verificationEngine = new AIErrorCalculator(new MapHandler(mapFile), map, 99);
+            String mapPath = extractMapPath(args, null);
+            String targetId = extractTargetId(args);
+            if (mapPath == null || targetId == null) {
+                throw new IllegalArgumentException("config file (.json) and targetID are mandatory arguments");
+            }
+            String metamodelPath = extractArgumentValue(args, "--metamodel");
+            final MapRender map = MapRender.of(mapPath);
+            final File mapFile = new File(map.getXodrURL().getFile());
+            VerificationEngine verificationEngine = new AIErrorCalculator(new MapHandler(mapFile), map, Integer.parseInt(targetId), metamodelPath);
             CliConfig cliConfig = new CliConfig();
             cliConfig.verificationEngine = verificationEngine;
             cliConfig.relevantTopics = Set.of(StateRecorder.odometryTopic, StateRecorder.pointPillarsTopic, StateRecorder.yoloTopic, StateRecorder.navSatTopic);
             cliConfig.verificationCaseProvider = new RealScenarioProvider();
             cliConfig.verificationCaseScheduler = new DriveByTopicScheduler(StateRecorder.odometryTopic, 0);
             cliConfig.messageSynchronizer = new ClosestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.odometryTopic, StateRecorder.yoloTopic), Map.of());
+            cliConfig.map = mapPath;
             play(cliConfig);
         }
     }
@@ -145,6 +152,61 @@ public class ROSReplayer {
 
         // Start replayer
         stateReplayer.start();
+    }
+
+    private static String extractArgumentValue(String[] args, String flag) {
+        if (args == null) {
+            return null;
+        }
+        for (int i = 0; i < args.length - 1; i++) {
+            if (flag.equals(args[i])) {
+                String value = args[i + 1];
+                return value == null || value.isBlank() ? null : value;
+            }
+        }
+        return null;
+    }
+
+    private static String extractMapPath(String[] args, String defaultValue) {
+        String mapFlagValue = extractArgumentValue(args, "--map");
+        if (mapFlagValue != null) {
+            return mapFlagValue;
+        }
+        if (args != null && args.length > 0 && args[0] != null && !args[0].isBlank() && !args[0].startsWith("--")) {
+            return args[0];
+        }
+        return defaultValue;
+    }
+
+    private static String extractTargetId(String[] args) {
+        String targetFlagValue = extractArgumentValue(args, "--target");
+        if (targetFlagValue != null) {
+            return targetFlagValue;
+        }
+
+        if (args == null || args.length == 0) {
+            return null;
+        }
+        int positionalCount = 0;
+        for (int i = 0; i < args.length; i++) {
+            String arg = args[i];
+            if (arg == null || arg.isBlank()) {
+                continue;
+            }
+
+            if (arg.startsWith("--")) {
+                if ("--map".equals(arg) || "--metamodel".equals(arg) || "--target".equals(arg)) {
+                    i++;
+                }
+                continue;
+            }
+
+            positionalCount++;
+            if (positionalCount == 2) {
+                return arg;
+            }
+        }
+        return null;
     }
 
 }

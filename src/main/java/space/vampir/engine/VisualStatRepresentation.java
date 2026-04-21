@@ -20,7 +20,7 @@ public class VisualStatRepresentation extends Visualization implements Observer,
     private final JFrame frame = new JFrame("Experimental Evaluation");
     private final JPanel panel = new JPanel();
     private DefaultTableModel tableModel;
-    private HistogramPanel histogramPanel;
+//    private HistogramPanel histogramPanel;
     private JSlider timeSlider;
     private JSlider timeWindowSlider;
     private JLabel thresholdSliderValueLabel;
@@ -35,9 +35,7 @@ public class VisualStatRepresentation extends Visualization implements Observer,
     int timeWindow;
 
     // Configuration constants
-    private static final Dimension DEFAULT_WINDOW_SIZE = new Dimension(1200, 700);
-    private final double MAX_ERROR_RANGE = 2.5; // Max error to show on histogram (meters)
-    private final int BIN_COUNT = 5;            // Number of bars in the histogram
+    private static final Dimension DEFAULT_WINDOW_SIZE = new Dimension(800, 650);
 
     VisualStatRepresentation(ExperimentalEvaluation evaluation, boolean enabled, boolean timeSliderEnabled) {
         super(enabled, DEFAULT_WINDOW_SIZE);
@@ -148,24 +146,9 @@ public class VisualStatRepresentation extends Visualization implements Observer,
 
         leftColumn.add(leftContentWrapper, BorderLayout.NORTH);
 
-        // --- RIGHT COLUMN: HISTOGRAM ---
-        JPanel rightColumn = new JPanel(new BorderLayout(0, 10));
-
-        // FIX THE DIAGRAM WIDTH (e.g., to 450 pixels) so it doesn't stretch with the window!
-        rightColumn.setPreferredSize(new Dimension(450, 0));
-
-        histogramPanel = new HistogramPanel(); // Save reference for repainting
-        rightColumn.add(histogramPanel, BorderLayout.CENTER);
-
-        JLabel graphLabel = new JLabel("<html><b>Figure 1:</b> Error Distribution Percentage</html>", JLabel.CENTER);
-        graphLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        rightColumn.add(graphLabel, BorderLayout.SOUTH);
-
         // --- ADDING TO CONTENT ---
         // The table goes into CENTER (occupying all remaining space)
         contentPanel.add(leftColumn, BorderLayout.CENTER);
-        // The diagram goes into EAST (sticks to the right with a fixed 450px width)
-        contentPanel.add(rightColumn, BorderLayout.EAST);
 
         panel.add(contentPanel, BorderLayout.CENTER);
 
@@ -525,112 +508,6 @@ public class VisualStatRepresentation extends Visualization implements Observer,
             // Set text
             integrityRiskOfGNSSLabel.setText(String.format("Integrity risk of GNSS: %d%%", misleadingGNSS));
             integrityRiskImprovementLabel.setText(String.format("Integrity risk improvement: %.2f", risk));
-
-            // 4. Update the Histogram
-            if (histogramPanel != null) {
-                histogramPanel.repaint();
-            }
         });
-    }
-
-    /**
-     * Custom JPanel for drawing the error distribution histogram.
-     */
-    class HistogramPanel extends JPanel {
-        @Override
-        protected void paintComponent(Graphics g) {
-            super.paintComponent(g);
-            Graphics2D g2 = (Graphics2D) g;
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            int w = getWidth(), h = getHeight();
-            int leftMargin = 60, bottomMargin = 60, rightMargin = 30, topMargin = 40;
-            int graphWidth = w - leftMargin - rightMargin;
-            int graphHeight = h - bottomMargin - topMargin;
-
-            // Draw Axes
-            g2.setColor(Color.BLACK);
-            g2.setStroke(new BasicStroke(2));
-            g2.drawLine(leftMargin, h - bottomMargin, w - rightMargin, h - bottomMargin); // X Axis
-            g2.drawLine(leftMargin, topMargin, leftMargin, h - bottomMargin);             // Y Axis
-
-            // Y-axis labels (0% to 100%)
-            for (int i = 0; i <= 10; i++) {
-                int yPos = h - bottomMargin - (i * graphHeight / 10);
-                g2.drawLine(leftMargin - 5, yPos, leftMargin, yPos);
-                String label = (i * 10) + "%";
-                g2.drawString(label, leftMargin - g2.getFontMetrics().stringWidth(label) - 10, yPos + 5);
-            }
-
-            // Calculate distribution
-            double[] GNSSStats = evaluation.getDistribution(evaluation.getGNSS(), BIN_COUNT, MAX_ERROR_RANGE, actualTime, timeWindow);
-            double[] verifierStats = evaluation.getDistribution(evaluation.getVerificationEngine(), BIN_COUNT, MAX_ERROR_RANGE, actualTime, timeWindow);
-
-            int groupCount = BIN_COUNT;
-            int groupWidth = graphWidth / groupCount;
-            int barWidth = (groupWidth / 2) - 10;
-
-            // Draw bars
-            for (int i = 0; i < groupCount; i++) {
-                int groupX = leftMargin + i * groupWidth + 10;
-
-                // Draw GNSS Bar (Blue)
-                drawBar(g2, groupX, h - bottomMargin, barWidth, GNSSStats[i], graphHeight, new Color(161, 218, 180));
-
-                // Draw Verifier Bar (Green)
-                drawBar(g2, groupX + barWidth + 2, h - bottomMargin, barWidth, verifierStats[i], graphHeight, new Color(44, 127, 184));
-
-                // X-axis Labels
-                g2.setColor(Color.BLACK);
-                String label = String.format("%.1fm", (i + 1) * (MAX_ERROR_RANGE / BIN_COUNT));
-                g2.drawString(label, groupX + barWidth - (g2.getFontMetrics().stringWidth(label) / 2), h - bottomMargin + 20);
-            }
-
-            // Axis Titles
-            g2.drawString("Error Distance (meters)", leftMargin + graphWidth / 2 - 60, h - 15);
-
-            // Rotate text for Y-axis
-            g2.rotate(-Math.PI / 2);
-            g2.drawString("Proportion (%)", -(topMargin + graphHeight / 2) - 40, leftMargin - 45);
-            g2.rotate(Math.PI / 2);
-
-            double diff = evaluation.getDiff();
-
-            // Drawing line in the actual range of x axis
-            //TODO discuss with Oscar
-            if (diff >= 0 && diff <= MAX_ERROR_RANGE) {
-                double binSize = MAX_ERROR_RANGE / BIN_COUNT; // Size of one bin (e.g., 2.5 / 5 = 0.5)
-
-                // Calculate which bin (index) the diff falls into
-                // E.g., diff = 0.2 -> 0.2 / 0.5 = 0.4 -> (int) = bin 0
-                // diff = 0.8 -> 0.8 / 0.5 = 1.6 -> (int) = bin 1
-                int binIndex = (int) (diff / binSize);
-
-                // Handle the edge case where diff is exactly the maximum (2.5) to prevent out-of-bounds index:
-                if (binIndex >= BIN_COUNT) {
-                    binIndex = BIN_COUNT - 1;
-                }
-
-                // Starting X coordinate of the specific bin
-                int groupX = leftMargin + (binIndex * groupWidth) + 10;
-
-                // Place the line exactly in the gap between the blue and green bars (centered)
-                int lineX = groupX + barWidth + 1;
-
-                // Draw the line
-                g2.setColor(Color.RED);
-                g2.setStroke(new BasicStroke(3));
-                g2.drawLine(lineX, topMargin, lineX, h - bottomMargin);
-            }
-        }
-
-        private void drawBar(Graphics2D g2, int x, int baseLineY, int width, double percentage, int maxHeight, Color color) {
-            int barHeight = (int) (percentage * maxHeight);
-            int y = baseLineY - barHeight;
-            g2.setColor(color);
-            g2.fillRect(x, y, width, barHeight);
-            g2.setColor(color.darker());
-            g2.drawRect(x, y, width, barHeight);
-        }
     }
 }
