@@ -80,12 +80,11 @@ public class ROSReplayer {
 
     public static class RefineryVerificationEngineRunConfiguration {
         public static void main(String[] args) throws IOException {
-            String mapPath = (args != null && args.length > 0 && args[0] != null && !args[0].isBlank())
-                    ? args[0]
-                    : "/BME_Town_small/BME_Town_small.json";
+            String mapPath = extractMapPath(args, "/BME_Town_small/BME_Town_small.json");
+            String metamodelPath = extractArgumentValue(args, "--metamodel");
             final MapRender map = MapRender.of(mapPath);
             final File mapFile = new File(map.getXodrURL().getFile());
-            VerificationEngine verificationEngine = new VerificationEngineWithRefinery(new MapHandler(mapFile), map);
+            VerificationEngine verificationEngine = new VerificationEngineWithRefinery(new MapHandler(mapFile), map, metamodelPath);
             CliConfig cliConfig = new CliConfig();
             cliConfig.verificationEngine = verificationEngine;
             cliConfig.relevantTopics = Set.of(StateRecorder.odometryTopic, StateRecorder.yoloTopic, StateRecorder.navSatTopic);
@@ -100,13 +99,15 @@ public class ROSReplayer {
 
     public static class YoloErrorCalculation{
         public static void main(String[] args) throws IOException {
-            if (args == null || args.length < 2 || args[0] == null || args[1] == null || args[0].isBlank() || args[1].isBlank()) {
+            String mapPath = extractMapPath(args, null);
+            String targetId = extractTargetId(args);
+            if (mapPath == null || targetId == null) {
                 throw new IllegalArgumentException("config file (.json) and targetID are mandatory arguments");
             }
-            String mapPath = args[0];
+            String metamodelPath = extractArgumentValue(args, "--metamodel");
             final MapRender map = MapRender.of(mapPath);
             final File mapFile = new File(map.getXodrURL().getFile());
-            VerificationEngine verificationEngine = new AIErrorCalculator(new MapHandler(mapFile), map, Integer.valueOf(args[1]));
+            VerificationEngine verificationEngine = new AIErrorCalculator(new MapHandler(mapFile), map, Integer.parseInt(targetId), metamodelPath);
             CliConfig cliConfig = new CliConfig();
             cliConfig.verificationEngine = verificationEngine;
             cliConfig.relevantTopics = Set.of(StateRecorder.odometryTopic, StateRecorder.pointPillarsTopic, StateRecorder.yoloTopic, StateRecorder.navSatTopic);
@@ -151,6 +152,61 @@ public class ROSReplayer {
 
         // Start replayer
         stateReplayer.start();
+    }
+
+    private static String extractArgumentValue(String[] args, String flag) {
+        if (args == null) {
+            return null;
+        }
+        for (int i = 0; i < args.length - 1; i++) {
+            if (flag.equals(args[i])) {
+                String value = args[i + 1];
+                return value == null || value.isBlank() ? null : value;
+            }
+        }
+        return null;
+    }
+
+    private static String extractMapPath(String[] args, String defaultValue) {
+        String mapFlagValue = extractArgumentValue(args, "--map");
+        if (mapFlagValue != null) {
+            return mapFlagValue;
+        }
+        if (args != null && args.length > 0 && args[0] != null && !args[0].isBlank() && !args[0].startsWith("--")) {
+            return args[0];
+        }
+        return defaultValue;
+    }
+
+    private static String extractTargetId(String[] args) {
+        String targetFlagValue = extractArgumentValue(args, "--target");
+        if (targetFlagValue != null) {
+            return targetFlagValue;
+        }
+
+        if (args == null || args.length == 0) {
+            return null;
+        }
+        int positionalCount = 0;
+        for (int i = 0; i < args.length; i++) {
+            String arg = args[i];
+            if (arg == null || arg.isBlank()) {
+                continue;
+            }
+
+            if (arg.startsWith("--")) {
+                if ("--map".equals(arg) || "--metamodel".equals(arg) || "--target".equals(arg)) {
+                    i++;
+                }
+                continue;
+            }
+
+            positionalCount++;
+            if (positionalCount == 2) {
+                return arg;
+            }
+        }
+        return null;
     }
 
 }

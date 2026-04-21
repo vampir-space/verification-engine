@@ -24,22 +24,22 @@ class MapRenderPathResolutionTest {
         Files.writeString(configFile, "{}");
         Files.writeString(siblingSvg, "<svg/>");
 
-        Path configDirectory = invokePath("resolveConfigDirectory", configFile.toString());
+        Path configDirectory = invokeResolveConfigDirectory(configFile.toString());
         assertEquals(tempDir, configDirectory);
 
-        URL resolved = invokeUrl("resolveReferenceUrl", "map.svg", configDirectory, null);
+        URL resolved = invokeResolveReferenceUrl("map.svg", configDirectory, null);
         assertNotNull(resolved);
         assertEquals(siblingSvg.toUri().toURL(), resolved);
     }
 
     @Test
     void resolvesRelativeClasspathFilesUsingConfigParentFolder() throws Exception {
-        String configResourceDirectory = invokeString("resolveConfigResourceDirectory", "/BME_Town_medium/BME_Town_medium.json");
+        String configResourceDirectory = invokeResolveConfigResourceDirectory();
         assertEquals("BME_Town_medium", configResourceDirectory);
 
-        URL resolvedWithPlainRelativePath = invokeUrl("resolveReferenceUrl", "BME_Town_medium.svg", null, configResourceDirectory);
-        URL resolvedWithLeadingSlash = invokeUrl("resolveReferenceUrl", "/BME_Town_medium.svg", null, configResourceDirectory);
-        URL resolvedWithBackslash = invokeUrl("resolveReferenceUrl", "\\BME_Town_medium.svg", null, configResourceDirectory);
+        URL resolvedWithPlainRelativePath = invokeResolveReferenceUrl("BME_Town_medium.svg", null, configResourceDirectory);
+        URL resolvedWithLeadingSlash = invokeResolveReferenceUrl("/BME_Town_medium.svg", null, configResourceDirectory);
+        URL resolvedWithBackslash = invokeResolveReferenceUrl("\\BME_Town_medium.svg", null, configResourceDirectory);
 
         assertNotNull(resolvedWithPlainRelativePath);
         assertNotNull(resolvedWithLeadingSlash);
@@ -49,20 +49,20 @@ class MapRenderPathResolutionTest {
         assertTrue(resolvedWithBackslash.toString().contains("/BME_Town_medium/BME_Town_medium.svg"));
     }
 
-    private static Path invokePath(String methodName, String argument) throws Exception {
-        Method method = MapRender.class.getDeclaredMethod(methodName, String.class);
+    private static Path invokeResolveConfigDirectory(String argument) throws Exception {
+        Method method = MapRender.class.getDeclaredMethod("resolveConfigDirectory", String.class);
         method.setAccessible(true);
         return (Path) method.invoke(null, argument);
     }
 
-    private static String invokeString(String methodName, String argument) throws Exception {
-        Method method = MapRender.class.getDeclaredMethod(methodName, String.class);
+    private static String invokeResolveConfigResourceDirectory() throws Exception {
+        Method method = MapRender.class.getDeclaredMethod("resolveConfigResourceDirectory", String.class);
         method.setAccessible(true);
-        return (String) method.invoke(null, argument);
+        return (String) method.invoke(null, "/BME_Town_medium/BME_Town_medium.json");
     }
 
-    private static URL invokeUrl(String methodName, String rawPath, Path configDirectory, String configResourceDirectory) throws Exception {
-        Method method = MapRender.class.getDeclaredMethod(methodName, String.class, Path.class, String.class);
+    private static URL invokeResolveReferenceUrl(String rawPath, Path configDirectory, String configResourceDirectory) throws Exception {
+        Method method = MapRender.class.getDeclaredMethod("resolveReferenceUrl", String.class, Path.class, String.class);
         method.setAccessible(true);
         return (URL) method.invoke(null, rawPath, configDirectory, configResourceDirectory);
     }

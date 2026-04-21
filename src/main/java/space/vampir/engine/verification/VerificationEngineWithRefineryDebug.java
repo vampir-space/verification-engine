@@ -24,9 +24,15 @@ public class VerificationEngineWithRefineryDebug implements VerificationEngine{
     final MapRender mapRender;
 
     public VerificationEngineWithRefineryDebug(MapHandler map, MapRender mapRender) throws IOException {
+        this(map, mapRender, null);
+    }
+
+    public VerificationEngineWithRefineryDebug(MapHandler map, MapRender mapRender, String metamodelPath) throws IOException {
         outputStrategy = new StringStrategy();
 
-        complexityStrategy = new BasicWithTypeRefinementStrategy<>(outputStrategy);
+        complexityStrategy = metamodelPath == null || metamodelPath.isBlank()
+                ? new BasicWithTypeRefinementStrategy<>(outputStrategy)
+                : new BasicWithTypeRefinementStrategy<>(outputStrategy, metamodelPath);
         converter = new Converter<>(map, complexityStrategy);
 
         problemProvider = new MapGenerationProblemProvider(complexityStrategy.getMetaModelString());
