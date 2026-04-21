@@ -32,14 +32,22 @@ import java.util.Map;
 
 public class VerificationEngineWithRefinery implements VerificationEngine {
     final Converter<ModelSeedFragment> converter;
+
     ModelSeedStrategy outputStrategy;
-    ComplexityStrategy<ModelSeedFragment> complexityStrategy;
+    BasicWithTypeRefinementStrategy<ModelSeedFragment> complexityStrategy;
+
     MapGenerationProblemProvider problemProvider;
 
     // TODO: remove this dependency, reorganize
     final MapRender mapRender;
 
     final VerificationEngineConfiguration configuration;
+
+    // cache
+    // Scope for map
+    Scope<ModelSeedFragment> mapOnlyScope;
+    // Fragment for map
+    ModelSeedStrategy mapOnlyFragment;
 
     public VerificationEngineWithRefinery(MapHandler map, MapRender mapRender) throws IOException {
         this(map, mapRender, new VerificationEngineConfiguration());
@@ -58,14 +66,14 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
         this.configuration = configuration;
     }
 
-    Scope<ModelSeedFragment> mapOnlyScope;
-
     @Override
     public UpdatedScenario update(Scenario rawScenario) {
         if (mapOnlyScope == null) {
             var xyCoords = mapRender.toMapCoord(rawScenario.odometry().getX(), rawScenario.odometry().getY());
             Point egoPosition = new Point(xyCoords[0], xyCoords[1]);
             this.mapOnlyScope = translateMapToScope(egoPosition);
+            mapOnlyScope.translateMap1();
+            this.mapOnlyFragment = outputStrategy;
         }
 
         if (rawScenario.yolo().getYoloDetections().isEmpty()) {
@@ -74,10 +82,19 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
 
         List<String> inc = new ArrayList<>();
         Map<String, Yolo.YoloDetection> observationYoloMap = new HashMap<>();
+
+        // reset scope
         Scope<ModelSeedFragment> updatedScope = new Scope<>(this.mapOnlyScope);
+        // reset fragment
+        outputStrategy = new ModelSeedStrategy(mapOnlyFragment);
+        complexityStrategy.setOutputStrategy(outputStrategy);
+
         Scope<ModelSeedFragment> scope = translateToScope(rawScenario, updatedScope, observationYoloMap, inc);
 
-        ModelSeedFragment refineryFragment = scope.translateMap();
+        // stage 2
+        // instead of
+        // ModelSeedFragment refineryFragment = scope.translateMap();
+        ModelSeedFragment refineryFragment = scope.translateMap2();
         ModelSeed modelSeed = refineryFragment.buildSeed();
 
         ModelGenerator model = outputStrategy.problemProvider.solve(modelSeed);
