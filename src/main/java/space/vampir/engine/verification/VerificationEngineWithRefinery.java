@@ -14,26 +14,16 @@ import tools.refinery.mapconverter.map.ObjectType;
 import tools.refinery.mapconverter.scope.Circle;
 import tools.refinery.mapconverter.scope.Point;
 import tools.refinery.mapconverter.scope.Scope;
-import tools.refinery.mapconverter.scope.Sector;
-import tools.refinery.mapconverter.scope.Size;
-import tools.refinery.mapconverter.transform.BasicWithTypeRefinementStrategy;
-import tools.refinery.mapconverter.transform.ComplexityStrategy;
-import tools.refinery.mapconverter.transform.MapGenerationProblemProvider;
-import tools.refinery.mapconverter.transform.ModelSeedFragment;
-import tools.refinery.mapconverter.transform.ModelSeedStrategy;
+import tools.refinery.mapconverter.transform.*;
 import tools.refinery.store.reasoning.seed.ModelSeed;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class VerificationEngineWithRefinery implements VerificationEngine {
     final Converter<ModelSeedFragment> converter;
     ModelSeedStrategy outputStrategy;
-    ComplexityStrategy<ModelSeedFragment> complexityStrategy;
+    IncrementalTypeRefinement complexityStrategy;
     MapGenerationProblemProvider problemProvider;
 
     // TODO: remove this dependency, reorganize
@@ -48,7 +38,7 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
     public VerificationEngineWithRefinery(MapHandler map, MapRender mapRender, VerificationEngineConfiguration configuration) throws IOException {
         this.outputStrategy = new ModelSeedStrategy();
 
-        complexityStrategy = new BasicWithTypeRefinementStrategy<>(outputStrategy);
+        complexityStrategy = new IncrementalTypeRefinement(outputStrategy);
         converter = new Converter<>(map, complexityStrategy);
 
         problemProvider = new MapGenerationProblemProvider(complexityStrategy.getMetaModelString());
@@ -76,6 +66,9 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
         Map<String, Yolo.YoloDetection> observationYoloMap = new HashMap<>();
         Scope<ModelSeedFragment> updatedScope = new Scope<>(this.mapOnlyScope);
         Scope<ModelSeedFragment> scope = translateToScope(rawScenario, updatedScope, observationYoloMap, inc);
+
+        //ide
+        //scope.translateMap();
 
         ModelSeedFragment refineryFragment = scope.translateMap();
         ModelSeed modelSeed = refineryFragment.buildSeed();
