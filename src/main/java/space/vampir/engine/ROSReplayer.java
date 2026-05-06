@@ -97,6 +97,27 @@ public class ROSReplayer {
         }
     }
 
+    public static class RefineryVerificationEngineRealConfiguration {
+        public static void main(String[] args) throws IOException {
+            String mapPath = extractMapPath(args, "/Krisztina/Krisztina.json");
+            String metamodelPath = extractArgumentValue(args, "--metamodel");
+            final MapRender map = MapRender.of(mapPath);
+            final File mapFile = new File(map.getXodrURL().getFile());
+            VerificationEngine verificationEngine = new VerificationEngineWithRefinery(new MapHandler(mapFile), map, metamodelPath);
+            CliConfig cliConfig = new CliConfig();
+            cliConfig.verificationEngine = verificationEngine;
+
+            cliConfig.relevantTopics = Set.of(StateRecorder.odometryTopic, StateRecorder.yoloTopic, StateRecorder.lowEndOdometryTopic);
+            //cliConfig.verificationCaseProvider = new DummyNoiseOdometryProvider(4.0, Math.PI / 180);
+            cliConfig.verificationCaseProvider = new RealScenarioProvider();
+            cliConfig.verificationCaseScheduler = new DriveByTopicScheduler(StateRecorder.lowEndOdometryTopic, 0);
+            cliConfig.messageSynchronizer = new LatestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.lowEndOdometryTopic, StateRecorder.yoloTopic));
+
+            cliConfig.map = mapPath;
+            play(cliConfig);
+        }
+    }
+
     public static class YoloErrorCalculation{
         public static void main(String[] args) throws IOException {
             String mapPath = extractMapPath(args, null);
@@ -111,7 +132,7 @@ public class ROSReplayer {
             CliConfig cliConfig = new CliConfig();
             cliConfig.verificationEngine = verificationEngine;
             cliConfig.relevantTopics = Set.of(StateRecorder.odometryTopic, StateRecorder.pointPillarsTopic, StateRecorder.yoloTopic, StateRecorder.navSatTopic);
-            cliConfig.verificationCaseProvider = new RealScenarioProvider();
+            cliConfig.verificationCaseProvider = new NavSatOdometryProvider(1, 1);
             cliConfig.verificationCaseScheduler = new DriveByTopicScheduler(StateRecorder.odometryTopic, 0);
             cliConfig.messageSynchronizer = new ClosestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.odometryTopic, StateRecorder.yoloTopic), Map.of());
             cliConfig.map = mapPath;

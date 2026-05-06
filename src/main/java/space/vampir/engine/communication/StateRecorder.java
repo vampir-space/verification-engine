@@ -98,10 +98,24 @@ public class StateRecorder {
 
     synchronized void messageReceived(String topic, Object message) {
         Message result = switch (topic) {
-            case odometryTopic -> insertMessage(odometries, Odometry.fromMap(message));
-            case lowEndOdometryTopic -> insertMessage(lowEndOdometries, Odometry.fromMap(message));
+            case odometryTopic -> {
+                var rawOdometry = Odometry.fromMap(message);
+                var newOdometry = new Odometry(rawOdometry.getTime() - 37 * 1000000000L, rawOdometry.getX(), rawOdometry.getY(), -rawOdometry.getTheta() + Math.PI);
+                yield insertMessage(odometries, newOdometry);
+            }
+            case lowEndOdometryTopic -> {
+                var odometry = Odometry.fromMap(message);
+                yield insertMessage(lowEndOdometries, odometry);
+            }
             case pointPillarsTopic -> insertMessage(pointPillars, PointPillars.fromMap(message));
-            case yoloTopic -> insertMessage(yolos, Yolo.fromMap(message));
+            case yoloTopic -> {
+                var rawYolo = Yolo.fromMap(message);
+                Yolo newYolo = null;
+                if (rawYolo != null) {
+                    newYolo = new Yolo(rawYolo.getTime() - 37 * 1000000000L, rawYolo.getYoloDetections());
+                }
+                yield insertMessage(yolos, newYolo);
+            }
             case navSatTopic -> insertMessage(navsats, NavSat.fromMap(message));
 //            case syncedTopic -> {
 //                Message res = null;
@@ -130,7 +144,15 @@ public class StateRecorder {
         if (result.getTime() - lastVerificationCaseTime > minWaitTime) {
             boolean shouldTryNewVerificationCase;
             synchronized (synchronizationLock) {
+//                System.out.println(result.getTime());
                 for (var queue : messageQueues) {
+//                    for (var m : queue) {
+//                        if (m.getTime() < result.getTime() - dropOlderThan) {
+//                            System.out.println(m.getTime());
+//                            System.out.println(dropOlderThan);
+//                            System.out.println((result.getTime() - m.getTime()));
+//                        }
+//                    }
                     queue.removeIf(m -> m.getTime() < result.getTime() - dropOlderThan);
                 }
                 shouldTryNewVerificationCase = newVerificationCaseScheduler.shouldScheduleNewVerificationCase(this);
@@ -190,6 +212,7 @@ public class StateRecorder {
         if (message == null) {
             return null;
         }
+//        System.out.println(message);
         synchronized (synchronizationLock) {
             int index = Collections.binarySearch(queue, message, Comparator.comparingLong(Message::getTime));
             if (index < 0) {

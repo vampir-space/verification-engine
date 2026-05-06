@@ -75,7 +75,20 @@ public interface VerificationCaseProvider {
 
         @Override
         public VerificationCase getVerificationCase(SynchronizedMessages sync) {
-            Scenario scenario = new Scenario(sync.odometry(), sync.pointPillars(), sync.yolo());
+//            System.out.println(sync);
+            final Odometry lowEndOdometry;
+            if(sync.lowEndOdometry() == null) {
+                throw new IllegalArgumentException("No lowEndOdometry found");
+            }
+            else {
+                lowEndOdometry = new Odometry(sync.lowEndOdometry().getTime(),
+                        sync.lowEndOdometry().getX(),
+                        sync.lowEndOdometry().getY(),
+                        sync.odometry().getTheta(),
+                        10.0
+                );
+            }
+            Scenario scenario = new Scenario(lowEndOdometry, sync.pointPillars(), sync.yolo());
             return new VerificationCase(scenario, sync.odometry());
         }
     }
