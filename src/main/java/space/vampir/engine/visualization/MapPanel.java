@@ -70,6 +70,9 @@ public class MapPanel extends JPanel {
         } else {
             ObjectRender focus = null;
             for (var o : map.getObjects()) {
+                if (o.getName() != null && o.getName().equals("ego")) {
+                    focus = o;
+                }
                 if (o.getName() != null && o.getName().equals("gt")) {
                     focus = o;
                     break;

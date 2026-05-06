@@ -29,7 +29,7 @@ public class SceneVisualization extends Visualization {
     protected final JLabel mapSelectorLabel = new JLabel();
     protected final ActionListener mapSelectorActionListener;
 
-    final ObjectRender ego = new ObjectRender(egoImage, 3, 5, 0, 0, 0);
+    final ObjectRender ego = new ObjectRender(egoImage, "ego", 3, 5, 0, 0, 0);
     final ObjectRender circle = new ObjectRender(RenderExample.class.getResource("/blue-circle.svg"), 30, 30, 0, 0, 0);
     final ObjectRender gnss = new ObjectRender(gnssImage, 3, 5, 0, 0, 0);
     final ObjectRender ve = new ObjectRender(veImage, 3, 5, 0, 0, 0);

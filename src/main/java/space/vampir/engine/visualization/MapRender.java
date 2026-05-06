@@ -2,6 +2,8 @@ package space.vampir.engine.visualization;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.weisj.jsvg.SVGDocument;
+import com.github.weisj.jsvg.parser.DocumentLimits;
+import com.github.weisj.jsvg.parser.LoaderContext;
 import com.github.weisj.jsvg.parser.SVGLoader;
 import tools.refinery.mapconverter.map.MapHandler;
 import tools.refinery.mapconverter.map.MapObject;
@@ -94,7 +96,7 @@ public class MapRender {
 
         // Return the initialized class
         SVGLoader loader = new SVGLoader();
-        background = Objects.requireNonNull(loader.load(Objects.requireNonNull(mapURL, "SVG file not found")));
+        background = Objects.requireNonNull(loader.load(Objects.requireNonNull(mapURL, "SVG file not found"), LoaderContext.builder().documentLimits(new DocumentLimits(DocumentLimits.DEFAULT_MAX_NESTING_DEPTH, DocumentLimits.DEFAULT_MAX_USE_NESTING_DEPTH, 10000)).build()));
         name = mapURL.getFile();
         double background2MapScale = (mapX2 - mapX1) / (backgroundX2 - backgroundX1);
 
