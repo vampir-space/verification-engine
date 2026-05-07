@@ -2,6 +2,8 @@ package space.vampir.engine;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import space.vampir.engine.communication.JsonlMessageRecorder;
+import space.vampir.engine.communication.MessageFileReplayer;
 import space.vampir.engine.communication.ROSListener;
 import space.vampir.engine.communication.StateListener;
 import space.vampir.engine.communication.StateRecorder;
@@ -29,51 +31,59 @@ public class ROSReplayer {
 
     public static class NoVerificationEngineTestConfiguration {
         public static void main(String[] args) {
-            CliConfig cliConfig = new CliConfig();
+            String mapPath = extractMapPath(args, "/BME_Town_small/BME_Town_small.json");
+            CliConfig cliConfig = CliConfig.get(args);
             cliConfig.verificationEngine = scenario -> new UpdatedScenario(scenario, null);
             cliConfig.showStats = false;
             cliConfig.relevantTopics = Set.of(StateRecorder.odometryTopic, StateRecorder.pointPillarsTopic, StateRecorder.yoloTopic, StateRecorder.navSatTopic);
             cliConfig.verificationCaseProvider = new NavSatOdometryProvider(1,1);
             cliConfig.verificationCaseScheduler = new AlwaysScheduler();
             cliConfig.messageSynchronizer = new LatestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.odometryTopic, StateRecorder.navSatTopic));
+            cliConfig.map = mapPath;
             play(cliConfig);
         }
     }
 
     public static class NoVerificationEngineDummyNoiseConfiguration {
         public static void main(String[] args) {
-            CliConfig cliConfig = new CliConfig();
+            String mapPath = extractMapPath(args, "/BME_Town_small/BME_Town_small.json");
+            CliConfig cliConfig = CliConfig.get(args);
             cliConfig.verificationEngine = scenario -> new UpdatedScenario(scenario, null);
             cliConfig.showStats = false;
             cliConfig.relevantTopics = Set.of(StateRecorder.odometryTopic, StateRecorder.pointPillarsTopic, StateRecorder.yoloTopic);
             cliConfig.verificationCaseProvider = new DummyNoiseOdometryProvider(2.0, Math.PI / 180);
             cliConfig.verificationCaseScheduler = new AlwaysScheduler();
             cliConfig.messageSynchronizer = new LatestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.odometryTopic));
+            cliConfig.map = mapPath;
             play(cliConfig);
         }
     }
 
     public static class NoVerificationEngineRealConfiguration {
         public static void main(String[] args) {
-            CliConfig cliConfig = new CliConfig();
+            String mapPath = extractMapPath(args, "/BME_Town_small/BME_Town_small.json");
+            CliConfig cliConfig = CliConfig.get(args);
             cliConfig.verificationEngine = scenario -> new UpdatedScenario(scenario, null);
             cliConfig.showStats = false;
             cliConfig.relevantTopics = Set.of(StateRecorder.odometryTopic, StateRecorder.pointPillarsTopic, StateRecorder.yoloTopic, StateRecorder.lowEndOdometryTopic);
             cliConfig.verificationCaseProvider = new RealScenarioProvider();
             cliConfig.verificationCaseScheduler = new DriveByTopicScheduler(StateRecorder.lowEndOdometryTopic, (int) cliConfig.maxTimeDifference / 1000000);
             cliConfig.messageSynchronizer = new ClosestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.lowEndOdometryTopic, StateRecorder.odometryTopic), Map.of());
+            cliConfig.map = mapPath;
             play(cliConfig);
         }
     }
 
     public static class DummyVerificationEngineTestConfiguration {
         public static void main(String[] args) {
-            CliConfig cliConfig = new CliConfig();
+            String mapPath = extractMapPath(args, "/BME_Town_small/BME_Town_small.json");
+            CliConfig cliConfig = CliConfig.get(args);
             cliConfig.verificationEngine = new DummyVerificationEngine(2.0, Math.PI / 180);
             cliConfig.relevantTopics = Set.of(StateRecorder.odometryTopic, StateRecorder.pointPillarsTopic, StateRecorder.yoloTopic);
             cliConfig.verificationCaseProvider = new DummyNoiseOdometryProvider(4.0, Math.PI / 180);
             cliConfig.verificationCaseScheduler = new DriveByTopicScheduler(StateRecorder.odometryTopic, 0);
             cliConfig.messageSynchronizer = new ClosestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.odometryTopic), Map.of());
+            cliConfig.map = mapPath;
             play(cliConfig);
         }
     }
@@ -85,7 +95,7 @@ public class ROSReplayer {
             final MapRender map = MapRender.of(mapPath);
             final File mapFile = new File(map.getXodrURL().getFile());
             VerificationEngine verificationEngine = new VerificationEngineWithRefinery(new MapHandler(mapFile), map, metamodelPath);
-            CliConfig cliConfig = new CliConfig();
+            CliConfig cliConfig = CliConfig.get(args);
             cliConfig.verificationEngine = verificationEngine;
             cliConfig.relevantTopics = Set.of(StateRecorder.odometryTopic, StateRecorder.yoloTopic, StateRecorder.navSatTopic);
             //cliConfig.verificationCaseProvider = new DummyNoiseOdometryProvider(4.0, Math.PI / 180);
@@ -104,7 +114,7 @@ public class ROSReplayer {
             final MapRender map = MapRender.of(mapPath);
             final File mapFile = new File(map.getXodrURL().getFile());
             VerificationEngine verificationEngine = new VerificationEngineWithRefinery(new MapHandler(mapFile), map, metamodelPath);
-            CliConfig cliConfig = new CliConfig();
+            CliConfig cliConfig = CliConfig.get(args);
             cliConfig.verificationEngine = verificationEngine;
 
             cliConfig.relevantTopics = Set.of(StateRecorder.odometryTopic, StateRecorder.yoloTopic, StateRecorder.lowEndOdometryTopic);
@@ -129,7 +139,7 @@ public class ROSReplayer {
             final MapRender map = MapRender.of(mapPath);
             final File mapFile = new File(map.getXodrURL().getFile());
             VerificationEngine verificationEngine = new AIErrorCalculator(new MapHandler(mapFile), map, Integer.parseInt(targetId), metamodelPath);
-            CliConfig cliConfig = new CliConfig();
+            CliConfig cliConfig = CliConfig.get(args);
             cliConfig.verificationEngine = verificationEngine;
             cliConfig.relevantTopics = Set.of(StateRecorder.odometryTopic, StateRecorder.pointPillarsTopic, StateRecorder.yoloTopic, StateRecorder.navSatTopic);
             cliConfig.verificationCaseProvider = new NavSatOdometryProvider(1, 1);
@@ -164,15 +174,68 @@ public class ROSReplayer {
                 cliConfig.messageSynchronizer,
                 cliConfig.minWaitTime,
                 cliConfig.dropOlderThan);
-//                new DummyNoiseOdometry(1.1, Math.PI / 180));
+
+        // Start visualizer first (before receiving/replaying messages)
+        stateReplayer.start();
+
+        // Check if replay mode or live mode
+        if (cliConfig.replayJsonFile != null) {
+            replayFromJsonl(recorder, cliConfig.replayJsonFile);
+        } else {
+            playLiveRos(recorder, cliConfig);
+        }
+    }
+
+    private static void playLiveRos(StateRecorder recorder, CliConfig cliConfig) {
+        // Set up optional message recorder (JSONL)
+        JsonlMessageRecorder messageRecorder = null;
+        try {
+            messageRecorder = cliConfig.recordJsonFile != null ? new JsonlMessageRecorder(new File(cliConfig.recordJsonFile)) : null;
+        } catch (IOException e) {
+            System.err.println("Error initializing message recorder: " + e.getMessage());
+            e.printStackTrace();
+        }
+
         String url = "ws://localhost:9090";
         OkHttpClient client = new OkHttpClient();
         CountDownLatch latch = new CountDownLatch(1);
         Request request = new Request.Builder().url(url).build();
-        client.newWebSocket(request, new ROSListener(recorder, latch, cliConfig.relevantTopics));
 
-        // Start replayer
-        stateReplayer.start();
+        client.newWebSocket(request, new ROSListener(recorder, latch, cliConfig.relevantTopics, messageRecorder));
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            System.out.println("[INFO] ROS connection interrupted");
+            Thread.currentThread().interrupt();
+        } finally {
+            if (messageRecorder != null) {
+                try {
+                    // final close ensures everything flushed and resources released
+                    messageRecorder.close();
+                    System.out.println("[OK] Recording saved successfully");
+                } catch (Exception e) {
+                    System.err.println("[ERROR] Error closing recorder: " + e.getMessage());
+                }
+            }
+            client.dispatcher().executorService().shutdownNow();
+        }
+
+        System.exit(0);
+    }
+
+    private static void replayFromJsonl(StateRecorder recorder, String jsonlPath) {
+        File jsonlFile = new File(jsonlPath);
+        if (!jsonlFile.exists()) {
+            throw new IllegalArgumentException("JSONL file not found: " + jsonlPath);
+        }
+
+        MessageFileReplayer replayer = new MessageFileReplayer();
+        try {
+            replayer.replayJsonl(jsonlFile, recorder::messageReceived);
+        } catch (IOException e) {
+            throw new RuntimeException("Error replaying from JSONL: " + e.getMessage(), e);
+        }
     }
 
     private static String extractArgumentValue(String[] args, String flag) {

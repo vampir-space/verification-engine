@@ -35,6 +35,10 @@ public class CliConfig {
     public String map = null;
     public String metamodelPath = null;
 
+    // Recording and replay options
+    public String recordJsonFile = null;
+    public String replayJsonFile = null;
+
     public long minWaitTime = 1000000000 / 5; // 200ms
     public long maxTimeDifference = 1000000000 / 5; // 200ms
     public long dropOlderThan = 2 * maxTimeDifference;
@@ -62,6 +66,14 @@ public class CliConfig {
                     config.metamodelPath = getValueForFlag(args, i);
                     i++;
                 }
+                case "--record-json" -> {
+                    config.recordJsonFile = getValueForFlag(args, i);
+                    i++;
+                }
+                case "--replay-json" -> {
+                    config.replayJsonFile = getValueForFlag(args, i);
+                    i++;
+                }
                 case "--config" -> {
                     var configFile = getValueForFlag(args, i);
                     if (configFile != null) {
@@ -85,6 +97,14 @@ public class CliConfig {
 
                             if (jsonConfig.has("metamodelPath")) {
                                 config.metamodelPath = jsonConfig.get("metamodelPath").asText();
+                            }
+
+                            if (jsonConfig.has("recordJsonFile")) {
+                                config.recordJsonFile = jsonConfig.get("recordJsonFile").asText();
+                            }
+
+                            if (jsonConfig.has("replayJsonFile")) {
+                                config.replayJsonFile = jsonConfig.get("replayJsonFile").asText();
                             }
 
                             if (jsonConfig.has("minWaitTime")) {

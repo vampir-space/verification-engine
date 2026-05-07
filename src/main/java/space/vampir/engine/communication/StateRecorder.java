@@ -96,7 +96,7 @@ public class StateRecorder {
         return index;
     }
 
-    synchronized void messageReceived(String topic, Object message) {
+    public synchronized void messageReceived(String topic, Object message) {
         Message result = switch (topic) {
             case odometryTopic -> {
                 var rawOdometry = Odometry.fromMap(message);
@@ -108,14 +108,7 @@ public class StateRecorder {
                 yield insertMessage(lowEndOdometries, odometry);
             }
             case pointPillarsTopic -> insertMessage(pointPillars, PointPillars.fromMap(message));
-            case yoloTopic -> {
-                var rawYolo = Yolo.fromMap(message);
-                Yolo newYolo = null;
-                if (rawYolo != null) {
-                    newYolo = new Yolo(rawYolo.getTime() - 37 * 1000000000L, rawYolo.getYoloDetections());
-                }
-                yield insertMessage(yolos, newYolo);
-            }
+            case yoloTopic -> insertMessage(yolos, Yolo.fromMap(message));
             case navSatTopic -> insertMessage(navsats, NavSat.fromMap(message));
 //            case syncedTopic -> {
 //                Message res = null;

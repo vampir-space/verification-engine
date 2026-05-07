@@ -31,11 +31,17 @@ public class ROSListener extends WebSocketListener {
 
     final Set<String> relevantTopics;
     final Set<String> seenTopics = ConcurrentHashMap.newKeySet();
+    final MessageRecorder messageRecorder;
 
     public ROSListener(StateRecorder stateRecorder, CountDownLatch latch, Set<String> relevantTopics) {
+        this(stateRecorder, latch, relevantTopics, null);
+    }
+
+    public ROSListener(StateRecorder stateRecorder, CountDownLatch latch, Set<String> relevantTopics, MessageRecorder messageRecorder) {
         this.stateRecorder = stateRecorder;
         this.latch = latch;
         this.relevantTopics = relevantTopics;
+        this.messageRecorder = messageRecorder;
     }
 
     // 1) onOpen: start periodic poll
@@ -106,13 +112,47 @@ public class ROSListener extends WebSocketListener {
         // just print
         String topic = (String) m.get("topic");
         Object msg = m.get("msg");
+
+        // Record message if a recorder is configured
+        if (messageRecorder != null) {
+            Long timestamp = extractTimestamp(msg);
+            messageRecorder.record(topic, msg, timestamp);
+        }
+
         //System.out.println("▶ Message recieved: " + topic);
-        stateRecorder.messageReceived(topic, msg);
-//        try {
-//            System.out.printf("▶ [%s] %s%n", topic, mapper.writeValueAsString(msg));
-//        } catch (JsonProcessingException e) {
-//            System.out.printf("▶ [%s] <error serializing message: %s>%n", topic, e.getMessage());
-//        }
+        try {
+            stateRecorder.messageReceived(topic, msg);
+        } catch (Exception e) {
+            System.err.println("ERROR: Failed to process message on topic " + topic + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Extract timestamp from ROS message payload if available.
+     * Looks for nested header.stamp.sec and header.stamp.nanosec fields.
+     */
+    private Long extractTimestamp(Object msg) {
+        try {
+            if (msg instanceof Map<?, ?> m) {
+                Object header = m.get("header");
+                if (header instanceof Map<?, ?> h) {
+                    Object stamp = h.get("stamp");
+                    if (stamp instanceof Map<?, ?> s) {
+                        Object sec = s.get("sec");
+                        Object nano = s.get("nanosec");
+                        if (sec instanceof Number && nano instanceof Number) {
+                            long secVal = ((Number) sec).longValue();
+                            long nanoVal = ((Number) nano).longValue();
+                            return secVal * 1000000000L + nanoVal;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Silently ignore extraction errors
+        }
+        return null;
     }
 
 
