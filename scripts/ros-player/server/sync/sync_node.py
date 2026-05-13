@@ -20,11 +20,13 @@ class SyncNode(Node):
         self.subscribers = []
         self.topics = []
         self.topic_types = {
-            '/ground_truth/odometry': Odometry,
+            '/ground_truth/gps': NavSatFix
+            '/ground_truth/gps_ublox ': NavSatFix
             '/ground_truth/imu': Imu,
             '/detections/pointpillars': Detection3DArray,
             '/detections/yolo': ObjectAngles,
             '/simulated_navsat_data': NavSatFix,
+            '/ground_truth/GPS_navsatfix': NavSatFix
         }
 
         self.loop = loop

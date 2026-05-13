@@ -2,11 +2,7 @@ package space.vampir.engine.communication;
 
 import space.vampir.engine.communication.scheduler.NewVerificationCaseScheduler;
 import space.vampir.engine.communication.synchronizer.MessageSynchronizer;
-import space.vampir.engine.message.Message;
-import space.vampir.engine.message.NavSat;
-import space.vampir.engine.message.Odometry;
-import space.vampir.engine.message.PointPillars;
-import space.vampir.engine.message.Yolo;
+import space.vampir.engine.message.*;
 import space.vampir.engine.verification.VerificationCase;
 
 import java.util.ArrayList;
@@ -25,20 +21,26 @@ public class StateRecorder {
     }
 
     public record SynchronizedMessages(
-            Odometry odometry,
-            Odometry lowEndOdometry,
+            NavSat groundTruthGps,
+            NavSat lowEndGps,
+            Imu imu,
             PointPillars pointPillars,
             Yolo yolo,
-            NavSat navSat
+            NavSat groundTruthSimNavSat,
+            NavSat simNavSat
     ) {
     }
 
     public static final String syncedTopic = "/synchronized_messages";
-    public static final String odometryTopic = "/ground_truth/odometry";
-    public static final String lowEndOdometryTopic = "/ground_truth/odometry_ublox";
+//    public static final String odometryTopic = "/ground_truth/odometry";
+//    public static final String lowEndOdometryTopic = "/ground_truth/odometry_ublox";
+    public static final String groundTruthGpsTopic = "/ground_truth/gps";
+    public static final String lowEndGpsTopic = "/ground_truth/gps_ublox";
+    public static final String imuTopic = "/ground_truth/imu";
     public static final String pointPillarsTopic = "/detections/pointpillars";
     public static final String yoloTopic = "/detections/yolo";
-    public static final String navSatTopic = "/simulated_navsat_data";
+    public static final String groundTruthSimNavSatTopic = "/ground_truth/GPS_navsatfix";
+    public static final String simNavSatTopic = "/simulated_navsat_data";
 
     public final Map<String, Integer> topicIndices = new LinkedHashMap<>();
     public final Map<String, TopicStatistics> topicStatistics = new LinkedHashMap<>();
@@ -48,11 +50,14 @@ public class StateRecorder {
 
     public final List<List<? extends Message>> messageQueues = new ArrayList<>();
 
-    private final List<Odometry> odometries = new ArrayList<>();
-    private final int odometryMessageQueueIndex = addMessageQueue(odometryTopic, odometries);
+    private final List<NavSat> groundTruthGPSs = new ArrayList<>();
+    private final int groundTruthGpsMessageQueueIndex = addMessageQueue(groundTruthGpsTopic, groundTruthGPSs);
 
-    private final List<Odometry> lowEndOdometries = new ArrayList<>();
-    private final int lowEndOdometryMessageQueueIndex = addMessageQueue(lowEndOdometryTopic, lowEndOdometries);
+    private final List<NavSat> lowEndGPSs = new ArrayList<>();
+    private final int lowEndGpsMessageQueueIndex = addMessageQueue(lowEndGpsTopic, lowEndGPSs);
+
+    private final List<Imu> imus = new ArrayList<>();
+    private final int imuMessageQueueIndex = addMessageQueue(imuTopic, imus);
 
     private final List<PointPillars> pointPillars = new ArrayList<>();
     private final int pointPillarsMessageQueueIndex = addMessageQueue(pointPillarsTopic, pointPillars);
@@ -60,8 +65,11 @@ public class StateRecorder {
     private final List<Yolo> yolos = new ArrayList<>();
     private final int yoloMessageQueueIndex = addMessageQueue(yoloTopic, yolos);
 
-    private final List<NavSat> navsats = new ArrayList<>();
-    private final int navSatMessageQueueIndex = addMessageQueue(navSatTopic, navsats);
+    private final List<NavSat> groundTruthSimNavSats = new ArrayList<>();
+    private final int groundTruthSimNavSatMessageQueueIndex = addMessageQueue(groundTruthSimNavSatTopic, groundTruthSimNavSats);
+
+    private final List<NavSat> simNavSats = new ArrayList<>();
+    private final int simNavSatMessageQueueIndex = addMessageQueue(simNavSatTopic, simNavSats);
 
     private final StateListener listener;
     private final VerificationCaseProvider verificationCaseProvider;
@@ -97,19 +105,15 @@ public class StateRecorder {
     }
 
     public synchronized void messageReceived(String topic, Object message) {
+//        System.out.println(topic + ": " + message);
         Message result = switch (topic) {
-            case odometryTopic -> {
-                var rawOdometry = Odometry.fromMap(message);
-                var newOdometry = new Odometry(rawOdometry.getTime() - 37 * 1000000000L, rawOdometry.getX(), rawOdometry.getY(), -rawOdometry.getTheta() + Math.PI);
-                yield insertMessage(odometries, newOdometry);
-            }
-            case lowEndOdometryTopic -> {
-                var odometry = Odometry.fromMap(message);
-                yield insertMessage(lowEndOdometries, odometry);
-            }
+            case groundTruthGpsTopic -> insertMessage(groundTruthGPSs, NavSat.fromMap(message));
+            case lowEndGpsTopic -> insertMessage(lowEndGPSs, NavSat.fromMap(message));
+            case imuTopic -> insertMessage(imus, Imu.fromMap(message));
             case pointPillarsTopic -> insertMessage(pointPillars, PointPillars.fromMap(message));
             case yoloTopic -> insertMessage(yolos, Yolo.fromMap(message));
-            case navSatTopic -> insertMessage(navsats, NavSat.fromMap(message));
+            case groundTruthSimNavSatTopic -> insertMessage(groundTruthSimNavSats, NavSat.fromMap(message));
+            case simNavSatTopic -> insertMessage(simNavSats, NavSat.fromMap(message));
 //            case syncedTopic -> {
 //                Message res = null;
 //                for (var t : messageTopics) {
@@ -160,8 +164,13 @@ public class StateRecorder {
     public void tryNewVerificationCase() {
         VerificationCase verificationCase = getCurrentVerificationCase();
         if (verificationCase != null) {
+            System.out.println("New verification case: " + verificationCase);
+            System.out.println(verificationCase.groundTruth());
             listener.stateInvalidated(verificationCase);
             lastVerificationCaseTime = verificationCase.scenario().time();
+        }
+        else {
+            System.out.println("New verification case is null");
         }
     }
 
@@ -173,13 +182,15 @@ public class StateRecorder {
                 return null;
             }
 
-            Odometry odometry = retrieveMessage(odometries, messageIndices, odometryMessageQueueIndex);
-            Odometry lowEndOdometry = retrieveMessage(lowEndOdometries, messageIndices, lowEndOdometryMessageQueueIndex);
+            NavSat groundTruthGps = retrieveMessage(groundTruthGPSs, messageIndices, groundTruthGpsMessageQueueIndex);
+            NavSat lowEndGps = retrieveMessage(lowEndGPSs, messageIndices, lowEndGpsMessageQueueIndex);
+            Imu imu = retrieveMessage(imus, messageIndices, imuMessageQueueIndex);
             PointPillars pointPillar = retrieveMessage(pointPillars, messageIndices, pointPillarsMessageQueueIndex);
             Yolo yolo = retrieveMessage(yolos, messageIndices, yoloMessageQueueIndex);
-            NavSat navSat = retrieveMessage(navsats, messageIndices, navSatMessageQueueIndex);
+            NavSat groundTruthSimNavSat = retrieveMessage(groundTruthSimNavSats, messageIndices, groundTruthSimNavSatMessageQueueIndex);
+            NavSat simNavSat = retrieveMessage(simNavSats, messageIndices, simNavSatMessageQueueIndex);
 
-            sync = new SynchronizedMessages(odometry, lowEndOdometry, pointPillar, yolo, navSat);
+            sync = new SynchronizedMessages(groundTruthGps, lowEndGps, imu, pointPillar, yolo, groundTruthSimNavSat, simNavSat);
         }
 
         return verificationCaseProvider.getVerificationCase(sync);

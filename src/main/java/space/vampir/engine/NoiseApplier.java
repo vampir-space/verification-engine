@@ -1,5 +1,7 @@
 package space.vampir.engine;
 
+import space.vampir.engine.message.Imu;
+import space.vampir.engine.message.NavSat;
 import space.vampir.engine.message.Odometry;
 
 import java.util.Random;
@@ -39,6 +41,51 @@ public class NoiseApplier {
                 odometry.getX() + xLatNoise,
                 odometry.getY() + yLonNoise,
                 odometry.getTheta() + thetaNoise);
+    }
+
+    /**
+     * Adds random noise to the given navSat. The standard deviations are expected to be in the same units as the navSat.
+     *
+     * @param navSat     the navSat to which noise should be added
+     * @param radiusStdDev the standard deviation of the noise of the radius (distance from the original position)
+     * @return a new navSat with added noise, or null if the input navSat is null
+     */
+    public static NavSat addNoise(NavSat navSat, double radiusStdDev) {
+        if (navSat == null) {
+            return null;
+        }
+
+        double r = random.nextGaussian(0.0, radiusStdDev);
+        double angle = random.nextDouble(0, 2 * Math.PI);
+        double xNoise = r * Math.cos(angle); // in meters
+        double yNoise = r * Math.sin(angle); // in meters
+
+        double xLatNoise = GeoUtilsApprox.metersToLatitudeDegrees(xNoise);
+        double yLonNoise = GeoUtilsApprox.metersToLongitudeDegrees(yNoise, navSat.getLat());
+
+        return new NavSat(
+                navSat.getTime(),
+                navSat.getLat() + xLatNoise,
+                navSat.getLon() + yLonNoise,
+                navSat.getPositionCovariance());
+    }
+
+    /**
+     * Adds random noise to the given imu. The standard deviations are expected to be in the same units as the imu.
+     *
+     * @param thetaStdDev the standard deviation of the noise of the angle (orientation)
+     * @return a new imu with added noise, or null if the input imu is null
+     */
+    public static Imu addNoise(Imu imu, double thetaStdDev) {
+        if (imu == null) {
+            return null;
+        }
+
+        double thetaNoise = random.nextGaussian(0.0, thetaStdDev);
+
+        return new Imu(
+                imu.getTime(),
+                imu.getTheta() + thetaNoise);
     }
 
     public static final class GeoUtilsApprox {
