@@ -25,14 +25,12 @@ public class StateRecorder {
             NavSat lowEndGps,
             Imu imu,
             PointPillars pointPillars,
-            Yolo yolo,
-            NavSat groundTruthSimNavSat,
-            NavSat simNavSat
+            Yolo yolo
     ) {
     }
 
     public static final String syncedTopic = "/synchronized_messages";
-//    public static final String odometryTopic = "/ground_truth/odometry";
+    //    public static final String odometryTopic = "/ground_truth/odometry";
 //    public static final String lowEndOdometryTopic = "/ground_truth/odometry_ublox";
     public static final String groundTruthGpsTopic = "/ground_truth/gps";
     public static final String lowEndGpsTopic = "/ground_truth/gps_ublox";
@@ -44,9 +42,6 @@ public class StateRecorder {
 
     public final Map<String, Integer> topicIndices = new LinkedHashMap<>();
     public final Map<String, TopicStatistics> topicStatistics = new LinkedHashMap<>();
-
-    //public static final String imageTopic = "/sensor/image";
-    //public static final Set<String> extraTopics = Set.of(imageTopic);
 
     public final List<List<? extends Message>> messageQueues = new ArrayList<>();
 
@@ -64,12 +59,6 @@ public class StateRecorder {
 
     private final List<Yolo> yolos = new ArrayList<>();
     private final int yoloMessageQueueIndex = addMessageQueue(yoloTopic, yolos);
-
-    private final List<NavSat> groundTruthSimNavSats = new ArrayList<>();
-    private final int groundTruthSimNavSatMessageQueueIndex = addMessageQueue(groundTruthSimNavSatTopic, groundTruthSimNavSats);
-
-    private final List<NavSat> simNavSats = new ArrayList<>();
-    private final int simNavSatMessageQueueIndex = addMessageQueue(simNavSatTopic, simNavSats);
 
     private final StateListener listener;
     private final VerificationCaseProvider verificationCaseProvider;
@@ -112,8 +101,8 @@ public class StateRecorder {
             case imuTopic -> insertMessage(imus, Imu.fromMap(message));
             case pointPillarsTopic -> insertMessage(pointPillars, PointPillars.fromMap(message));
             case yoloTopic -> insertMessage(yolos, Yolo.fromMap(message));
-            case groundTruthSimNavSatTopic -> insertMessage(groundTruthSimNavSats, NavSat.fromMap(message));
-            case simNavSatTopic -> insertMessage(simNavSats, NavSat.fromMap(message));
+            case groundTruthSimNavSatTopic -> insertMessage(groundTruthGPSs, NavSat.fromMap(message));
+            case simNavSatTopic -> insertMessage(lowEndGPSs, NavSat.fromMap(message));
 //            case syncedTopic -> {
 //                Message res = null;
 //                for (var t : messageTopics) {
@@ -164,13 +153,8 @@ public class StateRecorder {
     public void tryNewVerificationCase() {
         VerificationCase verificationCase = getCurrentVerificationCase();
         if (verificationCase != null) {
-            System.out.println("New verification case: " + verificationCase);
-            System.out.println(verificationCase.groundTruth());
             listener.stateInvalidated(verificationCase);
             lastVerificationCaseTime = verificationCase.scenario().time();
-        }
-        else {
-            System.out.println("New verification case is null");
         }
     }
 
@@ -187,10 +171,8 @@ public class StateRecorder {
             Imu imu = retrieveMessage(imus, messageIndices, imuMessageQueueIndex);
             PointPillars pointPillar = retrieveMessage(pointPillars, messageIndices, pointPillarsMessageQueueIndex);
             Yolo yolo = retrieveMessage(yolos, messageIndices, yoloMessageQueueIndex);
-            NavSat groundTruthSimNavSat = retrieveMessage(groundTruthSimNavSats, messageIndices, groundTruthSimNavSatMessageQueueIndex);
-            NavSat simNavSat = retrieveMessage(simNavSats, messageIndices, simNavSatMessageQueueIndex);
 
-            sync = new SynchronizedMessages(groundTruthGps, lowEndGps, imu, pointPillar, yolo, groundTruthSimNavSat, simNavSat);
+            sync = new SynchronizedMessages(groundTruthGps, lowEndGps, imu, pointPillar, yolo);
         }
 
         return verificationCaseProvider.getVerificationCase(sync);

@@ -44,7 +44,6 @@ public class MessageFileReplayer {
                     Map<String, Object> record = mapper.readValue(line, Map.class);
                     String topic = (String) record.get("topic");
                     Object msg = record.get("msg");
-                    System.out.println(topic + ": " + msg);
 
                     if (topic == null || msg == null) {
                         System.err.println("Warning: skipping line " + lineNumber + " with missing topic or msg");
