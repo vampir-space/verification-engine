@@ -138,7 +138,7 @@ public class ROSReplayer {
             VerificationEngine verificationEngine = new AIErrorCalculator(new MapHandler(mapFile), map, Integer.parseInt(targetId), metamodelPath);
             CliConfig cliConfig = CliConfig.get(args);
             cliConfig.verificationEngine = verificationEngine;
-            cliConfig.relevantTopics = Set.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.pointPillarsTopic, StateRecorder.yoloTopic, StateRecorder.lowEndGpsTopic);
+            cliConfig.relevantTopics = Set.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.yoloTopic);
             cliConfig.verificationCaseProvider = new NavSatOdometryProvider(1, 1);
             cliConfig.verificationCaseScheduler = new DriveByTopicScheduler(StateRecorder.groundTruthGpsTopic, 0);
             cliConfig.messageSynchronizer = new ClosestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.yoloTopic), Map.of());
@@ -198,7 +198,7 @@ public class ROSReplayer {
         CountDownLatch latch = new CountDownLatch(1);
         Request request = new Request.Builder().url(url).build();
 
-        client.newWebSocket(request, new ROSListener(recorder, latch, cliConfig.relevantTopics, messageRecorder));
+        client.newWebSocket(request, new ROSListener(recorder, latch, cliConfig.relevantTopics, cliConfig.topicMap, messageRecorder));
 
         try {
             latch.await();
