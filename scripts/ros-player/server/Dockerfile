@@ -13,16 +13,17 @@ RUN echo "source /opt/ros/setup.bash" >> ~/.bashrc
 EXPOSE 9090
 
 # Syncronizer setup
-RUN apt install -y python3-pip
-RUN pip3 install websockets --break-system-packages
-COPY ./sync /opt/sync
-EXPOSE 9091
+#RUN apt install -y python3-pip
+#RUN pip3 install websockets --break-system-packages
+#COPY ./sync /opt/sync
+#EXPOSE 9091
 
 # Web setup
 RUN apt install -y python3-flask python3-watchdog
 COPY ./web /opt/web
 EXPOSE 4000
 
+COPY ./dds_profile.xml /config/dds_profile.xml
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]

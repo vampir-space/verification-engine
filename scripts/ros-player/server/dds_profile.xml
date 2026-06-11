@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dds xmlns="http://www.eprosima.com">
+    <profiles>
+        <data_reader profile_name="default_subscriber" is_default_profile="true">
+            <topic>
+                <historyQos>
+                    <kind>KEEP_LAST</kind>
+                    <depth>1</depth>
+                </historyQos>
+            </topic>
+            <qos>
+                <durability><kind>VOLATILE</kind></durability>
+                <reliability><kind>BEST_EFFORT</kind></reliability>
+            </qos>
+            <historyMemoryPolicy>PREALLOCATED_WITH_REALLOC</historyMemoryPolicy>
+        </data_reader>
+    </profiles>
+</dds>
