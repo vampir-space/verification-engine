@@ -21,6 +21,14 @@ public class MapPanel extends JPanel {
     private double currentCenterX = 0.0; // map coord
     private double currentCenterY = 0.0; // map coord
 
+    // Background caching for performance optimization
+    // Cache stores the rasterized background at the map scale (full map extent at current zoom)
+    private BufferedImage cachedBackgroundImage;
+    private double cachedZoomFactor = -1;
+    private Object cachedBackgroundDocument = null;
+    private double cachedMapXSize = -1;
+    private double cachedMapYSize = -1;
+
     public MapPanel(MapRender mapRender) {
         this.map = mapRender;
         ToolTipManager.sharedInstance().registerComponent(this);
@@ -40,7 +48,20 @@ public class MapPanel extends JPanel {
 
     public void setMapRender(MapRender mapRender) {
         this.map = mapRender;
+        // Invalidate cache when map changes
+        invalidateBackgroundCache();
         repaint();
+    }
+
+    /**
+     * Invalidates the cached background image to force re-rendering on next paint.
+     */
+    private void invalidateBackgroundCache() {
+        cachedBackgroundImage = null;
+        cachedZoomFactor = -1;
+        cachedBackgroundDocument = null;
+        cachedMapXSize = -1;
+        cachedMapYSize = -1;
     }
 
     @Override
@@ -93,28 +114,87 @@ public class MapPanel extends JPanel {
             double bw = bg.size().width;
             double bh = bg.size().height;
             if (bw > 0 && bh > 0) {
-                double sx = (map.mapXSize * currentMapScale) / bw;
-                double sy = (map.mapYSize * currentMapScale) / bh;
-
                 double tx = getWidth() / 2.0 + (map.mapXStart - currentCenterX) * currentMapScale;
                 double ty = getHeight() / 2.0 - (map.mapYStart + map.mapYSize - currentCenterY) * currentMapScale;
 
+                // We rasterize once at the maximum zoom (ZOOM_MAX) using the current base scale,
+                // but limit raster size to avoid OOM. Later we will scale this raster down for lower zooms.
+                final int MAX_RASTER_DIM = 10000; // max width/height in pixels for rasterized image
+
+                // Compute baseScale (pixels per map-meter without zoom) - already computed above
+                // Desired raster scale (pixels per map-meter) at maximum zoom
+                double desiredRasterScale = baseScale * ZOOM_MAX;
+
+                // Desired image size for full map at max zoom
+                double desiredImgW = map.mapXSize * desiredRasterScale;
+                double desiredImgH = map.mapYSize * desiredRasterScale;
+
+                double rasterScaleToUse = desiredRasterScale;
+                if (desiredImgW > MAX_RASTER_DIM || desiredImgH > MAX_RASTER_DIM) {
+                    // Reduce raster scale so dimensions fit within cap
+                    double downscaleFactor = Math.min(MAX_RASTER_DIM / desiredImgW, MAX_RASTER_DIM / desiredImgH);
+                    rasterScaleToUse = desiredRasterScale * downscaleFactor;
+                }
+
+                // Cache is valid if we already rasterized the same background with the same rasterScale
+                boolean cacheValid = cachedBackgroundImage != null
+                        && cachedBackgroundDocument == bg
+                        && Math.abs(cachedMapXSize - map.mapXSize) < 1e-9
+                        && Math.abs(cachedMapYSize - map.mapYSize) < 1e-9
+                        && Math.abs(cachedZoomFactor - rasterScaleToUse) < 1e-9;
+
+                if (!cacheValid) {
+                    int imgWidth = (int) Math.max(1, Math.round(map.mapXSize * rasterScaleToUse));
+                    int imgHeight = (int) Math.max(1, Math.round(map.mapYSize * rasterScaleToUse));
+
+                    cachedBackgroundImage = new BufferedImage(imgWidth, imgHeight, BufferedImage.TYPE_INT_ARGB);
+                    Graphics2D cachedG2d = cachedBackgroundImage.createGraphics();
+                    cachedG2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    cachedG2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+
+                    // We need to compute the scale to render the SVG into our raster image.
+                    // SVG native size is bw x bh. We want map.mapXSize meters to map to imgWidth pixels.
+                    double sxRaster = imgWidth / Math.max(1.0, bw);
+                    double syRaster = imgHeight / Math.max(1.0, bh);
+
+                    AffineTransform cachedTransform = AffineTransform.getScaleInstance(sxRaster, syRaster);
+                    cachedG2d.transform(cachedTransform);
+                    ViewBox bounds = new ViewBox(0, 0, (int) Math.max(1, bw), (int) Math.max(1, bh));
+                    bg.render(this, cachedG2d, bounds);
+                    cachedG2d.dispose();
+
+                    cachedZoomFactor = rasterScaleToUse; // store raster pixels-per-meter as key
+                    cachedBackgroundDocument = bg;
+                    cachedMapXSize = map.mapXSize;
+                    cachedMapYSize = map.mapYSize;
+                }
+
+                // Draw the cached raster. The cached raster uses pixels-per-meter = cachedZoomFactor;
+                // currentMapScale is pixels-per-meter for current view. Compute scale factor to apply to raster.
+                double cachedRasterScale = cachedZoomFactor; // pixels per map-meter
+                double scaleFactor = currentMapScale / cachedRasterScale;
+
                 AffineTransform old = g2d.getTransform();
-                g2d.transform(AffineTransform.getTranslateInstance(tx, ty));
-                g2d.transform(AffineTransform.getScaleInstance(sx, sy));
-                ViewBox bounds = new ViewBox(0, 0, (int) Math.max(1, bw), (int) Math.max(1, bh));
-                bg.render(this, g2d, bounds);
+                AffineTransform drawTransform = new AffineTransform();
+                drawTransform.translate(tx, ty);
+                drawTransform.scale(scaleFactor, scaleFactor);
+                g2d.transform(drawTransform);
+                g2d.drawImage(cachedBackgroundImage, 0, 0, this);
                 g2d.setTransform(old);
             } else {
                 // Fallback: render SVG directly to fill panel (original behavior)
                 ViewBox bounds = new ViewBox(0, 0, getWidth(), getHeight());
                 bg.render(this, g2d, bounds);
+                // Invalidate cache for fallback renders
+                invalidateBackgroundCache();
             }
         } catch (Exception ex) {
             // don't fail painting on background render issues
             ex.printStackTrace();
             ViewBox bounds = new ViewBox(0, 0, getWidth(), getHeight());
             map.getBackground().render(this, g2d, bounds);
+            // Invalidate cache on error
+            invalidateBackgroundCache();
         }
 
         for (var object : map.getObjects()) {

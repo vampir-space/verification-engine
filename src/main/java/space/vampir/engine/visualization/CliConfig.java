@@ -2,6 +2,7 @@ package space.vampir.engine.visualization;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import space.vampir.engine.communication.StateRecorder;
 import space.vampir.engine.communication.VerificationCaseProvider;
 import space.vampir.engine.communication.VerificationCaseProvider.DummyNoiseOdometryProvider;
 import space.vampir.engine.communication.VerificationCaseProvider.NavSatOdometryProvider;
@@ -19,12 +20,7 @@ import space.vampir.engine.verification.VerificationEngineWithRefinery;
 import tools.refinery.mapconverter.map.MapHandler;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class CliConfig {
     public boolean showScene = true;
@@ -43,6 +39,7 @@ public class CliConfig {
     public long maxTimeDifference = 1000000000 / 5; // 200ms
     public long dropOlderThan = 2 * maxTimeDifference;
     public Set<String> relevantTopics = null;
+    public Map<String, String> topicMap = Map.of(StateRecorder.groundTruthSimNavSatTopic, StateRecorder.groundTruthGpsTopic, StateRecorder.simNavSatTopic, StateRecorder.lowEndGpsTopic);
 
     public VerificationEngine verificationEngine = null;
     public VerificationCaseProvider verificationCaseProvider = null;

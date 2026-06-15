@@ -30,17 +30,19 @@ public class ROSListener extends WebSocketListener {
     final CountDownLatch latch;
 
     final Set<String> relevantTopics;
+    final Map<String, String> topicMap;
     final Set<String> seenTopics = ConcurrentHashMap.newKeySet();
     final MessageRecorder messageRecorder;
 
     public ROSListener(StateRecorder stateRecorder, CountDownLatch latch, Set<String> relevantTopics) {
-        this(stateRecorder, latch, relevantTopics, null);
+        this(stateRecorder, latch, relevantTopics, null, null);
     }
 
-    public ROSListener(StateRecorder stateRecorder, CountDownLatch latch, Set<String> relevantTopics, MessageRecorder messageRecorder) {
+    public ROSListener(StateRecorder stateRecorder, CountDownLatch latch, Set<String> relevantTopics, Map<String, String> topicMap, MessageRecorder messageRecorder) {
         this.stateRecorder = stateRecorder;
         this.latch = latch;
         this.relevantTopics = relevantTopics;
+        this.topicMap = topicMap;
         this.messageRecorder = messageRecorder;
     }
 
@@ -98,6 +100,13 @@ public class ROSListener extends WebSocketListener {
             String type = types.get(i);
             if (seenTopics.add(topic)) {
                 boolean toSubscribe = this.relevantTopics.contains(topic);
+                if (!toSubscribe && topicMap != null && topicMap.containsKey(topic)) {
+                    var mappedTopic = topicMap.get(topic);
+                    toSubscribe = this.relevantTopics.contains(mappedTopic);
+                    if (toSubscribe) {
+                        seenTopics.add(mappedTopic);
+                    }
+                }
                 System.out.println("\uD83D\uDEC8 New topic: " + topic + ", type: " + type + ", subscribe: " + toSubscribe);
                 if (toSubscribe && !USE_ROS_SYNC_NODE) {
                     String subId = String.valueOf(idCounter.getAndIncrement());

@@ -1,0 +1,12 @@
+{
+  "mapURL": "BME-J-ST.svg",
+  "xodrPath": "BME-J-ST.xodr",
+  "backgroundX1": 106.721,
+  "backgroundX2": 454.773,
+  "backgroundY1": 19.414,
+  "mapX1": -20.0,
+  "mapX2": 60.0,
+  "mapY1": 125.0,
+  "geoRefLat": 47.478183,
+  "geoRefLon": 19.056258
+}

@@ -22,7 +22,7 @@ public interface VerificationCaseProvider {
 
         @Override
         public VerificationCase getVerificationCase(SynchronizedMessages sync) {
-            var navSat = sync.groundTruthSimNavSat();
+            var navSat = sync.groundTruthGps();
             var imu = sync.imu();
             Odometry gtOdometry = new Odometry(navSat.getTime(), navSat.getLat(), navSat.getLon(), imu.getTheta());
             Odometry odometry = NoiseApplier.addNoise(gtOdometry, radiusStdDev, thetaStdDev);
@@ -43,34 +43,34 @@ public interface VerificationCaseProvider {
         @Override
         public VerificationCase getVerificationCase(SynchronizedMessages sync) {
             final Odometry odometry;
-            if(sync.simNavSat() != null) {
+            if(sync.lowEndGps() != null) {
                 if(noiseMultiplier == 1.0) {
-                    odometry = new Odometry(sync.simNavSat().getTime(),
-                            sync.simNavSat().getLat(),
-                            sync.simNavSat().getLon(),
+                    odometry = new Odometry(sync.lowEndGps().getTime(),
+                            sync.lowEndGps().getLat(),
+                            sync.lowEndGps().getLon(),
                             sync.imu().getTheta(),
-                            sync.simNavSat().getPositionCovariance()*confidenceMultiplier
+                            sync.lowEndGps().getPositionCovariance()*confidenceMultiplier
                             //NoiseApplier.addGaussianNoise(sync.imu().getTheta(), thetaStdDev)
                     );
                 } else {
-                    var dif1 = sync.simNavSat().getLat() - sync.groundTruthSimNavSat().getLon();
-                    var dif2 = sync.simNavSat().getLon() - sync.groundTruthSimNavSat().getLat();
-                    odometry = new Odometry(sync.simNavSat().getTime(),
-                            sync.groundTruthSimNavSat().getLon() + dif1*noiseMultiplier,
-                            sync.groundTruthSimNavSat().getLat() + dif2*noiseMultiplier,
+                    var dif1 = sync.lowEndGps().getLat() - sync.groundTruthGps().getLat();
+                    var dif2 = sync.lowEndGps().getLon() - sync.groundTruthGps().getLon();
+                    odometry = new Odometry(sync.lowEndGps().getTime(),
+                            sync.groundTruthGps().getLat() + dif1*noiseMultiplier,
+                            sync.groundTruthGps().getLon() + dif2*noiseMultiplier,
                             sync.imu().getTheta(),
-                            sync.simNavSat().getPositionCovariance()*confidenceMultiplier
+                            sync.lowEndGps().getPositionCovariance()*confidenceMultiplier
                             //NoiseApplier.addGaussianNoise(sync.imu().getTheta(), thetaStdDev)
                     );
                 }
             } else {
-                odometry = new Odometry(sync.groundTruthSimNavSat().getTime(),
-                        sync.groundTruthSimNavSat().getLon(),
-                        sync.groundTruthSimNavSat().getLat(),
+                odometry = new Odometry(sync.groundTruthGps().getTime(),
+                        sync.groundTruthGps().getLat(),
+                        sync.groundTruthGps().getLon(),
                         sync.imu().getTheta());
             }
             Scenario scenario = new Scenario(odometry, sync.pointPillars(), sync.yolo());
-            var navSat = sync.groundTruthSimNavSat();
+            var navSat = sync.groundTruthGps();
             Odometry gtOdometry = new Odometry(navSat.getTime(), navSat.getLat(), navSat.getLon(), sync.imu().getTheta());
             return new VerificationCase(scenario, gtOdometry);
         }
@@ -87,8 +87,8 @@ public interface VerificationCaseProvider {
             }
             else {
                 lowEndOdometry = new Odometry(sync.lowEndGps().getTime(),
-                        sync.lowEndGps().getLon(),
                         sync.lowEndGps().getLat(),
+                        sync.lowEndGps().getLon(),
                         sync.imu().getTheta(),
                         10.0
                 );
