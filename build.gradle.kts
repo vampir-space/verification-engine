@@ -38,3 +38,36 @@ tasks.register("generateMapIndex") {
 
 sourceSets.main.get().resources.srcDir(layout.buildDirectory.dir("generated/resources"))
 tasks.processResources.get().dependsOn("generateMapIndex")
+
+// Helper to parse command-line args passed via -PappArgs="--map /path --metamodel m"
+fun parseAppArgs(): List<String> {
+    val raw = if (project.hasProperty("appArgs")) project.property("appArgs")?.toString() else null
+    return raw?.split(" ")?.filter { it.isNotBlank() } ?: listOf()
+}
+
+// JavaExec tasks for main classes.
+
+// ROSReplayer has multiple nested static classes each with a main method. Use $ in class name (escaped).
+tasks.register("runROSRefineryVerificationEngineSim", JavaExec::class) {
+    group = "application"
+    description = "Run ROSReplayer.RefineryVerificationEngineRunConfiguration main"
+    mainClass.set("space.vampir.engine.ROSReplayer\$RefineryVerificationEngineRunConfiguration")
+    classpath = sourceSets.main.get().runtimeClasspath
+    args = parseAppArgs()
+}
+
+tasks.register("runROSRefineryVerificationEngineReal", JavaExec::class) {
+    group = "application"
+    description = "Run ROSReplayer.RefineryVerificationEngineRealConfiguration main"
+    mainClass.set("space.vampir.engine.ROSReplayer\$RefineryVerificationEngineRealConfiguration")
+    classpath = sourceSets.main.get().runtimeClasspath
+    args = parseAppArgs()
+}
+
+tasks.register("runROSYoloErrorCalculation", JavaExec::class) {
+    group = "application"
+    description = "Run ROSReplayer.YoloErrorCalculation main"
+    mainClass.set("space.vampir.engine.ROSReplayer\$YoloErrorCalculation")
+    classpath = sourceSets.main.get().runtimeClasspath
+    args = parseAppArgs()
+}
