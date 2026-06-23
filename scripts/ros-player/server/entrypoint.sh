@@ -4,7 +4,7 @@ set -e
 export PYTHONUNBUFFERED=1
 
 source /opt/ros/setup.bash
-ros2 launch rosbridge_server rosbridge_websocket_launch.xml &
+python3 /opt/web/relay.py &
 ROS_PID=$!
 
 python3 /opt/sync/sync_node.py &

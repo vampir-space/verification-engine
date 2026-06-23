@@ -3,35 +3,23 @@ package space.vampir.engine.communication;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class ROSListener extends WebSocketListener {
-    final String synchronizedURL = "ws://localhost:9091";
-    final static boolean USE_ROS_SYNC_NODE = false;
 
     final StateRecorder stateRecorder;
     final ObjectMapper mapper = new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL);
-    final AtomicInteger idCounter = new AtomicInteger(1);
     final CountDownLatch latch;
 
     final Set<String> relevantTopics;
     final Map<String, String> topicMap;
-    final Set<String> seenTopics = ConcurrentHashMap.newKeySet();
     final MessageRecorder messageRecorder;
 
     public ROSListener(StateRecorder stateRecorder, CountDownLatch latch, Set<String> relevantTopics) {
@@ -49,28 +37,7 @@ public class ROSListener extends WebSocketListener {
     // 1) onOpen: start periodic poll
     @Override
     public void onOpen(@NotNull WebSocket ws, @NotNull Response resp) {
-        System.out.println("▶ Connected, starting topic polling...");
-        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-        scheduler.scheduleAtFixedRate(() -> {
-            if (this.seenTopics.containsAll(relevantTopics)) {
-                System.out.println("▶ All topics discovered, stop polling");
-                if (USE_ROS_SYNC_NODE) {
-                    System.out.println("▶ Connecting to synchronizer node...");
-                    OkHttpClient client = new OkHttpClient();
-                    CountDownLatch latch = new CountDownLatch(1);
-                    Request request = new Request.Builder().url(synchronizedURL).build();
-                    client.newWebSocket(request, new ROSSyncListener(stateRecorder, latch, relevantTopics));
-                }
-                scheduler.shutdown();
-            } else {
-//                System.out.println("↻ Polling topics...");
-                String reqId = String.valueOf(idCounter.getAndIncrement());
-                ROSCallServiceMessage poll = new ROSCallServiceMessage(
-                        "call_service", "/rosapi/topics", Map.of(), reqId
-                );
-                send(ws, poll);
-            }
-        }, 0, 2, TimeUnit.SECONDS);
+        System.out.println("▶ Connected");
     }
 
     // 2) onMessage: handle either a service_response or publishes
@@ -79,10 +46,7 @@ public class ROSListener extends WebSocketListener {
         try {
             Map<?, ?> m = mapper.readValue(text, Map.class);
             String op = (String) m.get("op");
-
-            if ("service_response".equals(op) && "/rosapi/topics".equals(m.get("service"))) {
-                onTopicsAnnounced(ws, m);
-            } else if ("publish".equals(op)) {
+            if ("publish".equals(op)) {
                 onMessageReceived(m);
             }
         } catch (JsonProcessingException e) {
@@ -90,32 +54,6 @@ public class ROSListener extends WebSocketListener {
         }
     }
 
-    private void onTopicsAnnounced(@NotNull WebSocket ws, Map<?, ?> m) {
-        Map<?, ?> vals = (Map<?, ?>) m.get("values");
-        List<String> topics = (List<String>) vals.get("topics");
-        List<String> types = (List<String>) vals.get("types");
-
-        for (int i = 0; i < topics.size(); i++) {
-            String topic = topics.get(i);
-            String type = types.get(i);
-            if (seenTopics.add(topic)) {
-                boolean toSubscribe = this.relevantTopics.contains(topic);
-                if (!toSubscribe && topicMap != null && topicMap.containsKey(topic)) {
-                    var mappedTopic = topicMap.get(topic);
-                    toSubscribe = this.relevantTopics.contains(mappedTopic);
-                    if (toSubscribe) {
-                        seenTopics.add(mappedTopic);
-                    }
-                }
-                System.out.println("\uD83D\uDEC8 New topic: " + topic + ", type: " + type + ", subscribe: " + toSubscribe);
-                if (toSubscribe && !USE_ROS_SYNC_NODE) {
-                    String subId = String.valueOf(idCounter.getAndIncrement());
-                    ROSSubscribeMessage sub = new ROSSubscribeMessage(topic, type, subId);
-                    send(ws, sub);
-                }
-            }
-        }
-    }
 
     private void onMessageReceived(Map<?, ?> m) {
         // just print
@@ -164,6 +102,10 @@ public class ROSListener extends WebSocketListener {
         return null;
     }
 
+    @Override
+    public void onClosing(WebSocket ws, int code, String reason) {
+        System.out.println("Closing: " + reason);
+    }
 
     @Override
     public void onFailure(WebSocket webSocket, Throwable t, Response resp) {
@@ -178,12 +120,4 @@ public class ROSListener extends WebSocketListener {
         latch.countDown();
     }
 
-    private void send(@NotNull WebSocket ws, Object message) {
-        try {
-//            System.out.println("Sending: " + mapper.writeValueAsString(message));
-            ws.send(mapper.writeValueAsString(message));
-        } catch (JsonProcessingException e) {
-            System.err.println("Error serializing message: " + e.getMessage());
-        }
-    }
 }
