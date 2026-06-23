@@ -7,12 +7,9 @@ import space.vampir.engine.communication.MessageFileReplayer;
 import space.vampir.engine.communication.ROSListener;
 import space.vampir.engine.communication.StateListener;
 import space.vampir.engine.communication.StateRecorder;
-import space.vampir.engine.communication.VerificationCaseProvider.DummyNoiseOdometryProvider;
 import space.vampir.engine.communication.VerificationCaseProvider.NavSatOdometryProvider;
 import space.vampir.engine.communication.VerificationCaseProvider.RealScenarioProvider;
-import space.vampir.engine.communication.scheduler.AlwaysScheduler;
 import space.vampir.engine.communication.scheduler.DriveByTopicScheduler;
-import space.vampir.engine.communication.synchronizer.ClosestMessageSynchronizer;
 import space.vampir.engine.communication.synchronizer.LatestMessageSynchronizer;
 import space.vampir.engine.verification.*;
 import space.vampir.engine.visualization.CliConfig;
@@ -23,43 +20,42 @@ import tools.refinery.mapconverter.map.MapHandler;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
 public class ROSReplayer {
 
-    public static class NoVerificationEngineTestConfiguration {
-        public static void main(String[] args) {
-            String mapPath = extractMapPath(args, "/BME_Town_small/BME_Town_small.json");
-            CliConfig cliConfig = CliConfig.get(args);
-            cliConfig.verificationEngine = scenario -> new UpdatedScenario(scenario, null);
-            cliConfig.showStats = false;
-            cliConfig.relevantTopics = Set.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.pointPillarsTopic, StateRecorder.yoloTopic, StateRecorder.lowEndGpsTopic);
-            cliConfig.verificationCaseProvider = new NavSatOdometryProvider(1,1);
-            cliConfig.verificationCaseScheduler = new AlwaysScheduler();
-            cliConfig.messageSynchronizer = new LatestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.lowEndGpsTopic));
-            cliConfig.map = mapPath;
-            play(cliConfig);
-        }
-    }
+//    public static class NoVerificationEngineTestConfiguration { // Visualizer for simulator with simulated noisy gps
+//        public static void main(String[] args) {
+//            String mapPath = extractMapPath(args, "/BME_Town_small/BME_Town_small.json");
+//            CliConfig cliConfig = CliConfig.get(args);
+//            cliConfig.verificationEngine = scenario -> new UpdatedScenario(scenario, null);
+//            cliConfig.showStats = false;
+//            cliConfig.relevantTopics = Set.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.pointPillarsTopic, StateRecorder.yoloTopic, StateRecorder.lowEndGpsTopic);
+//            cliConfig.verificationCaseProvider = new NavSatOdometryProvider(1,1);
+//            cliConfig.verificationCaseScheduler = new AlwaysScheduler();
+//            cliConfig.messageSynchronizer = new LatestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.lowEndGpsTopic));
+//            cliConfig.map = mapPath;
+//            play(cliConfig);
+//        }
+//    }
 
-    public static class NoVerificationEngineDummyNoiseConfiguration {
-        public static void main(String[] args) {
-            String mapPath = extractMapPath(args, "/BME_Town_small/BME_Town_small.json");
-            CliConfig cliConfig = CliConfig.get(args);
-            cliConfig.verificationEngine = scenario -> new UpdatedScenario(scenario, null);
-            cliConfig.showStats = false;
-            cliConfig.relevantTopics = Set.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.pointPillarsTopic, StateRecorder.yoloTopic);
-            cliConfig.verificationCaseProvider = new DummyNoiseOdometryProvider(2.0, Math.PI / 180);
-            cliConfig.verificationCaseScheduler = new AlwaysScheduler();
-            cliConfig.messageSynchronizer = new LatestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic));
-            cliConfig.map = mapPath;
-            play(cliConfig);
-        }
-    }
+//    public static class NoVerificationEngineDummyNoiseConfiguration { // Visualizer (for simulator?) without noisy gps, with random noise added
+//        public static void main(String[] args) {
+//            String mapPath = extractMapPath(args, "/BME_Town_small/BME_Town_small.json");
+//            CliConfig cliConfig = CliConfig.get(args);
+//            cliConfig.verificationEngine = scenario -> new UpdatedScenario(scenario, null);
+//            cliConfig.showStats = false;
+//            cliConfig.relevantTopics = Set.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.pointPillarsTopic, StateRecorder.yoloTopic);
+//            cliConfig.verificationCaseProvider = new DummyNoiseOdometryProvider(2.0, Math.PI / 180);
+//            cliConfig.verificationCaseScheduler = new AlwaysScheduler();
+//            cliConfig.messageSynchronizer = new LatestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic));
+//            cliConfig.map = mapPath;
+//            play(cliConfig);
+//        }
+//    }
 
-    public static class NoVerificationEngineRealConfiguration {
+    public static class NoVerificationEngineRealConfiguration { // Visualizer for real vehicle
         public static void main(String[] args) {
             String mapPath = extractMapPath(args, "/BME_Town_small/BME_Town_small.json");
             CliConfig cliConfig = CliConfig.get(args);
@@ -68,27 +64,27 @@ public class ROSReplayer {
             cliConfig.relevantTopics = Set.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.pointPillarsTopic, StateRecorder.yoloTopic, StateRecorder.lowEndGpsTopic);
             cliConfig.verificationCaseProvider = new RealScenarioProvider();
             cliConfig.verificationCaseScheduler = new DriveByTopicScheduler(StateRecorder.lowEndGpsTopic, (int) cliConfig.maxTimeDifference / 1000000);
-            cliConfig.messageSynchronizer = new ClosestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.lowEndGpsTopic, StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic), Map.of());
+            cliConfig.messageSynchronizer = new LatestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.lowEndGpsTopic, StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic));
             cliConfig.map = mapPath;
             play(cliConfig);
         }
     }
 
-    public static class DummyVerificationEngineTestConfiguration {
-        public static void main(String[] args) {
-            String mapPath = extractMapPath(args, "/BME_Town_small/BME_Town_small.json");
-            CliConfig cliConfig = CliConfig.get(args);
-            cliConfig.verificationEngine = new DummyVerificationEngine(2.0, Math.PI / 180);
-            cliConfig.relevantTopics = Set.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.pointPillarsTopic, StateRecorder.yoloTopic);
-            cliConfig.verificationCaseProvider = new DummyNoiseOdometryProvider(4.0, Math.PI / 180);
-            cliConfig.verificationCaseScheduler = new DriveByTopicScheduler(StateRecorder.groundTruthGpsTopic, 0);
-            cliConfig.messageSynchronizer = new ClosestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic), Map.of());
-            cliConfig.map = mapPath;
-            play(cliConfig);
-        }
-    }
+//    public static class DummyVerificationEngineTestConfiguration { // Mock verification engine for simulator with random noise
+//        public static void main(String[] args) {
+//            String mapPath = extractMapPath(args, "/BME_Town_small/BME_Town_small.json");
+//            CliConfig cliConfig = CliConfig.get(args);
+//            cliConfig.verificationEngine = new DummyVerificationEngine(2.0, Math.PI / 180);
+//            cliConfig.relevantTopics = Set.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.pointPillarsTopic, StateRecorder.yoloTopic);
+//            cliConfig.verificationCaseProvider = new DummyNoiseOdometryProvider(4.0, Math.PI / 180);
+//            cliConfig.verificationCaseScheduler = new DriveByTopicScheduler(StateRecorder.groundTruthGpsTopic, 0);
+//            cliConfig.messageSynchronizer = new LatestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic));
+//            cliConfig.map = mapPath;
+//            play(cliConfig);
+//        }
+//    }
 
-    public static class RefineryVerificationEngineRunConfiguration {
+    public static class RefineryVerificationEngineRunConfiguration { // With Refinery, for simulator, with simulated noisy gps
         public static void main(String[] args) throws IOException {
             String mapPath = extractMapPath(args, "/BME_Town_small/BME_Town_small.json");
             String metamodelPath = extractArgumentValue(args, "--metamodel");
@@ -100,13 +96,13 @@ public class ROSReplayer {
             cliConfig.relevantTopics = Set.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.yoloTopic, StateRecorder.lowEndGpsTopic);
             cliConfig.verificationCaseProvider = new NavSatOdometryProvider(2,1);
             cliConfig.verificationCaseScheduler = new DriveByTopicScheduler(StateRecorder.lowEndGpsTopic, 0);
-            cliConfig.messageSynchronizer = new ClosestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.lowEndGpsTopic, StateRecorder.imuTopic, StateRecorder.yoloTopic), Map.of());
+            cliConfig.messageSynchronizer = new LatestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.lowEndGpsTopic, StateRecorder.imuTopic, StateRecorder.yoloTopic));
             cliConfig.map = mapPath;
             play(cliConfig);
         }
     }
 
-    public static class RefineryVerificationEngineRealConfiguration {
+    public static class RefineryVerificationEngineRealConfiguration { // With Refinery, for real vehicle
         public static void main(String[] args) throws IOException {
             String mapPath = extractMapPath(args, "/Krisztina/Krisztina.json");
             String metamodelPath = extractArgumentValue(args, "--metamodel");
@@ -118,14 +114,14 @@ public class ROSReplayer {
             cliConfig.relevantTopics = Set.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.yoloTopic, StateRecorder.lowEndGpsTopic);
             cliConfig.verificationCaseProvider = new RealScenarioProvider();
             cliConfig.verificationCaseScheduler = new DriveByTopicScheduler(StateRecorder.lowEndGpsTopic, 0);
-            cliConfig.messageSynchronizer = new ClosestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.lowEndGpsTopic, StateRecorder.yoloTopic), Map.of());
+            cliConfig.messageSynchronizer = new LatestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.lowEndGpsTopic, StateRecorder.yoloTopic));
 
             cliConfig.map = mapPath;
             play(cliConfig);
         }
     }
 
-    public static class YoloErrorCalculation{
+    public static class YoloErrorCalculation{ // YOLO error calculation
         public static void main(String[] args) throws IOException {
             String mapPath = extractMapPath(args, null);
             String targetId = extractTargetId(args);
@@ -141,7 +137,7 @@ public class ROSReplayer {
             cliConfig.relevantTopics = Set.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.yoloTopic);
             cliConfig.verificationCaseProvider = new NavSatOdometryProvider(1, 1);
             cliConfig.verificationCaseScheduler = new DriveByTopicScheduler(StateRecorder.groundTruthGpsTopic, 0);
-            cliConfig.messageSynchronizer = new ClosestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.yoloTopic), Map.of());
+            cliConfig.messageSynchronizer = new LatestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.yoloTopic));
             cliConfig.map = mapPath;
             play(cliConfig);
         }

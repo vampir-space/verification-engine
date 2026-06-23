@@ -48,23 +48,31 @@ fun parseAppArgs(): List<String> {
 // JavaExec tasks for main classes.
 
 // ROSReplayer has multiple nested static classes each with a main method. Use $ in class name (escaped).
-tasks.register("runROSRefineryVerificationEngineSim", JavaExec::class) {
+tasks.register("visualize", JavaExec::class) {
     group = "application"
-    description = "Run ROSReplayer.RefineryVerificationEngineRunConfiguration main"
-    mainClass.set("space.vampir.engine.ROSReplayer\$RefineryVerificationEngineRunConfiguration")
+    description = "Run ROSReplayer.NoVerificationEngineRealConfiguration main to visualize without Refinery"
+    mainClass.set("space.vampir.engine.ROSReplayer\$NoVerificationEngineRealConfiguration")
     classpath = sourceSets.main.get().runtimeClasspath
     args = parseAppArgs()
 }
 
-tasks.register("runROSRefineryVerificationEngineReal", JavaExec::class) {
+tasks.register("experiment", JavaExec::class) {
     group = "application"
-    description = "Run ROSReplayer.RefineryVerificationEngineRealConfiguration main"
+    description = "Run ROSReplayer.RefineryVerificationEngineRealConfiguration main to run Refinery with the real vehicle"
     mainClass.set("space.vampir.engine.ROSReplayer\$RefineryVerificationEngineRealConfiguration")
     classpath = sourceSets.main.get().runtimeClasspath
     args = parseAppArgs()
 }
 
-tasks.register("runROSYoloErrorCalculation", JavaExec::class) {
+tasks.register("experiment-sim", JavaExec::class) {
+    group = "application"
+    description = "Run ROSReplayer.RefineryVerificationEngineRunConfiguration main to run Refinery with the real vehicle"
+    mainClass.set("space.vampir.engine.ROSReplayer\$RefineryVerificationEngineRunConfiguration")
+    classpath = sourceSets.main.get().runtimeClasspath
+    args = parseAppArgs()
+}
+
+tasks.register("experiment-yolo", JavaExec::class) {
     group = "application"
     description = "Run ROSReplayer.YoloErrorCalculation main"
     mainClass.set("space.vampir.engine.ROSReplayer\$YoloErrorCalculation")
