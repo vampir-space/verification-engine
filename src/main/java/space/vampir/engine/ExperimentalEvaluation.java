@@ -1,6 +1,7 @@
 package space.vampir.engine;
 
 import space.vampir.engine.message.Odometry;
+import space.vampir.engine.verification.UpdatedScenario;
 import space.vampir.engine.visualization.MapRender;
 
 import java.util.ArrayList;
@@ -18,7 +19,7 @@ public class ExperimentalEvaluation {
     private final SortedUniqueList<Long> timestamps = new SortedUniqueList<>();
     private final HashMap<Long, Odometry> reference = new HashMap<>();
     private final HashMap<Long, Odometry> GNSS = new HashMap<>();
-    private final HashMap<Long, Odometry> verificationEngine = new HashMap<>();
+    private final HashMap<Long, UpdatedScenario> verificationEngine = new HashMap<>();
 
 
 
@@ -57,7 +58,7 @@ public class ExperimentalEvaluation {
         return GNSS;
     }
 
-    public HashMap<Long, Odometry> getVerificationEngine() {
+    public HashMap<Long, UpdatedScenario> getVerificationEngine() {
         return verificationEngine;
     }
 
@@ -71,7 +72,7 @@ public class ExperimentalEvaluation {
      * @param gnss the map containing GNSS odometry data
      * @param ver the map containing verification engine odometry data
      */
-    public void addOdometries(Map<Long, Odometry> ref, Map<Long, Odometry> gnss, Map<Long, Odometry> ver) {
+    public void addOdometries(Map<Long, Odometry> ref, Map<Long, Odometry> gnss, Map<Long, UpdatedScenario> ver) {
         putAll(reference, ref);
         putAll(GNSS, gnss);
         putAll(verificationEngine, ver);
@@ -94,10 +95,12 @@ public class ExperimentalEvaluation {
      * @param target the map to which entries will be copied
      * @param source the map from which entries will be copied
      */
-    private void putAll(Map<Long, Odometry> target, Map<Long, Odometry> source) {
-        for (Map.Entry<Long, Odometry> entry : source.entrySet()) {
+    private <T> void putAll(Map<Long, T> target, Map<Long, T> source) {
+        for (Map.Entry<Long, T> entry : source.entrySet()) {
             if (entry.getValue() != null) {
                 target.put(entry.getKey(), entry.getValue());
+            } else {
+                throw new IllegalArgumentException("Value is null: "+ entry.getKey());
             }
         }
     }
@@ -167,11 +170,11 @@ public class ExperimentalEvaluation {
                 }
 
                 // 2. Determine Verification Engine (VE) Status
-                boolean isVeOff = !verificationEngine.containsKey(timeStamp);
+                boolean isVeOff = !verificationEngine.containsKey(timeStamp) || !verificationEngine.get(timeStamp).use();
                 boolean isVeValid = false;
 
                 if (!isVeOff) {
-                    var distance =  getDistanceInM(verificationEngine.get(timeStamp),reference.get(timeStamp));
+                    var distance =  getDistanceInM(verificationEngine.get(timeStamp).updatedByVerificationEngine(),reference.get(timeStamp));
                     isVeValid = distance < diff;
                 }
 
@@ -204,6 +207,9 @@ public class ExperimentalEvaluation {
     }
 
     protected double getDistanceInM(Odometry o1, Odometry o2) {
+        if(o1 == null || o2 == null){
+            throw new IllegalArgumentException("Arguments cannot be null");
+        }
         var m1 = mapRender.toMapCoord(o1.getX(), o1.getY());
         var m2 = mapRender.toMapCoord(o2.getX(), o2.getY());
         var xdiff = m1[0]-m2[0];
@@ -253,14 +259,14 @@ public class ExperimentalEvaluation {
         System.out.println("time,reference-GNSS,reference-VE,reference-reliable,use-donotuse,detections");
         for (long t : timestamps) {
             var referenceGNSS = getDistanceInM(reference.get(t),GNSS.get(t));
-            var use = verificationEngine.get(t) != null;
+            var use = verificationEngine.get(t).use();
             final double referenceVE;
             if(use) {
-                referenceVE = getDistanceInM(reference.get(t),verificationEngine.get(t));
+                referenceVE = getDistanceInM(reference.get(t),verificationEngine.get(t).updatedByVerificationEngine());
             } else {
                 referenceVE = 0.0;
             }
-            var detections = 1;
+            var detections = verificationEngine.get(t).numberOfLandmarks();
             var referenceReliable = 1.0;
 
             System.out.println(t+","+referenceGNSS+","+referenceVE+","+referenceReliable+","+use+","+detections);

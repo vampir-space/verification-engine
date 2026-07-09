@@ -93,6 +93,7 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
         List<String> inc = new ArrayList<>();
         Map<String, Yolo.YoloDetection> observationYoloMap = new HashMap<>();
 
+
         // reset scope
         Scope<ModelSeedFragment> updatedScope = new Scope<>(this.mapOnlyScope);
         // reset fragment
@@ -100,6 +101,10 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
         complexityStrategy.setOutputStrategy(outputStrategy);
 
         Scope<ModelSeedFragment> scope = translateToScope(rawScenario, updatedScope, observationYoloMap, inc);
+
+//        if(inc.size()>0) {
+//            System.out.println(inc.size());
+//        }
 
         // stage 2
         // instead of

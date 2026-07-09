@@ -92,7 +92,7 @@ public class VisualStatRepresentation extends Visualization implements Observer,
         evaluation.addOdometries(
                 updatedVerificationCase.groundTruth() != null ? Map.of(time, updatedVerificationCase.groundTruth()) : Map.of(),
                 updatedVerificationCase.scenario().odometry() != null ? Map.of(time, updatedVerificationCase.scenario().odometry()) : Map.of(),
-                updatedVerificationCase.updatedByVerificationEngine() != null ? Map.of(time, updatedVerificationCase.updatedByVerificationEngine()) : Map.of()
+                updatedVerificationCase.updatedScenario() != null ? Map.of(time, updatedVerificationCase.updatedScenario()) : Map.of()
         );
     }
 
