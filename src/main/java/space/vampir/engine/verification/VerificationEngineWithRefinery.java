@@ -145,23 +145,36 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
             GeometrySolver.Solution geometrySolution = GeometrySolver.solve(odometryPrior, locations, yolos);
             var coordsInGeo = mapRender.toGeoCoord(geometrySolution.x, geometrySolution.y);
 
-            return new UpdatedScenario(rawScenario, new Odometry(rawScenario.time(), coordsInGeo[0], coordsInGeo[1], rawScenario.odometry().getTheta()));
+            return new UpdatedScenario(rawScenario,
+                    new Odometry(rawScenario.time(), coordsInGeo[0], coordsInGeo[1], rawScenario.odometry().getTheta()),
+                    getNumberOfUsedYolo(rawScenario));
         } else {
             return rejectUpdate(rawScenario);
         }
     }
 
-    private static @NotNull UpdatedScenario rejectUpdate(Scenario rawScenario) {
-        return new UpdatedScenario(rawScenario, null);
+    private @NotNull UpdatedScenario rejectUpdate(Scenario rawScenario) {
+        return new UpdatedScenario(rawScenario, null, getNumberOfUsedYolo(rawScenario));
     }
 
-    private static @NotNull UpdatedScenario noUpdate(Scenario rawScenario) {
+    private int getNumberOfUsedYolo(Scenario rawScenario) {
+        int numberOfUsedYolo = 0;
+        for(var y : rawScenario.yolo().getYoloDetections()) {
+            if(y.confidence() >= configuration.yoloMinConfidence) {
+                numberOfUsedYolo++;
+            }
+        }
+        return numberOfUsedYolo;
+    }
+
+    private @NotNull UpdatedScenario noUpdate(Scenario rawScenario) {
         return new UpdatedScenario(rawScenario,
                 new Odometry(
                         rawScenario.time(),
                         rawScenario.odometry().getX(),
                         rawScenario.odometry().getY(),
-                        rawScenario.odometry().getTheta()));
+                        rawScenario.odometry().getTheta()),
+                getNumberOfUsedYolo(rawScenario));
     }
 
     Scope<ModelSeedFragment> translateMapToScope(Point egoPosition) {

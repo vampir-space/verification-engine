@@ -18,9 +18,9 @@ public class DummyVerificationEngine implements VerificationEngine {
     public UpdatedScenario update(Scenario scenario) {
         Odometry odometry = scenario.odometry();
         if (odometry == null) {
-            return new UpdatedScenario(scenario, null);
+            return new UpdatedScenario(scenario, null,0);
         }
         Odometry newValue = NoiseApplier.addNoise(odometry, radiusStdDev, angleStdDev);
-        return new UpdatedScenario(scenario, newValue);
+        return new UpdatedScenario(scenario, newValue,0);
     }
 }

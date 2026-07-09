@@ -39,7 +39,8 @@ public class DisplayUpdatedScenario {
                                                 new Yolo.YoloDetection("car", Math.PI * 0.05, 0),
                                                 new Yolo.YoloDetection("car", Math.PI * 0.08, 0)))
                                 ),
-                                new Odometry(0, 47.47859, 19.057058607914573, Math.PI * 1.5)
+                                new Odometry(0, 47.47859, 19.057058607914573, Math.PI * 1.5),
+                                5
                         ),
                         new Odometry(0, 47.47869148915325, 19.057058607914573, Math.PI * 1.5)
                 )

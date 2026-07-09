@@ -59,7 +59,7 @@ public class ROSReplayer {
         public static void main(String[] args) {
             String mapPath = extractMapPath(args, "/BME_Town_small/BME_Town_small.json");
             CliConfig cliConfig = CliConfig.get(args);
-            cliConfig.verificationEngine = scenario -> new UpdatedScenario(scenario, null);
+            cliConfig.verificationEngine = scenario -> new UpdatedScenario(scenario, null, scenario.yolo().getYoloDetections().size());
             cliConfig.showStats = false;
             cliConfig.relevantTopics = Set.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.pointPillarsTopic, StateRecorder.yoloTopic, StateRecorder.lowEndGpsTopic);
             cliConfig.verificationCaseProvider = new RealScenarioProvider();
@@ -174,6 +174,9 @@ public class ROSReplayer {
         // Check if replay mode or live mode
         if (cliConfig.replayJsonFile != null) {
             replayFromJsonl(recorder, cliConfig.replayJsonFile);
+            experimentalEvaluation.print();
+//            experimentalEvaluation.attach(new SaveToCSV(experimentalEvaluation));
+//            experimentalEvaluation.endEvaluation();
         } else {
             playLiveRos(recorder, cliConfig);
         }

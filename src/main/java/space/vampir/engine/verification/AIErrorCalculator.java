@@ -63,7 +63,8 @@ public class AIErrorCalculator implements VerificationEngine{
                             rawScenario.time(),
                             rawScenario.odometry().getX(),
                             rawScenario.odometry().getY(),
-                            rawScenario.odometry().getTheta()));
+                            rawScenario.odometry().getTheta()),
+                    0);
         }
         // EGO
         var xyCoords = mapRender.toMapCoord(rawScenario.odometry().getX(), rawScenario.odometry().getY());
@@ -111,6 +112,6 @@ public class AIErrorCalculator implements VerificationEngine{
                         rawScenario.time(),
                         rawScenario.odometry().getX(),
                         rawScenario.odometry().getY(),
-                        rawScenario.odometry().getTheta()));
+                        rawScenario.odometry().getTheta()),0);
     }
 }

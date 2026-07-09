@@ -127,7 +127,7 @@ public class CliConfig {
                                 JsonNode subConfig = jsonConfig.get("verificationEngine");
                                 String type = subConfig.get("type").asText();
                                 config.verificationEngine = switch (type) {
-                                    case "None" -> scenario -> new UpdatedScenario(scenario, null);
+                                    case "None" -> scenario -> new UpdatedScenario(scenario, null,0);
                                     case "DummyVerificationEngine" -> new DummyVerificationEngine(
                                             subConfig.get("radiusStdDev").asDouble(),
                                             getAngle(subConfig, "thetaStdDev")

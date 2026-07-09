@@ -248,4 +248,22 @@ public class ExperimentalEvaluation {
         }
         return bins;
     }
+
+    void print() {
+        System.out.println("time,reference-GNSS,reference-VE,reference-reliable,use-donotuse,detections");
+        for (long t : timestamps) {
+            var referenceGNSS = getDistanceInM(reference.get(t),GNSS.get(t));
+            var use = verificationEngine.get(t) != null;
+            final double referenceVE;
+            if(use) {
+                referenceVE = getDistanceInM(reference.get(t),verificationEngine.get(t));
+            } else {
+                referenceVE = 0.0;
+            }
+            var detections = 1;
+            var referenceReliable = 1.0;
+
+            System.out.println(t+","+referenceGNSS+","+referenceVE+","+referenceReliable+","+use+","+detections);
+        }
+    }
 }
