@@ -71,7 +71,7 @@ public interface VerificationCaseProvider {
             }
             Scenario scenario = new Scenario(odometry, sync.pointPillars(), sync.yolo());
             var navSat = sync.groundTruthGps();
-            Odometry gtOdometry = new Odometry(navSat.getTime(), navSat.getLat(), navSat.getLon(), sync.imu().getTheta());
+            Odometry gtOdometry = new Odometry(navSat.getTime(), navSat.getLat(), navSat.getLon(), sync.imu().getTheta(), navSat.getPositionCovariance());
             return new VerificationCase(scenario, gtOdometry);
         }
     }
@@ -90,12 +90,12 @@ public interface VerificationCaseProvider {
                         sync.lowEndGps().getLat(),
                         sync.lowEndGps().getLon(),
                         sync.imu().getTheta(),
-                        10.0
+                        sync.lowEndGps().getPositionCovariance()
                 );
             }
             Scenario scenario = new Scenario(lowEndOdometry, sync.pointPillars(), sync.yolo());
             var navSat = sync.groundTruthGps();
-            Odometry gtOdometry = new Odometry(navSat.getTime(), navSat.getLat(), navSat.getLon(), sync.imu().getTheta());
+            Odometry gtOdometry = new Odometry(navSat.getTime(), navSat.getLat(), navSat.getLon(), sync.imu().getTheta(), navSat.getPositionCovariance());
             return new VerificationCase(scenario, gtOdometry);
         }
     }
