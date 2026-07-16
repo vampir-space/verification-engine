@@ -39,6 +39,7 @@ public class StateRecorder {
     public static final String yoloTopic = "/detections/yolo";
     public static final String groundTruthSimNavSatTopic = "/ground_truth/GPS_navsatfix";
     public static final String simNavSatTopic = "/simulated_navsat_data";
+    public static final String rtkStatusTopic = "/ground_truth/gps/rtk";
 
     public final Map<String, Integer> topicIndices = new LinkedHashMap<>();
     public final Map<String, TopicStatistics> topicStatistics = new LinkedHashMap<>();
@@ -59,6 +60,9 @@ public class StateRecorder {
 
     private final List<Yolo> yolos = new ArrayList<>();
     private final int yoloMessageQueueIndex = addMessageQueue(yoloTopic, yolos);
+
+    private final List<RtkStatus> rtkStatuses = new ArrayList<>();
+    private final int rtkStatusQueueIndex = addMessageQueue(rtkStatusTopic, rtkStatuses);
 
     private final StateListener listener;
     private final VerificationCaseProvider verificationCaseProvider;
@@ -103,6 +107,7 @@ public class StateRecorder {
             case yoloTopic -> insertMessage(yolos, Yolo.fromMap(message));
             case groundTruthSimNavSatTopic -> insertMessage(groundTruthGPSs, NavSat.fromMap(message));
             case simNavSatTopic -> insertMessage(lowEndGPSs, NavSat.fromMap(message));
+            case rtkStatusTopic -> insertMessage(rtkStatuses, RtkStatus.fromMap(message));
 //            case syncedTopic -> {
 //                Message res = null;
 //                for (var t : messageTopics) {
