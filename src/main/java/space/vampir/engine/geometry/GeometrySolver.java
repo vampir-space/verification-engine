@@ -170,8 +170,20 @@ public class GeometrySolver {
         }
 
         for (YoloDetection yolo : yoloDetections) {
-            double cosBeta = Math.cos(yolo.bearing);
-            double sinBeta = Math.sin(yolo.bearing);
+            // Check if odometry reference falls inside the bearing cone
+            double refBearing = normalizeAngle(Math.atan2(yolo.landmarkY - odometry.y, yolo.landmarkX - odometry.x) - theta);
+            double deviation = normalizeAngle(refBearing - yolo.bearing);
+
+            if (Math.abs(deviation) <= yolo.bearingHalfCone) {
+                // Inside cone: constraint satisfied, skip
+                continue;
+            }
+
+            // Outside cone: snap to nearest cone boundary
+            double activeBearing = yolo.bearing + Math.signum(deviation) * yolo.bearingHalfCone;
+
+            double cosBeta = Math.cos(activeBearing);
+            double sinBeta = Math.sin(activeBearing);
 
             // Ray direction from landmark toward vehicle: -R(bearing) * d
             double rx = -(cosBeta * cosT - sinBeta * sinT);
@@ -272,14 +284,24 @@ public class GeometrySolver {
         }
 
         for (YoloDetection yolo : yoloDetections) {
-            double cosBeta = Math.cos(yolo.bearing);
-            double sinBeta = Math.sin(yolo.bearing);
+            // Mirror the same cone check used in estimatePosition (odometry as reference)
+            double refBearing = normalizeAngle(Math.atan2(yolo.landmarkY - odometry.y, yolo.landmarkX - odometry.x) - solution.theta);
+            double deviation = normalizeAngle(refBearing - yolo.bearing);
+
+            if (Math.abs(deviation) <= yolo.bearingHalfCone) {
+                continue;
+            }
+
+            double activeBearing = yolo.bearing + Math.signum(deviation) * yolo.bearingHalfCone;
+
+            double cosBeta = Math.cos(activeBearing);
+            double sinBeta = Math.sin(activeBearing);
 
             double rx = -(cosBeta * cosT - sinBeta * sinT);
             double ry = -(sinBeta * cosT + cosBeta * sinT);
 
-            double dx = solution.x - yolo.landmarkX;
-            double dy = solution.y - yolo.landmarkY;
+            double dx = odometry.x - yolo.landmarkX;
+            double dy = odometry.y - yolo.landmarkY;
             double t = dx * rx + dy * ry;
 
             if (t >= 0) {

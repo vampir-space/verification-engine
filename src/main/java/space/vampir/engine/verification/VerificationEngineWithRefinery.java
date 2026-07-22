@@ -96,7 +96,7 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
 
         var coordsInGeo = mapRender.toGeoCoord(geometrySolution.x, geometrySolution.y);
 
-        return new UpdatedScenario(rawScenario, new Odometry(rawScenario.time(),coordsInGeo[0],coordsInGeo[1],geometrySolution.alpha));
+        return new UpdatedScenario(rawScenario, new Odometry(rawScenario.time(),coordsInGeo[0],coordsInGeo[1],geometrySolution.theta));
     }
 
     private @NotNull Scope<ModelSeedFragment> translateToScope(Scenario rawScenario, Map<String,Yolo.YoloDetection> observationYoloMap) {
