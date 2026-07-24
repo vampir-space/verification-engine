@@ -7,16 +7,19 @@ import java.net.URL;
 import java.util.Objects;
 
 public class ObjectRender {
+    public static final String focusName = "#focus";
+
     final SVGDocument background;
     double x, y, sizeX, sizeY, theta;
     final String name;
+    final boolean renderName;
 
     public ObjectRender(URL mapURL,
                         double sizeX, double sizeY, double x, double y, double theta) {
-        this(mapURL,null,sizeX,sizeY,x,y,theta);
+        this(mapURL,null,false,sizeX,sizeY,x,y,theta);
     }
 
-    public ObjectRender(URL mapURL, String name,
+    public ObjectRender(URL mapURL, String name, boolean renderName,
                      double sizeX, double sizeY, double x, double y, double theta) {
         SVGLoader loader = new SVGLoader();
         background = loader.load(Objects.requireNonNull(mapURL, "SVG file not found"));
@@ -26,6 +29,7 @@ public class ObjectRender {
         this.y=y;
         this.theta=theta;
         this.name=name;
+        this.renderName=renderName;
     }
 
     public SVGDocument getBackground() {

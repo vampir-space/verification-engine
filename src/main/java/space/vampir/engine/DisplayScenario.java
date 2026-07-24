@@ -4,6 +4,8 @@ import space.vampir.engine.message.Odometry;
 import space.vampir.engine.message.PointPillars;
 import space.vampir.engine.message.Scenario;
 import space.vampir.engine.message.Yolo;
+import space.vampir.engine.verification.UpdatedScenario;
+import space.vampir.engine.verification.UpdatedVerificationCase;
 import space.vampir.engine.visualization.*;
 
 import java.io.File;
@@ -22,7 +24,7 @@ public class DisplayScenario {
 
         new DisplayScenario(map).showOnPanel(
                 new Scenario(
-                        new Odometry(0,47.47869148915325,19.057058607914573,Math.PI*1.5),
+                        new Odometry(0,47.47869148915325,19.057058607914573,Math.PI*1.5,3),
                         new PointPillars(0,List.of(
                                 new PointPillars.PointPillarsDetection(0, 10, Math.PI*0,2,2),
                                 new PointPillars.PointPillarsDetection(10, 10, Math.PI*0,1,1),
@@ -36,9 +38,21 @@ public class DisplayScenario {
 
     public void showOnPanel(Scenario scenario) {
         SceneVisualization visualization = new SceneVisualization(map);
-        visualization.show(scenario);
+        visualization.show(toUpdatedScenario(scenario));
         visualization.getMapPanel().saveImage(new File("scene.png"), 1000, 400);
         visualization.updateWindow();
         visualization.startWindow();
     }
+
+    private UpdatedVerificationCase toUpdatedScenario(Scenario scenario) {
+        return new UpdatedVerificationCase(
+                new UpdatedScenario(
+                        new Scenario(null,scenario.pointPillars(),scenario.yolo()),
+                        null,
+                        0),
+                scenario.odometry()
+        );
+    }
+
+
 }

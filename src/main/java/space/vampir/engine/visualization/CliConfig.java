@@ -30,6 +30,12 @@ public class CliConfig {
     // boolean showRefinery = false;
     public String map = null;
     public String metamodelPath = null;
+    /**
+     * If the value is null, the map has no border. Otherwise, the border is represented as a sequence of coordinates
+     * (in lat/long format). Each coordinate is represented as a pair of double numbers in this array. The coordinates
+     * need to be listed in clockwise order.
+     */
+    public double[] mapBorder=null;
 
     // Recording and replay options
     public String recordJsonFile = null;
@@ -90,6 +96,15 @@ public class CliConfig {
 
                             if (jsonConfig.has("map")) {
                                 config.map = jsonConfig.get("map").asText();
+                            }
+
+                            if(jsonConfig.has("mapBorder")) {
+                                String mapBorderFullString = jsonConfig.get("mapBorder").asText();
+                                String[] mapBorderCoordinateStrings = mapBorderFullString.split(" ");
+                                config.mapBorder = new double[mapBorderCoordinateStrings.length];
+                                for(int j = 0; j< mapBorderCoordinateStrings.length; j++) {
+                                    config.mapBorder[j] = Double.parseDouble(mapBorderCoordinateStrings[j]);
+                                }
                             }
 
                             if (jsonConfig.has("metamodelPath")) {

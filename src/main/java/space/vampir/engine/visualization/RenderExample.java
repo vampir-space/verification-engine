@@ -9,7 +9,7 @@ public class RenderExample {
         SwingUtilities.invokeLater(() -> {
             MapRender map = new MapRender(RenderExample.class.getResource("/CrossWalk_3_objects.svg"),
                     275.242965-145.75,1164.145456-145.75,546.6958-125.81,
-                    -60,60,-20,47.478824, 19.056313);
+                    -60,60,-20,47.478824, 19.056313,null);
 
             map.addObject(
                     new ObjectRender(RenderExample.class.getResource("/car.svg"),

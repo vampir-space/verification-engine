@@ -5,9 +5,9 @@ public class VerificationEngineConfiguration {
     boolean doRoadCutting = false;
     double roadCutterGranularity = 10;
 
-    double gnssConfidenceRange=5;
+    double gnssConfidenceRangeMultiplier=1;
     double yoloRange=50;
     double yoloAngleOfView=0.01;
-    //double yoloAngleError=Math.PI/12;
+
     double yoloMinConfidence = 0.4;
 }

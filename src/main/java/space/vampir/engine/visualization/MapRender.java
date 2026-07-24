@@ -42,6 +42,8 @@ public class MapRender {
     //objects on the map (read from the xodr file)
     List<ObjectRender> staticObjects = new ArrayList<>();
 
+    final double[] mapBorder;
+
     /**
      * x1       x2
      * y +---------+
@@ -49,7 +51,7 @@ public class MapRender {
     public MapRender(URL mapURL,
                      double backgroundX1, double backgroundX2, double backgroundY1,
                      double mapX1, double mapX2, double mapY1,
-                     double geoRefLat, double geoRefLon) {
+                     double geoRefLat, double geoRefLon, double[] mapBorder) {
         mapConfig = null;
         xodrPath = null;
         xodrURL = null;
@@ -67,6 +69,8 @@ public class MapRender {
 
         this.geoRefLatRad = Math.toRadians(geoRefLat);
         this.geoRefLonRad = Math.toRadians(geoRefLon);
+
+        this.mapBorder = mapBorder;
     }
 
     public MapRender(String configFilePath) {
@@ -94,6 +98,57 @@ public class MapRender {
         double geoRefLat = node.get("geoRefLat").asDouble();
         double geoRefLon = node.get("geoRefLon").asDouble();
 
+        // Map border
+        var border = node.get("mapBorder");
+        if (border != null) {
+            String mapBorderFullString = border.asText();
+            String[] mapBorderCoordinateStrings = mapBorderFullString.split(" ");
+            mapBorder = new double[mapBorderCoordinateStrings.length];
+            for (int j = 0; j < mapBorderCoordinateStrings.length; j++) {
+                mapBorder[j] = Double.parseDouble(mapBorderCoordinateStrings[j]);
+            }
+
+            // drawing the border points
+            for (int j = 0; j < mapBorder.length / 2; j++) {
+                boolean last = j == mapBorder.length / 2 - 1;
+                final double x1 = mapBorder[j * 2];
+                final double y1 = mapBorder[j * 2 + 1];
+
+
+                this.staticObjects.add(
+                        new ObjectRender(
+                                MapRender.class.getResource("/border-circ.svg"),
+                                2, 2,
+                                x1, y1,
+                                0));
+
+            }
+
+            // drawing the border lines
+            for (int j = 0; j < mapBorder.length / 2; j++) {
+                boolean last = j == mapBorder.length / 2 - 1;
+                final double x1 = mapBorder[j * 2];
+                final double y1 = mapBorder[j * 2 + 1];
+                final double x2 = last ? mapBorder[0] : mapBorder[j * 2 + 2];
+                final double y2 = last ? mapBorder[1] : mapBorder[j * 2 + 3];
+
+                final double middleX = (x1 + x2) / 2;
+                final double middleY = (y1 + y2) / 2;
+                final double sizeY = Math.sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
+                final double dir = Math.atan2(x2 - x1, y2 - y1);
+
+                this.staticObjects.add(
+                        new ObjectRender(
+                                MapRender.class.getResource("/border.svg"),
+                                2, sizeY,
+                                middleX, middleY,
+                                dir));
+            }
+
+        } else {
+            mapBorder = null;
+        }
+
         // Return the initialized class
         SVGLoader loader = new SVGLoader();
         background = Objects.requireNonNull(loader.load(Objects.requireNonNull(mapURL, "SVG file not found"), LoaderContext.builder().documentLimits(new DocumentLimits(DocumentLimits.DEFAULT_MAX_NESTING_DEPTH, DocumentLimits.DEFAULT_MAX_USE_NESTING_DEPTH, 10000)).build()));
@@ -118,9 +173,16 @@ public class MapRender {
 
         if (mapHandler != null) {
             LinkedHashMap<Integer, MapObject> mapObjects = mapHandler.getObjects();
-            for(MapObject o : mapObjects.values()) {
-                if(o.getType().equals(ObjectType.Signal)){
-                    this.staticObjects.add(new ObjectRender(MapRender.class.getResource("/signal.svg"),"Sign" +o.getId(),4.0, 6.0, o.getCoordinate().getX(), o.getCoordinate().getY(), 0.0));
+            for (MapObject o : mapObjects.values()) {
+                if (o.getType().equals(ObjectType.Signal)) {
+                    this.staticObjects.add(
+                            new ObjectRender(
+                                    MapRender.class.getResource("/signal.svg"),
+                                    "Sign" + o.getId(), true,
+                                    4.0, 6.0,
+                                    o.getCoordinate().getX(),
+                                    o.getCoordinate().getY(),
+                                    0.0));
                 }
             }
         }
@@ -164,6 +226,31 @@ public class MapRender {
         return new double[]{latDeg, lonDeg};
     }
 
+    public boolean isInsideBorder(double lat, double lon) {
+        if (this.mapBorder == null) {
+            return true;
+        }
+
+        var mapCoords = toMapCoord(lat, lon);
+        var xt = mapCoords[0];
+        var yt = mapCoords[1];
+
+        for (int j = 0; j < mapBorder.length / 2; j++) {
+            boolean last = j == mapBorder.length / 2 - 1;
+            final double xa = mapBorder[j * 2];
+            final double ya = mapBorder[j * 2 + 1];
+            final double xb = last ? mapBorder[0] : mapBorder[j * 2 + 2];
+            final double yb = last ? mapBorder[1] : mapBorder[j * 2 + 3];
+
+            double crossProduct = (xb - xa) * (yt - ya) - (yb - ya) * (xt - xa);
+            boolean isRight = crossProduct > 0;
+
+            if (!isRight) return false;
+        }
+
+        return true;
+    }
+
     public void addObject(ObjectRender object) {
         objects.add(object);
     }
@@ -176,7 +263,7 @@ public class MapRender {
         return List.copyOf(objects); // copy to avoid concurrent modification issues
     }
 
-    public List<ObjectRender> getStaticObjects(){
+    public List<ObjectRender> getStaticObjects() {
         return List.copyOf(staticObjects);
     }
 
