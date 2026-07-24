@@ -91,12 +91,8 @@ public class MapPanel extends JPanel {
         } else {
             ObjectRender focus = null;
             for (var o : map.getObjects()) {
-                if (o.getName() != null && o.getName().equals("ego")) {
+                if (o.getName() != null && o.getName().equals(ObjectRender.focusName)) {
                     focus = o;
-                }
-                if (o.getName() != null && o.getName().equals("gt")) {
-                    focus = o;
-                    break;
                 }
             }
             if (focus != null) {
@@ -235,7 +231,7 @@ public class MapPanel extends JPanel {
         g2d.setTransform(old);
 
 
-        if(object.getName() != null) {
+        if(object.getName() != null && object.renderName) {
             int textX = (int) (getWidth() / 2.0 + xOffset * currentMapScale);
             int textY = (int) (getHeight() / 2.0 - yOffset * currentMapScale);
 

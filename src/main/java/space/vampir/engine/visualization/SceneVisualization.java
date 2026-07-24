@@ -19,6 +19,8 @@ public class SceneVisualization extends Visualization {
     protected static URL gnssImage = SceneVisualization.class.getResource("/gnss.svg");
     protected static URL veImage = SceneVisualization.class.getResource("/ve.svg");
     protected static URL gtImage = SceneVisualization.class.getResource("/gt.svg");
+    protected static URL gnssveImage = SceneVisualization.class.getResource("/gnssve.svg");
+    protected static URL outImage = SceneVisualization.class.getResource("/out.svg");
     protected static URL objectImage = SceneVisualization.class.getResource("/red-square.svg");
 
     protected final JFrame frame = new JFrame("Map");
@@ -29,11 +31,13 @@ public class SceneVisualization extends Visualization {
     protected final JLabel mapSelectorLabel = new JLabel();
     protected final ActionListener mapSelectorActionListener;
 
-    final ObjectRender ego = new ObjectRender(egoImage, "ego", 3, 5, 0, 0, 0);
+    final ObjectRender ego = new ObjectRender(egoImage, ObjectRender.focusName,false, 3, 5, 0, 0, 0);
     final ObjectRender circle = new ObjectRender(RenderExample.class.getResource("/blue-circle.svg"), 30, 30, 0, 0, 0);
     final ObjectRender gnss = new ObjectRender(gnssImage, 3, 5, 0, 0, 0);
     final ObjectRender ve = new ObjectRender(veImage, 3, 5, 0, 0, 0);
-    final ObjectRender gt = new ObjectRender(gtImage, "gt", 3, 5, 0, 0, 0);
+    final ObjectRender gt = new ObjectRender(gtImage, ObjectRender.focusName,false, 3, 5, 0, 0, 0);
+    final ObjectRender gnssve = new ObjectRender(gnssveImage, 3, 5, 0, 0, 0);
+    final ObjectRender out = new ObjectRender(outImage, ObjectRender.focusName,false, 3, 5, 0, 0, 0);
 
     public SceneVisualization(MapRender map, boolean enabled) {
         super(enabled, new Dimension(700, 700));
@@ -115,11 +119,12 @@ public class SceneVisualization extends Visualization {
 
     @Override
     public void doVisualize(UpdatedVerificationCase verificationCase) {
-        if (verificationCase.updatedScenario().updatedByVerificationEngine() == null) {
-            show(verificationCase.scenario());
-        } else {
-            show(verificationCase);
-        }
+//        if (verificationCase.updatedScenario().updatedByVerificationEngine() == null) {
+//            show(verificationCase.scenario());
+//        } else {
+//            show(verificationCase);
+//        }
+        show(verificationCase);
     }
 
     @Override
@@ -131,63 +136,81 @@ public class SceneVisualization extends Visualization {
         return mapPanel;
     }
 
-    public synchronized void show(Scenario state) {
-        map.clearObjects();
-        var odom = state.odometry();
-        if (odom != null) {
-            var coord = map.toMapCoord(odom.getX(), odom.getY());
-
-            ego.setX(coord[0]);
-            ego.setY(coord[1]);
-            ego.setTheta(odom.getTheta());
-            circle.setX(coord[0]);
-            circle.setY(coord[1]);
-
-            map.addObject(ego);
-            map.addObject(circle);
-
-            map.addObject(new ObjectRender(lineImage, circle.getSizeX(), circle.getSizeY(), ego.getX(), ego.getY(), ego.getTheta()));
-        }
-
-        var yolo = state.yolo();
-        if (yolo != null) {
-            for (var detection : yolo.getYoloDetections()) {
-                final URL line;
-                if (detection.type().equals("car")) {
-                    line = lineImage;
-                } else {
-                    line = lineImage2;
-                }
-
-                var o = new ObjectRender(line, 12, 80, ego.getX(), ego.getY(), ego.getTheta() + detection.angle());
-                map.addObject(o);
-            }
-        }
-
-        var pointPillars = state.pointPillars();
-        if (pointPillars != null) {
-            for (var detection : pointPillars.getDetections()) {
-
-                var cosT = Math.cos(ego.theta);
-                var sinT = Math.sin(ego.theta);
-                var o = new ObjectRender(
-                        carImage,
-                        detection.sizeY(),
-                        detection.sizeX(),
-                        ego.getX() - detection.posX() * cosT + detection.posY() * sinT,
-                        ego.getY() + detection.posX() * sinT + detection.posY() * cosT,
-                        detection.theta() + ego.getTheta());
-                map.addObject(o);
-            }
-        }
-    }
+//    public synchronized void show(Scenario state) {
+//        map.clearObjects();
+////        state.
+//        var odom = state.odometry();
+//        if (odom != null) {
+//            var coord = map.toMapCoord(odom.getX(), odom.getY());
+//
+//            ego.setX(coord[0]);
+//            ego.setY(coord[1]);
+//            ego.setTheta(odom.getTheta());
+//            circle.setX(coord[0]);
+//            circle.setY(coord[1]);
+//
+//            map.addObject(ego);
+//            map.addObject(circle);
+//
+//            map.addObject(new ObjectRender(lineImage, circle.getSizeX(), circle.getSizeY(), ego.getX(), ego.getY(), ego.getTheta()));
+//        }
+//
+//        var yolo = state.yolo();
+//        if (yolo != null) {
+//            for (var detection : yolo.getYoloDetections()) {
+//                final URL line;
+//                if (detection.type().equals("car")) {
+//                    line = lineImage;
+//                } else {
+//                    line = lineImage2;
+//                }
+//
+//                var o = new ObjectRender(line, 12, 80, ego.getX(), ego.getY(), ego.getTheta() + detection.angle());
+//                map.addObject(o);
+//            }
+//        }
+//
+//        var pointPillars = state.pointPillars();
+//        if (pointPillars != null) {
+//            for (var detection : pointPillars.getDetections()) {
+//
+//                var cosT = Math.cos(ego.theta);
+//                var sinT = Math.sin(ego.theta);
+//                var o = new ObjectRender(
+//                        carImage,
+//                        detection.sizeY(),
+//                        detection.sizeX(),
+//                        ego.getX() - detection.posX() * cosT + detection.posY() * sinT,
+//                        ego.getY() + detection.posX() * sinT + detection.posY() * cosT,
+//                        detection.theta() + ego.getTheta());
+//                map.addObject(o);
+//            }
+//        }
+//    }
 
     public synchronized void show(UpdatedVerificationCase verificationCase) {
         map.clearObjects();
 
         Scenario state = verificationCase.scenario();
 
-
+        //drawing car based on ground truth
+        var gtOdom = verificationCase.groundTruth();
+        if (gtOdom != null) {
+            var coord = map.toMapCoord(gtOdom.getX(), gtOdom.getY());
+            boolean isInsideBorder = map.isInsideBorder(gtOdom.getX(), gtOdom.getY());
+            if (isInsideBorder) {
+                gt.setX(coord[0]);
+                gt.setY(coord[1]);
+                gt.setTheta(gtOdom.getTheta());
+                map.addObject(gt);
+            } else {
+                out.setX(coord[0]);
+                out.setY(coord[1]);
+                out.setTheta(gtOdom.getTheta());
+                map.addObject(out);
+                return;
+            }
+        }
 
         //Drawing car based on gnss
         var gnssOdom = state.odometry();
@@ -205,17 +228,6 @@ public class SceneVisualization extends Visualization {
 
             map.addObject(circle);
             map.addObject(gnss);
-        }
-
-        //drawing car based on ground truth
-        var gtOdom = verificationCase.groundTruth();
-        if (gtOdom != null) {
-            var coord = map.toMapCoord(gtOdom.getX(), gtOdom.getY());
-
-            gt.setX(coord[0]);
-            gt.setY(coord[1]);
-            gt.setTheta(gtOdom.getTheta());
-            map.addObject(gt);
         }
 
         //drawing car based on ve

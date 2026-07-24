@@ -40,7 +40,8 @@ public class NoiseApplier {
                 odometry.getTime(),
                 odometry.getX() + xLatNoise,
                 odometry.getY() + yLonNoise,
-                odometry.getTheta() + thetaNoise);
+                odometry.getTheta() + thetaNoise,
+                odometry.getUncertaintyInMeters());
     }
 
     /**

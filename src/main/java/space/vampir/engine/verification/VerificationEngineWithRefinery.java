@@ -1,6 +1,7 @@
 package space.vampir.engine.verification;
 
 import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 import space.vampir.engine.geometry.GeometrySolver;
 import space.vampir.engine.message.Odometry;
 import space.vampir.engine.message.Scenario;
@@ -14,10 +15,7 @@ import tools.refinery.mapconverter.map.ObjectType;
 import tools.refinery.mapconverter.scope.Circle;
 import tools.refinery.mapconverter.scope.Point;
 import tools.refinery.mapconverter.scope.Scope;
-import tools.refinery.mapconverter.scope.Sector;
-import tools.refinery.mapconverter.scope.Size;
 import tools.refinery.mapconverter.transform.BasicWithTypeRefinementStrategy;
-import tools.refinery.mapconverter.transform.ComplexityStrategy;
 import tools.refinery.mapconverter.transform.MapGenerationProblemProvider;
 import tools.refinery.mapconverter.transform.ModelSeedFragment;
 import tools.refinery.mapconverter.transform.ModelSeedStrategy;
@@ -150,19 +148,43 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
             GeometrySolver.Solution geometrySolution = GeometrySolver.solve(odometryPrior, locations, yolos);
             var coordsInGeo = mapRender.toGeoCoord(geometrySolution.x, geometrySolution.y);
 
-            return new UpdatedScenario(rawScenario,
-                    new Odometry(rawScenario.time(), coordsInGeo[0], coordsInGeo[1], rawScenario.odometry().getTheta()),
-                    getNumberOfUsedYolo(rawScenario));
+            return updateScenario(rawScenario, coordsInGeo);
         } else {
             return rejectUpdate(rawScenario);
         }
     }
 
-    private @NotNull UpdatedScenario rejectUpdate(Scenario rawScenario) {
+    protected @NonNull UpdatedScenario updateScenario(Scenario rawScenario, double[] coordsInGeo) {
+        return new UpdatedScenario(rawScenario,
+                new Odometry(rawScenario.time(),
+                        coordsInGeo[0],
+                        coordsInGeo[1],
+                        rawScenario.odometry().getTheta(),
+                        confidenceRange(rawScenario.odometry().getUncertaintyInMeters(), getNumberOfUsedYolo(rawScenario))),
+                getNumberOfUsedYolo(rawScenario));
+    }
+
+    protected @NotNull UpdatedScenario rejectUpdate(Scenario rawScenario) {
         return new UpdatedScenario(rawScenario, null, getNumberOfUsedYolo(rawScenario));
     }
 
-    private int getNumberOfUsedYolo(Scenario rawScenario) {
+
+    protected @NotNull UpdatedScenario noUpdate(Scenario rawScenario) {
+        return new UpdatedScenario(rawScenario,
+                new Odometry(
+                        rawScenario.time(),
+                        rawScenario.odometry().getX(),
+                        rawScenario.odometry().getY(),
+                        rawScenario.odometry().getTheta(),
+                        rawScenario.odometry().getUncertaintyInMeters()),
+                getNumberOfUsedYolo(rawScenario));
+    }
+
+    protected double confidenceRange(double gnssConfidence, int numberOfAssociations) {
+        return gnssConfidence*0.75;
+    }
+
+    protected int getNumberOfUsedYolo(Scenario rawScenario) {
         int numberOfUsedYolo = 0;
         for(var y : rawScenario.yolo().getYoloDetections()) {
             if(y.confidence() >= configuration.yoloMinConfidence) {
@@ -170,16 +192,6 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
             }
         }
         return numberOfUsedYolo;
-    }
-
-    private @NotNull UpdatedScenario noUpdate(Scenario rawScenario) {
-        return new UpdatedScenario(rawScenario,
-                new Odometry(
-                        rawScenario.time(),
-                        rawScenario.odometry().getX(),
-                        rawScenario.odometry().getY(),
-                        rawScenario.odometry().getTheta()),
-                getNumberOfUsedYolo(rawScenario));
     }
 
     Scope<ModelSeedFragment> translateMapToScope(Point egoPosition) {

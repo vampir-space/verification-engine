@@ -24,7 +24,7 @@ public interface VerificationCaseProvider {
         public VerificationCase getVerificationCase(SynchronizedMessages sync) {
             var navSat = sync.groundTruthGps();
             var imu = sync.imu();
-            Odometry gtOdometry = new Odometry(navSat.getTime(), navSat.getLat(), navSat.getLon(), imu.getTheta());
+            Odometry gtOdometry = new Odometry(navSat.getTime(), navSat.getLat(), navSat.getLon(), imu.getTheta(),navSat.getPositionCovariance());
             Odometry odometry = NoiseApplier.addNoise(gtOdometry, radiusStdDev, thetaStdDev);
             Scenario scenario = new Scenario(odometry, sync.pointPillars(), sync.yolo());
             return new VerificationCase(scenario, gtOdometry);
@@ -67,7 +67,8 @@ public interface VerificationCaseProvider {
                 odometry = new Odometry(sync.groundTruthGps().getTime(),
                         sync.groundTruthGps().getLat(),
                         sync.groundTruthGps().getLon(),
-                        sync.imu().getTheta());
+                        sync.imu().getTheta(),
+                        0);
             }
             Scenario scenario = new Scenario(odometry, sync.pointPillars(), sync.yolo());
             var navSat = sync.groundTruthGps();

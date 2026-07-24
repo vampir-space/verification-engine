@@ -63,7 +63,8 @@ public class AIErrorCalculator implements VerificationEngine{
                             rawScenario.time(),
                             rawScenario.odometry().getX(),
                             rawScenario.odometry().getY(),
-                            rawScenario.odometry().getTheta()),
+                            rawScenario.odometry().getTheta(),
+                            rawScenario.odometry().getUncertaintyInMeters()),
                     0);
         }
         // EGO
@@ -112,6 +113,8 @@ public class AIErrorCalculator implements VerificationEngine{
                         rawScenario.time(),
                         rawScenario.odometry().getX(),
                         rawScenario.odometry().getY(),
-                        rawScenario.odometry().getTheta()),0);
+                        rawScenario.odometry().getTheta(),
+                        rawScenario.odometry().getUncertaintyInMeters()),
+                0);
     }
 }
