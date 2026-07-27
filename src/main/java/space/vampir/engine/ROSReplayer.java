@@ -90,7 +90,8 @@ public class ROSReplayer {
             String metamodelPath = extractArgumentValue(args, "--metamodel");
             final MapRender map = MapRender.of(mapPath);
             final File mapFile = new File(map.getXodrURL().getFile());
-            VerificationEngine verificationEngine = new VerificationEngineWithRefinery(new MapHandler(mapFile), map, metamodelPath);
+            VerificationEngineConfiguration veConfig = new VerificationEngineConfiguration("/VEConfig/defaultConfig.json");
+            VerificationEngine verificationEngine = new VerificationEngineWithRefinery(new MapHandler(mapFile), map, veConfig, metamodelPath);
             CliConfig cliConfig = CliConfig.get(args);
             cliConfig.verificationEngine = verificationEngine;
             cliConfig.relevantTopics = Set.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.yoloTopic, StateRecorder.lowEndGpsTopic);
@@ -108,7 +109,9 @@ public class ROSReplayer {
             String metamodelPath = extractArgumentValue(args, "--metamodel");
             final MapRender map = MapRender.of(mapPath);
             final File mapFile = new File(map.getXodrURL().getFile());
-            VerificationEngine verificationEngine = new VerificationEngineWithRefinery(new MapHandler(mapFile), map, metamodelPath);
+            String veConfigPath = extractArgumentValue(args, "--veConfig");
+            VerificationEngineConfiguration veConfig = new VerificationEngineConfiguration(veConfigPath);
+            VerificationEngine verificationEngine = new VerificationEngineWithRefinery(new MapHandler(mapFile), map, veConfig, metamodelPath);
             CliConfig cliConfig = CliConfig.get(args);
             cliConfig.verificationEngine = verificationEngine;
             cliConfig.relevantTopics = Set.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.yoloTopic, StateRecorder.lowEndGpsTopic);
