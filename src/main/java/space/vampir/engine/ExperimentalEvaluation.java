@@ -22,12 +22,11 @@ public class ExperimentalEvaluation {
     private final HashMap<Long, UpdatedScenario> verificationEngine = new HashMap<>();
 
 
-
     // The threshold variable controlled by the slider
     double diff = 0.5;
 
     public ExperimentalEvaluation(MapRender mapRender) {
-        if(mapRender == null) {
+        if (mapRender == null) {
             throw new IllegalArgumentException("MapRender not defined");
         }
         this.mapRender = mapRender;
@@ -68,9 +67,9 @@ public class ExperimentalEvaluation {
      * from the provided odometry data. It also updates the list of timestamps and notifies all
      * registered observers about the changes.
      *
-     * @param ref the map containing reference odometry data
+     * @param ref  the map containing reference odometry data
      * @param gnss the map containing GNSS odometry data
-     * @param ver the map containing verification engine odometry data
+     * @param ver  the map containing verification engine odometry data
      */
     public void addOdometries(Map<Long, Odometry> ref, Map<Long, Odometry> gnss, Map<Long, UpdatedScenario> ver) {
         putAll(reference, ref);
@@ -100,7 +99,7 @@ public class ExperimentalEvaluation {
             if (entry.getValue() != null) {
                 target.put(entry.getKey(), entry.getValue());
             } else {
-                throw new IllegalArgumentException("Value is null: "+ entry.getKey());
+                throw new IllegalArgumentException("Value is null: " + entry.getKey());
             }
         }
     }
@@ -131,10 +130,10 @@ public class ExperimentalEvaluation {
      * Computes a 2x3 matrix based on the provided filtering criteria for timestamp indices
      * and corresponding timestamps. The matrix represents validation results under
      * specific conditions:
-     *
+     * <p>
      * [ [tt, tf, to],
-     *   [ft, ff, fo] ]
-     *
+     * [ft, ff, fo] ]
+     * <p>
      * where:
      * - tt: True positives for GNSS and verification engine.
      * - tf: GNSS true positives but verification engine false negatives.
@@ -165,7 +164,7 @@ public class ExperimentalEvaluation {
                 boolean isGnssValid = false;
 
                 if (!isGnssOff) {
-                    var distance =  getDistanceInM(GNSS.get(timeStamp),reference.get(timeStamp));
+                    var distance = getDistanceInM(GNSS.get(timeStamp), reference.get(timeStamp));
                     isGnssValid = distance < diff;
                 }
 
@@ -174,7 +173,7 @@ public class ExperimentalEvaluation {
                 boolean isVeValid = false;
 
                 if (!isVeOff) {
-                    var distance =  getDistanceInM(verificationEngine.get(timeStamp).updatedByVerificationEngine(),reference.get(timeStamp));
+                    var distance = getDistanceInM(verificationEngine.get(timeStamp).updatedByVerificationEngine(), reference.get(timeStamp));
                     isVeValid = distance < diff;
                 }
 
@@ -207,14 +206,32 @@ public class ExperimentalEvaluation {
     }
 
     protected double getDistanceInM(Odometry o1, Odometry o2) {
-        if(o1 == null || o2 == null){
+        if (o1 == null || o2 == null) {
             throw new IllegalArgumentException("Arguments cannot be null");
         }
         var m1 = mapRender.toMapCoord(o1.getX(), o1.getY());
         var m2 = mapRender.toMapCoord(o2.getX(), o2.getY());
-        var xdiff = m1[0]-m2[0];
-        var ydiff = m1[1]-m2[1];
-        return Math.sqrt(xdiff*xdiff + ydiff*ydiff);
+        var xdiff = m1[0] - m2[0];
+        var ydiff = m1[1] - m2[1];
+        return Math.sqrt(xdiff * xdiff + ydiff * ydiff);
+    }
+    protected double[] getRelError(Odometry reference, Odometry measurement) {
+        var r = mapRender.toMapCoord(reference.getX(), reference.getY());
+        var m = mapRender.toMapCoord(measurement.getX(), measurement.getY());
+        var angle = reference.getTheta();
+
+        double x = m[0]-r[0];
+        double y = m[1]-r[1];
+        double a = Math.atan2(y,x);
+
+        double res =  angle-a;
+
+        double normalized = (res % (2 * Math.PI) + (2 * Math.PI)) % (2 * Math.PI);
+
+        double distance = getDistanceInM(reference, measurement);
+
+
+        return new double[]{Math.sin(normalized)*distance,-Math.cos(normalized)*distance};
     }
 
     /**
@@ -256,20 +273,61 @@ public class ExperimentalEvaluation {
     }
 
     void print() {
-        System.out.println("time,reference-GNSS,reference-VE,reference-reliable,use-donotuse,detections");
-        for (long t : timestamps) {
-            var referenceGNSS = getDistanceInM(reference.get(t),GNSS.get(t));
-            var use = verificationEngine.get(t).use();
-            final double referenceVE;
-            if(use) {
-                referenceVE = getDistanceInM(reference.get(t),verificationEngine.get(t).updatedByVerificationEngine());
-            } else {
-                referenceVE = 0.0;
-            }
-            var detections = verificationEngine.get(t).numberOfLandmarks();
-            var referenceReliable = 1.0;
+        System.out.print("time");
+        System.out.print(",messageTimeInterval");
+        System.out.print(",isInsideBorder");
+        System.out.print(",detections");
 
-            System.out.println(t+","+referenceGNSS+","+referenceVE+","+referenceReliable+","+use+","+detections);
+        System.out.print(",gt-GNSS");
+        System.out.print(",gt-GNSS-fwd");
+        System.out.print(",gt-GNSS-rgt");
+        System.out.print(",gt-VE");
+
+        System.out.print(",GNSS-confidence");
+        System.out.print(",VE-confidence");
+
+        System.out.print(",VE-use-donotuse");
+        System.out.println();
+
+        for (long t : timestamps) {
+            Odometry gt = reference.get(t);
+            Odometry gnss = GNSS.get(t);
+            UpdatedScenario ve = verificationEngine.get(t);
+
+            var gtGNSS = getDistanceInM(gt, gnss);
+
+            var use = ve.use();
+            final double gtVE;
+            final double cVE;
+            if (use) {
+                gtVE = getDistanceInM(gt, ve.updatedByVerificationEngine());
+                cVE = ve.updatedByVerificationEngine().getUncertaintyInMeters();
+            } else {
+                gtVE = 0.0;
+                cVE = 0.0;
+            }
+            var detections = ve.numberOfLandmarks();
+
+            var relError = getRelError(gt,gnss);
+
+            //System.out.println(t+","+referenceGNSS+","+referenceVE+","+referenceReliable+","+use+","+detections);
+
+            System.out.print(t);
+            System.out.print("," + ve.scenario().timeInterval());
+            System.out.print("," + ve.scenario().isInsideMapBorder());
+            System.out.print("," + detections);
+
+            System.out.print("," + gtGNSS);
+            System.out.print("," + relError[0]);
+            System.out.print("," + relError[1]);
+            System.out.print("," + gtVE);
+
+            System.out.print("," + gnss.getUncertaintyInMeters());
+            System.out.print("," + cVE);
+
+            System.out.print("," + use);
+            System.out.println();
         }
     }
+
 }
