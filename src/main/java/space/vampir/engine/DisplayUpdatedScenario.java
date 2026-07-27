@@ -30,6 +30,7 @@ public class DisplayUpdatedScenario {
                         new UpdatedScenario(
                                 new Scenario(
                                         new Odometry(0, 47.47869148915325, 19.0572, Math.PI * 1.5,3),
+                                        true,
                                         new PointPillars(0, List.of(
                                                 new PointPillars.PointPillarsDetection(5, 10, Math.PI * 0, 2, 2),
                                                 new PointPillars.PointPillarsDetection(10, 10, Math.PI * 0, 1, 1),

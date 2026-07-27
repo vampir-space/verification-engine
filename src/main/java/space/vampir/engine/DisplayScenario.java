@@ -25,6 +25,7 @@ public class DisplayScenario {
         new DisplayScenario(map).showOnPanel(
                 new Scenario(
                         new Odometry(0,47.47869148915325,19.057058607914573,Math.PI*1.5,3),
+                        true,
                         new PointPillars(0,List.of(
                                 new PointPillars.PointPillarsDetection(0, 10, Math.PI*0,2,2),
                                 new PointPillars.PointPillarsDetection(10, 10, Math.PI*0,1,1),
@@ -47,7 +48,7 @@ public class DisplayScenario {
     private UpdatedVerificationCase toUpdatedScenario(Scenario scenario) {
         return new UpdatedVerificationCase(
                 new UpdatedScenario(
-                        new Scenario(null,scenario.pointPillars(),scenario.yolo()),
+                        new Scenario(null,true,scenario.pointPillars(),scenario.yolo()),
                         null,
                         0),
                 scenario.odometry()

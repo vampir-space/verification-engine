@@ -2,20 +2,27 @@ package space.vampir.engine.communication;
 
 import space.vampir.engine.NoiseApplier;
 import space.vampir.engine.communication.StateRecorder.SynchronizedMessages;
+import space.vampir.engine.message.NavSat;
 import space.vampir.engine.message.Odometry;
 import space.vampir.engine.message.Scenario;
 import space.vampir.engine.verification.VerificationCase;
+import space.vampir.engine.visualization.MapRender;
 
 public interface VerificationCaseProvider {
 
     VerificationCase getVerificationCase(SynchronizedMessages synchronizedMessages);
 
-    class DummyNoiseOdometryProvider implements VerificationCaseProvider {
+    default boolean isInBorder(MapRender mapRender, NavSat gt) {
+        return mapRender.isInsideBorder(gt.getLat(), gt.getLon());
+    }
 
+    class DummyNoiseOdometryProvider implements VerificationCaseProvider {
         private final double radiusStdDev;
         private final double thetaStdDev;
+        final MapRender mapRender;
 
-        public DummyNoiseOdometryProvider(double radiusStdDev, double thetaStdDev) {
+        public DummyNoiseOdometryProvider(MapRender mapRender, double radiusStdDev, double thetaStdDev) {
+            this.mapRender = mapRender;
             this.radiusStdDev = radiusStdDev;
             this.thetaStdDev = thetaStdDev;
         }
@@ -24,9 +31,9 @@ public interface VerificationCaseProvider {
         public VerificationCase getVerificationCase(SynchronizedMessages sync) {
             var navSat = sync.groundTruthGps();
             var imu = sync.imu();
-            Odometry gtOdometry = new Odometry(navSat.getTime(), navSat.getLat(), navSat.getLon(), imu.getTheta(),navSat.getPositionCovariance());
+            Odometry gtOdometry = new Odometry(navSat.getTime(), navSat.getLat(), navSat.getLon(), imu.getTheta(), navSat.getPositionCovariance());
             Odometry odometry = NoiseApplier.addNoise(gtOdometry, radiusStdDev, thetaStdDev);
-            Scenario scenario = new Scenario(odometry, sync.pointPillars(), sync.yolo());
+            Scenario scenario = new Scenario(odometry, isInBorder(mapRender, navSat), sync.pointPillars(), sync.yolo());
             return new VerificationCase(scenario, gtOdometry);
         }
     }
@@ -34,32 +41,34 @@ public interface VerificationCaseProvider {
     class NavSatOdometryProvider implements VerificationCaseProvider {
         final double noiseMultiplier;
         final double confidenceMultiplier;
+        final MapRender mapRender;
 
-        public NavSatOdometryProvider(double noiseMultiplier, double confidenceMultiplier) {
+        public NavSatOdometryProvider(MapRender mapRender, double noiseMultiplier, double confidenceMultiplier) {
             this.noiseMultiplier = noiseMultiplier;
             this.confidenceMultiplier = confidenceMultiplier;
+            this.mapRender = mapRender;
         }
 
         @Override
         public VerificationCase getVerificationCase(SynchronizedMessages sync) {
             final Odometry odometry;
-            if(sync.lowEndGps() != null) {
-                if(noiseMultiplier == 1.0) {
+            if (sync.lowEndGps() != null) {
+                if (noiseMultiplier == 1.0) {
                     odometry = new Odometry(sync.lowEndGps().getTime(),
                             sync.lowEndGps().getLat(),
                             sync.lowEndGps().getLon(),
                             sync.imu().getTheta(),
-                            sync.lowEndGps().getPositionCovariance()*confidenceMultiplier
+                            sync.lowEndGps().getPositionCovariance() * confidenceMultiplier
                             //NoiseApplier.addGaussianNoise(sync.imu().getTheta(), thetaStdDev)
                     );
                 } else {
                     var dif1 = sync.lowEndGps().getLat() - sync.groundTruthGps().getLat();
                     var dif2 = sync.lowEndGps().getLon() - sync.groundTruthGps().getLon();
                     odometry = new Odometry(sync.lowEndGps().getTime(),
-                            sync.groundTruthGps().getLat() + dif1*noiseMultiplier,
-                            sync.groundTruthGps().getLon() + dif2*noiseMultiplier,
+                            sync.groundTruthGps().getLat() + dif1 * noiseMultiplier,
+                            sync.groundTruthGps().getLon() + dif2 * noiseMultiplier,
                             sync.imu().getTheta(),
-                            sync.lowEndGps().getPositionCovariance()*confidenceMultiplier
+                            sync.lowEndGps().getPositionCovariance() * confidenceMultiplier
                             //NoiseApplier.addGaussianNoise(sync.imu().getTheta(), thetaStdDev)
                     );
                 }
@@ -70,8 +79,9 @@ public interface VerificationCaseProvider {
                         sync.imu().getTheta(),
                         0);
             }
-            Scenario scenario = new Scenario(odometry, sync.pointPillars(), sync.yolo());
             var navSat = sync.groundTruthGps();
+            Scenario scenario = new Scenario(odometry, isInBorder(mapRender, navSat), sync.pointPillars(), sync.yolo());
+
             Odometry gtOdometry = new Odometry(navSat.getTime(), navSat.getLat(), navSat.getLon(), sync.imu().getTheta(), navSat.getPositionCovariance());
             return new VerificationCase(scenario, gtOdometry);
         }
@@ -79,14 +89,19 @@ public interface VerificationCaseProvider {
 
     class RealScenarioProvider implements VerificationCaseProvider {
 
+        final MapRender mapRender;
+
+        public RealScenarioProvider(MapRender mapRender) {
+            this.mapRender = mapRender;
+        }
+
         @Override
         public VerificationCase getVerificationCase(SynchronizedMessages sync) {
 //            System.out.println(sync);
             final Odometry lowEndOdometry;
-            if(sync.lowEndGps() == null) {
+            if (sync.lowEndGps() == null) {
                 throw new IllegalArgumentException("No lowEndGps found");
-            }
-            else {
+            } else {
                 lowEndOdometry = new Odometry(sync.lowEndGps().getTime(),
                         sync.lowEndGps().getLat(),
                         sync.lowEndGps().getLon(),
@@ -94,8 +109,9 @@ public interface VerificationCaseProvider {
                         sync.lowEndGps().getPositionCovariance()
                 );
             }
-            Scenario scenario = new Scenario(lowEndOdometry, sync.pointPillars(), sync.yolo());
             var navSat = sync.groundTruthGps();
+            Scenario scenario = new Scenario(lowEndOdometry, isInBorder(mapRender, navSat), sync.pointPillars(), sync.yolo());
+
             Odometry gtOdometry = new Odometry(navSat.getTime(), navSat.getLat(), navSat.getLon(), sync.imu().getTheta(), navSat.getPositionCovariance());
             return new VerificationCase(scenario, gtOdometry);
         }
