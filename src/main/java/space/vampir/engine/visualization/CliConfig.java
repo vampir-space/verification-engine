@@ -137,6 +137,7 @@ public class CliConfig {
                                     config.relevantTopics.add(element.asText());
                                 }
                             }
+                            var map = new MapRender(config.map);
 
                             if (jsonConfig.has("verificationEngine")) {
                                 JsonNode subConfig = jsonConfig.get("verificationEngine");
@@ -150,7 +151,7 @@ public class CliConfig {
                                     case "VerificationEngineWithRefinery" ->
                                             new VerificationEngineWithRefinery(
                                                     new MapHandler(new File(config.getClass().getResource(subConfig.get("mapFile").asText()).getFile())),
-                                                    new MapRender(config.map),
+                                                    map,
                                                     resolveMetamodelPath(config, subConfig)
                                             );
                                     default ->
@@ -162,14 +163,14 @@ public class CliConfig {
                                 JsonNode subConfig = jsonConfig.get("verificationCaseProvider");
                                 String type = subConfig.get("type").asText();
                                 config.verificationCaseProvider = switch (type) {
-                                    case "DummyNoiseOdometry" -> new DummyNoiseOdometryProvider(
+                                    case "DummyNoiseOdometry" -> new DummyNoiseOdometryProvider(map,
                                             subConfig.get("radiusStdDev").asDouble(),
                                             getAngle(subConfig, "thetaStdDev")
                                     );
-                                    case "NavSatOdometry" -> new NavSatOdometryProvider(1,1
+                                    case "NavSatOdometry" -> new NavSatOdometryProvider(map,1,1
                                             //getAngle(subConfig, "thetaStdDev")
                                     );
-                                    case "RealScenario" -> new RealScenarioProvider();
+                                    case "RealScenario" -> new RealScenarioProvider(map);
                                     default ->
                                             throw new IllegalArgumentException("Unknown VerificationCaseProvider type: " + type);
                                 };

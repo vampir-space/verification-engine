@@ -59,10 +59,11 @@ public class ROSReplayer {
         public static void main(String[] args) {
             String mapPath = extractMapPath(args, "/BME_Town_small/BME_Town_small.json");
             CliConfig cliConfig = CliConfig.get(args);
+            final MapRender map = MapRender.of(mapPath);
             cliConfig.verificationEngine = scenario -> new UpdatedScenario(scenario, null, scenario.yolo().getYoloDetections().size());
             cliConfig.showStats = false;
             cliConfig.relevantTopics = Set.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.pointPillarsTopic, StateRecorder.yoloTopic, StateRecorder.lowEndGpsTopic);
-            cliConfig.verificationCaseProvider = new RealScenarioProvider();
+            cliConfig.verificationCaseProvider = new RealScenarioProvider(map);
             cliConfig.verificationCaseScheduler = new DriveByTopicScheduler(StateRecorder.lowEndGpsTopic, (int) cliConfig.maxTimeDifference / 1000000);
             cliConfig.messageSynchronizer = new LatestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.lowEndGpsTopic, StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic));
             cliConfig.map = mapPath;
@@ -94,7 +95,7 @@ public class ROSReplayer {
             CliConfig cliConfig = CliConfig.get(args);
             cliConfig.verificationEngine = verificationEngine;
             cliConfig.relevantTopics = Set.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.yoloTopic, StateRecorder.lowEndGpsTopic);
-            cliConfig.verificationCaseProvider = new NavSatOdometryProvider(2,1);
+            cliConfig.verificationCaseProvider = new NavSatOdometryProvider(map,2,1);
             cliConfig.verificationCaseScheduler = new DriveByTopicScheduler(StateRecorder.lowEndGpsTopic, 0);
             cliConfig.messageSynchronizer = new LatestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.lowEndGpsTopic, StateRecorder.imuTopic, StateRecorder.yoloTopic));
             cliConfig.map = mapPath;
@@ -112,7 +113,7 @@ public class ROSReplayer {
             CliConfig cliConfig = CliConfig.get(args);
             cliConfig.verificationEngine = verificationEngine;
             cliConfig.relevantTopics = Set.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.yoloTopic, StateRecorder.lowEndGpsTopic);
-            cliConfig.verificationCaseProvider = new RealScenarioProvider();
+            cliConfig.verificationCaseProvider = new RealScenarioProvider(map);
             cliConfig.verificationCaseScheduler = new DriveByTopicScheduler(StateRecorder.lowEndGpsTopic, 0);
             cliConfig.messageSynchronizer = new LatestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.lowEndGpsTopic, StateRecorder.yoloTopic));
 
@@ -135,7 +136,7 @@ public class ROSReplayer {
             CliConfig cliConfig = CliConfig.get(args);
             cliConfig.verificationEngine = verificationEngine;
             cliConfig.relevantTopics = Set.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.yoloTopic);
-            cliConfig.verificationCaseProvider = new NavSatOdometryProvider(1, 1);
+            cliConfig.verificationCaseProvider = new NavSatOdometryProvider(map,1, 1);
             cliConfig.verificationCaseScheduler = new DriveByTopicScheduler(StateRecorder.groundTruthGpsTopic, 0);
             cliConfig.messageSynchronizer = new LatestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.yoloTopic));
             cliConfig.map = mapPath;

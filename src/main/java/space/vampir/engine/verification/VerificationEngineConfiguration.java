@@ -10,4 +10,6 @@ public class VerificationEngineConfiguration {
     double yoloAngleOfView=0.01;
 
     double yoloMinConfidence = 0.4;
+
+
 }
