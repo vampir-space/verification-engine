@@ -1,0 +1,9 @@
+{
+  "relevantMapSegmentSize": 1000,
+  "doRoadCutting": false,
+  "roadCutterGranularity": 10,
+  "gnssConfidenceRangeMultiplier": 1,
+  "yoloRange": 50,
+  "yoloAngleOfView": 0.01,
+  "yoloMinConfidence": 0.4
+}
