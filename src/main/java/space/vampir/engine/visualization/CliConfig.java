@@ -13,10 +13,7 @@ import space.vampir.engine.communication.scheduler.NewVerificationCaseScheduler;
 import space.vampir.engine.communication.synchronizer.ClosestMessageSynchronizer;
 import space.vampir.engine.communication.synchronizer.LatestMessageSynchronizer;
 import space.vampir.engine.communication.synchronizer.MessageSynchronizer;
-import space.vampir.engine.verification.DummyVerificationEngine;
-import space.vampir.engine.verification.UpdatedScenario;
-import space.vampir.engine.verification.VerificationEngine;
-import space.vampir.engine.verification.VerificationEngineWithRefinery;
+import space.vampir.engine.verification.*;
 import tools.refinery.mapconverter.map.MapHandler;
 
 import java.io.File;
@@ -151,6 +148,7 @@ public class CliConfig {
                                             new VerificationEngineWithRefinery(
                                                     new MapHandler(new File(config.getClass().getResource(subConfig.get("mapFile").asText()).getFile())),
                                                     new MapRender(config.map),
+                                                    new VerificationEngineConfiguration(jsonConfig.get("veConfig").asText()),
                                                     resolveMetamodelPath(config, subConfig)
                                             );
                                     default ->
