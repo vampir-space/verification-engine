@@ -118,7 +118,7 @@ public class ROSReplayer {
             cliConfig.relevantTopics = Set.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.yoloTopic, StateRecorder.lowEndGpsTopic);
             cliConfig.verificationCaseProvider = new RealScenarioProvider(map);
             cliConfig.verificationCaseScheduler = new DriveByTopicScheduler(StateRecorder.lowEndGpsTopic, 0);
-            cliConfig.messageSynchronizer = new LatestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.lowEndGpsTopic, StateRecorder.yoloTopic));
+            cliConfig.messageSynchronizer = new LatestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.lowEndGpsTopic/*, StateRecorder.yoloTopic*/));
 
             cliConfig.map = mapPath;
             play(cliConfig);

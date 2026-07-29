@@ -52,7 +52,9 @@ public class MessageFileReplayer {
 
                     callback.accept(topic, msg);
                 } catch (Exception e) {
-                    System.err.println("Warning: error parsing JSONL line " + lineNumber + ": " + e.getMessage());
+                    e.printStackTrace();
+                    //e.getMessage();
+                    //System.err.println("Warning: error parsing JSONL line " + lineNumber + ": " + e.getMessage());
                 }
             }
         }
