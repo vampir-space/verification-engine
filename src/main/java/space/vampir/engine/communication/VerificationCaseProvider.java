@@ -5,6 +5,7 @@ import space.vampir.engine.communication.StateRecorder.SynchronizedMessages;
 import space.vampir.engine.message.NavSat;
 import space.vampir.engine.message.Odometry;
 import space.vampir.engine.message.Scenario;
+import space.vampir.engine.message.Yolo;
 import space.vampir.engine.verification.VerificationCase;
 import space.vampir.engine.verification.VerificationEngineConfiguration;
 import space.vampir.engine.visualization.MapRender;
@@ -104,13 +105,17 @@ public interface VerificationCaseProvider {
             final Odometry lowEndOdometry;
             var theta = sync.imu().getTheta();
             var yoloOffsetLongitudinal = veConfig.yoloOffsetLongitudinal;
+            var yoloOffsetLateral = veConfig.yoloOffsetLateral;
             if (sync.lowEndGps() == null) {
                 throw new IllegalArgumentException("No lowEndGps found");
             } else {
                 var mapCoords = mapRender.toMapCoord(sync.lowEndGps().getLat(), sync.lowEndGps().getLon());
                 var gnssOffsetLongitudinal = veConfig.gnssOffsetLongitudinal;
-                mapCoords[0] += (gnssOffsetLongitudinal + yoloOffsetLongitudinal) * Math.sin(theta);
-                mapCoords[1] += (gnssOffsetLongitudinal + yoloOffsetLongitudinal) * Math.cos(theta);
+                var gnssOffsetLateral = veConfig.gnssOffsetLateral;
+                double totalLongitudinal = gnssOffsetLongitudinal + yoloOffsetLongitudinal;
+                double totalLateral = gnssOffsetLateral + yoloOffsetLateral;
+                mapCoords[0] += totalLongitudinal * Math.sin(theta) + totalLateral *  Math.cos(theta);
+                mapCoords[1] += totalLongitudinal * Math.cos(theta) - totalLateral *  Math.sin(theta);
                 var geoCoords = mapRender.toGeoCoord(mapCoords[0], mapCoords[1]);
                 lowEndOdometry = new Odometry(sync.lowEndGps().getTime(),
                         geoCoords[0],
@@ -120,14 +125,15 @@ public interface VerificationCaseProvider {
                 );
             }
             var navSat = sync.groundTruthGps();
-//            var yolo = sync.yolo();
-//            yolo.getYoloDetections().replaceAll(yoloDetection -> new Yolo.YoloDetection(yoloDetection.type(), yoloDetection.angle() + Math.toRadians(1.82), yoloDetection.confidence()));
-            Scenario scenario = new Scenario(lowEndOdometry, isInBorder(mapRender, navSat), sync.pointPillars(), sync.yolo());
+            var yolo = sync.yolo();
+            if (yolo != null) {
+                yolo.getYoloDetections().replaceAll(yoloDetection -> new Yolo.YoloDetection(yoloDetection.type(), yoloDetection.angle() + Math.toRadians(veConfig.yoloOffsetAngle), yoloDetection.confidence()));
+            }
+            Scenario scenario = new Scenario(lowEndOdometry, isInBorder(mapRender, navSat), sync.pointPillars(), yolo);
 
-//            Odometry gtOdometry = new Odometry(navSat.getTime(), navSat.getLat(), navSat.getLon(), sync.imu().getTheta(), navSat.getPositionCovariance());
             var gtMapCoords = mapRender.toMapCoord(navSat.getLat(), navSat.getLon());
-            gtMapCoords[0] += yoloOffsetLongitudinal * Math.sin(theta);
-            gtMapCoords[1] += yoloOffsetLongitudinal * Math.cos(theta);
+            gtMapCoords[0] += yoloOffsetLongitudinal * Math.sin(theta) + yoloOffsetLateral * Math.cos(theta);
+            gtMapCoords[1] += yoloOffsetLongitudinal * Math.cos(theta) - yoloOffsetLateral * Math.sin(theta);
             var gtGeoCoords = mapRender.toGeoCoord(gtMapCoords[0], gtMapCoords[1]);
             Odometry gtOdometry = new Odometry(navSat.getTime(), gtGeoCoords[0], gtGeoCoords[1], sync.imu().getTheta(), navSat.getPositionCovariance());
             return new VerificationCase(scenario, gtOdometry);
