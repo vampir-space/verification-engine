@@ -218,20 +218,15 @@ public class ExperimentalEvaluation {
     protected double[] getRelError(Odometry reference, Odometry measurement) {
         var r = mapRender.toMapCoord(reference.getX(), reference.getY());
         var m = mapRender.toMapCoord(measurement.getX(), measurement.getY());
-        var angle = reference.getTheta();
+        var theta = reference.getTheta();
 
-        double x = m[0]-r[0];
-        double y = m[1]-r[1];
-        double a = Math.atan2(y,x);
+        var dx = m[0] - r[0];
+        var dy = m[1] - r[1];
 
-        double res =  angle-a;
+        var forward = dx * Math.sin(theta) + dy * Math.cos(theta);
+        var sideways = dx * Math.cos(theta) - dy * Math.sin(theta);
 
-        double normalized = (res % (2 * Math.PI) + (2 * Math.PI)) % (2 * Math.PI);
-
-        double distance = getDistanceInM(reference, measurement);
-
-
-        return new double[]{Math.sin(normalized)*distance,-Math.cos(normalized)*distance};
+        return new double[]{forward, sideways};
     }
 
     /**

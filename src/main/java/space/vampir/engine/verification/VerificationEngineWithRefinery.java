@@ -84,7 +84,7 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
             this.mapOnlyFragment = outputStrategy;
         }
 
-        if (rawScenario.yolo().getYoloDetections().isEmpty()) {
+        if (!hasYolo(rawScenario)) {
             return noUpdate(rawScenario);
         }
 
@@ -180,14 +180,24 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
                 getNumberOfUsedYolo(rawScenario));
     }
 
+    boolean hasYolo(Scenario rawScenario) {
+        var hasNoYolo = rawScenario.yolo() == null ||
+                rawScenario.yolo().getYoloDetections() == null ||
+                rawScenario.yolo().getYoloDetections().isEmpty();
+        return !hasNoYolo;
+    }
+
     protected double confidenceRange(double gnssConfidence, int numberOfAssociations) {
-        return gnssConfidence*0.75;
+        return gnssConfidence * 0.75;
     }
 
     protected int getNumberOfUsedYolo(Scenario rawScenario) {
+        if (!hasYolo(rawScenario)) {
+            return 0;
+        }
         int numberOfUsedYolo = 0;
-        for(var y : rawScenario.yolo().getYoloDetections()) {
-            if(y.confidence() >= configuration.yoloMinConfidence) {
+        for (var y : rawScenario.yolo().getYoloDetections()) {
+            if (y.confidence() >= configuration.yoloMinConfidence) {
                 numberOfUsedYolo++;
             }
         }
