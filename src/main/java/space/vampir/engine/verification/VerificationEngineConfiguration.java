@@ -28,6 +28,12 @@ public class VerificationEngineConfiguration {
     public double gtOffsetLongitudinal = 0.0;
     public double gtOffsetLateral = 0.0;
 
+    // Weights
+    double odometryPriorWeight = 0.5;
+    double locationDetectionWeight = 1.0;
+    double yoloDetectionWeight = 1.0;
+
+
     public VerificationEngineConfiguration() {
 
     }
@@ -50,6 +56,11 @@ public class VerificationEngineConfiguration {
             gnssOffsetLateral = node.get("gnssOffsetLateral").asDouble();
             gtOffsetLongitudinal = node.get("gtOffsetLongitudinal").asDouble();
             gtOffsetLateral = node.get("gtOffsetLateral").asDouble();
+
+            // Weights
+            odometryPriorWeight = node.get("odometryPriorWeight").asDouble(0.5);
+            locationDetectionWeight = node.get("locationDetectionWeight").asDouble(1.0);
+            yoloDetectionWeight = node.get("yoloDetectionWeight").asDouble(1.0);
         }
     }
 

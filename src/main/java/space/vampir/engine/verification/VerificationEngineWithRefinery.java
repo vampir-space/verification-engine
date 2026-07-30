@@ -121,10 +121,15 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
                 xyCoords[0],
                 xyCoords[1],
                 rawScenario.odometry().getUncertaintyInMeters(),
-                theta);
+                theta,
+                configuration.odometryPriorWeight);
 
         List<GeometrySolver.LocationDetection> locations = new ArrayList<>();
-        locations.add(new GeometrySolver.LocationDetection(xyCoords[0], xyCoords[1], rawScenario.odometry().getUncertaintyInMeters()));
+        locations.add(new GeometrySolver.LocationDetection(
+                xyCoords[0],
+                xyCoords[1],
+                rawScenario.odometry().getUncertaintyInMeters(),
+                configuration.locationDetectionWeight));
 
         List<GeometrySolver.YoloDetection> yolos = new ArrayList<>();
 
@@ -142,7 +147,12 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
                 var landmarkCoordinate = scope.getCoordinate(landmark);
 
 
-                yolos.add(new GeometrySolver.YoloDetection(landmarkCoordinate.getX(), landmarkCoordinate.getY(), -observation.angle(), configuration.yoloAngleOfView));
+                yolos.add(new GeometrySolver.YoloDetection(
+                        landmarkCoordinate.getX(),
+                        landmarkCoordinate.getY(),
+                        -observation.angle(),
+                        configuration.yoloAngleOfView,
+                        configuration.yoloDetectionWeight));
             }
 //            model.serialize()
             GeometrySolver.Solution geometrySolution = GeometrySolver.solve(odometryPrior, locations, yolos);

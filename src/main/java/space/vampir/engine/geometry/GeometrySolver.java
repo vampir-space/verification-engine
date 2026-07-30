@@ -27,6 +27,7 @@ public class GeometrySolver {
         public double y;
         public double xyRadius;
         public double theta;  // radians, known with certainty
+        public double weight = 0.5;
 
         public OdometryPrior(double x, double y, double xyRadius, double theta) {
             this.x = x;
@@ -34,8 +35,12 @@ public class GeometrySolver {
             this.xyRadius = xyRadius;
             this.theta = theta;
         }
+        public OdometryPrior(double x, double y, double xyRadius, double theta, double weight) {
+            this(x,y,xyRadius,theta);
+            this.weight = weight;
+        }
 
-        public double getWeight() { return 0.5; }
+        public double getWeight() { return weight; }
     }
 
     /**
@@ -45,14 +50,19 @@ public class GeometrySolver {
         public double x;
         public double y;
         public double radius;  // uncertainty radius
+        public double weight = 1;
 
         public LocationDetection(double x, double y, double radius) {
             this.x = x;
             this.y = y;
             this.radius = radius;
         }
+        public LocationDetection(double x, double y, double radius, double weight) {
+            this(x,y,radius);
+            this.weight = weight;
+        }
 
-        public double getWeight() { return 1.0; }
+        public double getWeight() { return weight; }
     }
 
     /**
@@ -63,6 +73,7 @@ public class GeometrySolver {
         public double landmarkY;
         public double bearing;  // radians, relative to vehicle forward direction
         public double bearingHalfCone;  // radians, half-angle of confidence cone
+        public double weight = 1;
 
         public YoloDetection(double landmarkX, double landmarkY, double bearing, double bearingHalfCone) {
             this.landmarkX = landmarkX;
@@ -71,7 +82,12 @@ public class GeometrySolver {
             this.bearingHalfCone = bearingHalfCone;
         }
 
-        public double getWeight() { return 1.0; }
+        public YoloDetection(double landmarkX, double landmarkY, double bearing, double bearingHalfCone, double weight) {
+            this(landmarkX, landmarkY, bearing, bearingHalfCone);
+            this.weight = weight;
+        }
+
+        public double getWeight() { return weight; }
     }
 
     /**
