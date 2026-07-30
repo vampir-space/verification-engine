@@ -20,12 +20,12 @@ public class VerificationEngineConfiguration {
     public double yoloAngleOfView=0.01;
 
     public double yoloMinConfidence = 0.4;
-    public double yoloOffsetAngle = 0.0;
     public double yoloOffsetLongitudinal = 0.0;
     public double yoloOffsetLateral = 0.0;
+    public double yoloOffsetAngle = 0.0;
     public double gnssOffsetLongitudinal = 2.39;
     public double gnssOffsetLateral = 0.0;
-    public double gtOffsetLongitudinal = 2.39;
+    public double gtOffsetLongitudinal = 0.0;
     public double gtOffsetLateral = 0.0;
 
     public VerificationEngineConfiguration() {
@@ -43,6 +43,8 @@ public class VerificationEngineConfiguration {
             yoloRange = node.get("yoloRange").asDouble();
             yoloAngleOfView = node.get("yoloAngleOfView").asDouble();
             yoloMinConfidence = node.get("yoloMinConfidence").asDouble();
+            yoloOffsetLongitudinal =  node.get("yoloOffsetLongitudinal").asDouble();
+            yoloOffsetLateral =  node.get("yoloOffsetLateral").asDouble();
             yoloOffsetAngle = node.get("yoloOffsetAngle").asDouble();
             gnssOffsetLongitudinal = node.get("gnssOffsetLongitudinal").asDouble();
             gnssOffsetLateral = node.get("gnssOffsetLateral").asDouble();
