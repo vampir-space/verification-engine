@@ -168,7 +168,7 @@ public class CliConfig {
                                     case "NavSatOdometry" -> new NavSatOdometryProvider(map,1,1
                                             //getAngle(subConfig, "thetaStdDev")
                                     );
-                                    case "RealScenario" -> new RealScenarioProvider(map);
+                                    case "RealScenario" -> new RealScenarioProvider(map, new VerificationEngineConfiguration(jsonConfig.get("veConfig").asText()));
                                     default ->
                                             throw new IllegalArgumentException("Unknown VerificationCaseProvider type: " + type);
                                 };

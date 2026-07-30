@@ -62,8 +62,10 @@ public class ROSReplayer {
             final MapRender map = MapRender.of(mapPath);
             cliConfig.verificationEngine = scenario -> new UpdatedScenario(scenario, null, scenario.yolo().getYoloDetections().size());
             cliConfig.showStats = false;
+            String veConfigPath = extractArgumentValue(args, "--veConfig");
+            VerificationEngineConfiguration veConfig = new VerificationEngineConfiguration(veConfigPath);
             cliConfig.relevantTopics = Set.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.pointPillarsTopic, StateRecorder.yoloTopic, StateRecorder.lowEndGpsTopic);
-            cliConfig.verificationCaseProvider = new RealScenarioProvider(map);
+            cliConfig.verificationCaseProvider = new RealScenarioProvider(map, veConfig);
             cliConfig.verificationCaseScheduler = new DriveByTopicScheduler(StateRecorder.lowEndGpsTopic, (int) cliConfig.maxTimeDifference / 1000000);
             cliConfig.messageSynchronizer = new LatestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.lowEndGpsTopic, StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic));
             cliConfig.map = mapPath;
@@ -116,7 +118,7 @@ public class ROSReplayer {
             CliConfig cliConfig = CliConfig.get(args);
             cliConfig.verificationEngine = verificationEngine;
             cliConfig.relevantTopics = Set.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.yoloTopic, StateRecorder.lowEndGpsTopic);
-            cliConfig.verificationCaseProvider = new RealScenarioProvider(map);
+            cliConfig.verificationCaseProvider = new RealScenarioProvider(map, veConfig);
             cliConfig.verificationCaseScheduler = new DriveByTopicScheduler(StateRecorder.lowEndGpsTopic, 0);
             cliConfig.messageSynchronizer = new LatestMessageSynchronizer(cliConfig.maxTimeDifference, List.of(StateRecorder.groundTruthGpsTopic, StateRecorder.imuTopic, StateRecorder.lowEndGpsTopic, StateRecorder.yoloTopic));
 

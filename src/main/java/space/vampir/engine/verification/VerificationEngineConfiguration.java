@@ -11,15 +11,22 @@ import java.nio.file.Path;
 import java.util.Objects;
 
 public class VerificationEngineConfiguration {
-    double relevantMapSegmentSize = 1000;
-    boolean doRoadCutting = false;
-    double roadCutterGranularity = 10;
+    public double relevantMapSegmentSize = 1000;
+    public boolean doRoadCutting = false;
+    public double roadCutterGranularity = 10;
 
-    double gnssConfidenceRangeMultiplier=1;
-    double yoloRange=50;
-    double yoloAngleOfView=0.01;
+    public double gnssConfidenceRangeMultiplier=1;
+    public double yoloRange=50;
+    public double yoloAngleOfView=0.01;
 
-    double yoloMinConfidence = 0.4;
+    public double yoloMinConfidence = 0.4;
+    public double yoloOffsetAngle = 0.0;
+    public double yoloOffsetLongitudinal = 0.0;
+    public double yoloOffsetLateral = 0.0;
+    public double gnssOffsetLongitudinal = 2.39;
+    public double gnssOffsetLateral = 0.0;
+    public double gtOffsetLongitudinal = 2.39;
+    public double gtOffsetLateral = 0.0;
 
     public VerificationEngineConfiguration() {
 
@@ -36,6 +43,11 @@ public class VerificationEngineConfiguration {
             yoloRange = node.get("yoloRange").asDouble();
             yoloAngleOfView = node.get("yoloAngleOfView").asDouble();
             yoloMinConfidence = node.get("yoloMinConfidence").asDouble();
+            yoloOffsetAngle = node.get("yoloOffsetAngle").asDouble();
+            gnssOffsetLongitudinal = node.get("gnssOffsetLongitudinal").asDouble();
+            gnssOffsetLateral = node.get("gnssOffsetLateral").asDouble();
+            gtOffsetLongitudinal = node.get("gtOffsetLongitudinal").asDouble();
+            gtOffsetLateral = node.get("gtOffsetLateral").asDouble();
         }
     }
 

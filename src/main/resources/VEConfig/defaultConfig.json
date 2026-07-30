@@ -5,5 +5,12 @@
   "gnssConfidenceRangeMultiplier": 1,
   "yoloRange": 50,
   "yoloAngleOfView": 0.01,
-  "yoloMinConfidence": 0.4
+  "yoloMinConfidence": 0.4,
+  "yoloOffsetLongitudinal": 0.0,
+  "yoloOffsetLateral": 0.0,
+  "yoloOffsetAngle": 0.0,
+  "gnssOffsetLongitudinal": 2.39,
+  "gnssOffsetLateral": 0.0,
+  "gtOffsetLongitudinal": 0.0,
+  "gtOffsetLateral": 0.0
 }
