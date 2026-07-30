@@ -4,6 +4,8 @@ import space.vampir.engine.NoiseApplier;
 import space.vampir.engine.message.Odometry;
 import space.vampir.engine.message.Scenario;
 
+import java.util.ArrayList;
+
 public class DummyVerificationEngine implements VerificationEngine {
 
     private final double radiusStdDev;
@@ -18,9 +20,9 @@ public class DummyVerificationEngine implements VerificationEngine {
     public UpdatedScenario update(Scenario scenario) {
         Odometry odometry = scenario.odometry();
         if (odometry == null) {
-            return new UpdatedScenario(scenario, null,0);
+            return new UpdatedScenario(scenario, null,0, new ArrayList<>());
         }
         Odometry newValue = NoiseApplier.addNoise(odometry, radiusStdDev, angleStdDev);
-        return new UpdatedScenario(scenario, newValue,0);
+        return new UpdatedScenario(scenario, newValue,0, new ArrayList<>());
     }
 }

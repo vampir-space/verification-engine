@@ -88,7 +88,8 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
             return noUpdate(rawScenario);
         }
 
-        List<String> inc = new ArrayList<>();
+        List<String> missed = new ArrayList<>();
+        List<String> associations = new ArrayList<>();
         Map<String, Yolo.YoloDetection> observationYoloMap = new HashMap<>();
 
 
@@ -98,7 +99,8 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
         outputStrategy = new ModelSeedStrategy(mapOnlyFragment);
         complexityStrategy.setOutputStrategy(outputStrategy);
 
-        Scope<ModelSeedFragment> scope = translateToScope(rawScenario, updatedScope, observationYoloMap, inc);
+
+        Scope<ModelSeedFragment> scope = translateToScope(rawScenario, updatedScope, observationYoloMap, associations, missed);
 
 //        if(inc.size()>0) {
 //            System.out.println(inc.size());
@@ -117,10 +119,12 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
 
         var xyCoords = mapRender.toMapCoord(rawScenario.odometry().getX(), rawScenario.odometry().getY());
         var theta = Math.PI / 2 - rawScenario.odometry().getTheta();
+
+        double originalConfidenceRange = originalConfidenceRange(rawScenario.odometry().getUncertaintyInMeters());
         GeometrySolver.OdometryPrior odometryPrior = new GeometrySolver.OdometryPrior(
                 xyCoords[0],
                 xyCoords[1],
-                rawScenario.odometry().getUncertaintyInMeters(),
+                originalConfidenceRange,
                 theta,
                 configuration.odometryPriorWeight);
 
@@ -128,7 +132,7 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
         locations.add(new GeometrySolver.LocationDetection(
                 xyCoords[0],
                 xyCoords[1],
-                rawScenario.odometry().getUncertaintyInMeters(),
+                originalConfidenceRange,
                 configuration.locationDetectionWeight));
 
         List<GeometrySolver.YoloDetection> yolos = new ArrayList<>();
@@ -158,24 +162,25 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
             GeometrySolver.Solution geometrySolution = GeometrySolver.solve(odometryPrior, locations, yolos);
             var coordsInGeo = mapRender.toGeoCoord(geometrySolution.x, geometrySolution.y);
 
-            return updateScenario(rawScenario, coordsInGeo);
+            return updateScenario(rawScenario, coordsInGeo, associations);
         } else {
             return rejectUpdate(rawScenario);
         }
     }
 
-    protected @NonNull UpdatedScenario updateScenario(Scenario rawScenario, double[] coordsInGeo) {
+    protected @NonNull UpdatedScenario updateScenario(Scenario rawScenario, double[] coordsInGeo, List<String> associations) {
         return new UpdatedScenario(rawScenario,
                 new Odometry(rawScenario.time(),
                         coordsInGeo[0],
                         coordsInGeo[1],
                         rawScenario.odometry().getTheta(),
                         confidenceRange(rawScenario.odometry().getUncertaintyInMeters(), getNumberOfUsedYolo(rawScenario))),
-                getNumberOfUsedYolo(rawScenario));
+                getNumberOfUsedYolo(rawScenario),
+                associations);
     }
 
     protected @NotNull UpdatedScenario rejectUpdate(Scenario rawScenario) {
-        return new UpdatedScenario(rawScenario, null, getNumberOfUsedYolo(rawScenario));
+        return new UpdatedScenario(rawScenario, null, getNumberOfUsedYolo(rawScenario), new ArrayList<>());
     }
 
 
@@ -187,7 +192,8 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
                         rawScenario.odometry().getY(),
                         rawScenario.odometry().getTheta(),
                         rawScenario.odometry().getUncertaintyInMeters()),
-                getNumberOfUsedYolo(rawScenario));
+                getNumberOfUsedYolo(rawScenario),
+                new ArrayList<>());
     }
 
     boolean hasYolo(Scenario rawScenario) {
@@ -195,6 +201,10 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
                 rawScenario.yolo().getYoloDetections() == null ||
                 rawScenario.yolo().getYoloDetections().isEmpty();
         return !hasNoYolo;
+    }
+
+    protected double originalConfidenceRange(double gnssConfidence) {
+        return Math.sqrt(gnssConfidence)*2*3;
     }
 
     protected double confidenceRange(double gnssConfidence, int numberOfAssociations) {
@@ -227,7 +237,8 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
             Scenario rawScenario,
             Scope<ModelSeedFragment> scope,
             Map<String, Yolo.YoloDetection> observationYoloMap,
-            List<String> s) {
+            List<String> observationIDs,
+            List<String> missedIDs) {
         var xyCoords = mapRender.toMapCoord(rawScenario.odometry().getX(), rawScenario.odometry().getY());
         var theta = Math.PI / 2 - rawScenario.odometry().getTheta();
         Point egoPosition = new Point(xyCoords[0], xyCoords[1]);
@@ -253,13 +264,14 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
                 if (!objects2.isEmpty()) {
                     var r = objects2.getFirst();
                     objects3.put(r.id(), r.mapObject());
+                    observationIDs.add("Sign"+r.id());
                 }
 
                 var observation = scope.addObjectObservations(objects3, "yolo_" + i, ObjectType.Signal);
                 observationYoloMap.put(observation.getId(), yoloDetection);
 
                 if (observation.getObjects().keySet().isEmpty()) {
-                    s.add(observation.getId());
+                    missedIDs.add(observation.getId());
                 }
             }
         }

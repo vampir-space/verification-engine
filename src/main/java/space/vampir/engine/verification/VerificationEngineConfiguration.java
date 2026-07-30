@@ -60,7 +60,7 @@ public class VerificationEngineConfiguration {
             // Weights
             odometryPriorWeight = node.get("odometryPriorWeight").asDouble(0.5);
             locationDetectionWeight = node.get("locationDetectionWeight").asDouble(1.0);
-            yoloDetectionWeight = node.get("yoloDetectionWeight").asDouble(1.0);
+            yoloDetectionWeight = node.get("yoloDetectionWeight").asDouble(2.0);
         }
     }
 
