@@ -14,11 +14,9 @@ public class VerificationEngineConfiguration {
     public double relevantMapSegmentSize = 1000;
     public boolean doRoadCutting = false;
     public double roadCutterGranularity = 10;
-
-    public double gnssConfidenceRangeMultiplier=1;
-    public double yoloRange=50;
-    public double yoloAngleOfView=0.01;
-
+    public double gnssConfidenceRangeMultiplier = 1;
+    public double yoloRange = 50;
+    public double yoloAngleOfView = 0.01;
     public double yoloMinConfidence = 0.4;
     public double yoloOffsetLongitudinal = 0.0;
     public double yoloOffsetLateral = 0.0;
@@ -42,25 +40,25 @@ public class VerificationEngineConfiguration {
         if (configFilePath != null) {
             JsonNode node = getMapConfig(configFilePath);
 
-            relevantMapSegmentSize = node.get("relevantMapSegmentSize").asDouble();
-            doRoadCutting = node.get("doRoadCutting").asBoolean();
-            roadCutterGranularity = node.get("roadCutterGranularity").asDouble();
-            gnssConfidenceRangeMultiplier = node.get("gnssConfidenceRangeMultiplier").asDouble();
-            yoloRange = node.get("yoloRange").asDouble();
-            yoloAngleOfView = node.get("yoloAngleOfView").asDouble();
-            yoloMinConfidence = node.get("yoloMinConfidence").asDouble();
-            yoloOffsetLongitudinal =  node.get("yoloOffsetLongitudinal").asDouble();
-            yoloOffsetLateral =  node.get("yoloOffsetLateral").asDouble();
-            yoloOffsetAngle = node.get("yoloOffsetAngle").asDouble();
-            gnssOffsetLongitudinal = node.get("gnssOffsetLongitudinal").asDouble();
-            gnssOffsetLateral = node.get("gnssOffsetLateral").asDouble();
-            gtOffsetLongitudinal = node.get("gtOffsetLongitudinal").asDouble();
-            gtOffsetLateral = node.get("gtOffsetLateral").asDouble();
+            relevantMapSegmentSize = node.path("relevantMapSegmentSize").asDouble(relevantMapSegmentSize);
+            doRoadCutting = node.path("doRoadCutting").asBoolean(doRoadCutting);
+            roadCutterGranularity = node.path("roadCutterGranularity").asDouble(roadCutterGranularity);
+            gnssConfidenceRangeMultiplier = node.path("gnssConfidenceRangeMultiplier").asDouble(gnssConfidenceRangeMultiplier);
+            yoloRange = node.path("yoloRange").asDouble(yoloRange);
+            yoloAngleOfView = node.path("yoloAngleOfView").asDouble(yoloAngleOfView);
+            yoloMinConfidence = node.path("yoloMinConfidence").asDouble(yoloMinConfidence);
+            yoloOffsetLongitudinal =  node.path("yoloOffsetLongitudinal").asDouble(yoloOffsetLongitudinal);
+            yoloOffsetLateral =  node.path("yoloOffsetLateral").asDouble(yoloOffsetLateral);
+            yoloOffsetAngle = node.path("yoloOffsetAngle").asDouble(yoloOffsetAngle);
+            gnssOffsetLongitudinal = node.path("gnssOffsetLongitudinal").asDouble(gnssOffsetLongitudinal);
+            gnssOffsetLateral = node.path("gnssOffsetLateral").asDouble(gnssOffsetLateral);
+            gtOffsetLongitudinal = node.path("gtOffsetLongitudinal").asDouble(gtOffsetLongitudinal);
+            gtOffsetLateral = node.path("gtOffsetLateral").asDouble(gtOffsetLateral);
 
             // Weights
-            odometryPriorWeight = node.get("odometryPriorWeight").asDouble(0.5);
-            locationDetectionWeight = node.get("locationDetectionWeight").asDouble(1.0);
-            yoloDetectionWeight = node.get("yoloDetectionWeight").asDouble(1.0);
+            odometryPriorWeight = node.path("odometryPriorWeight").asDouble(0.5);
+            locationDetectionWeight = node.path("locationDetectionWeight").asDouble(1.0);
+            yoloDetectionWeight = node.path("yoloDetectionWeight").asDouble(1.0);
         }
     }
 
