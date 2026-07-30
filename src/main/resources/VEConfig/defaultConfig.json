@@ -12,5 +12,8 @@
   "gnssOffsetLongitudinal": 2.39,
   "gnssOffsetLateral": 0.0,
   "gtOffsetLongitudinal": 0.0,
-  "gtOffsetLateral": 0.0
+  "gtOffsetLateral": 0.0,
+  "odometryPriorWeight": 0.5,
+  "locationDetectionWeight": 1.0,
+  "yoloDetectionWeight": 1.0
 }

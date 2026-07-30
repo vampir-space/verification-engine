@@ -19,6 +19,7 @@ import tools.refinery.mapconverter.map.MapHandler;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -60,7 +61,7 @@ public class ROSReplayer {
             String mapPath = extractMapPath(args, "/BME_Town_small/BME_Town_small.json");
             CliConfig cliConfig = CliConfig.get(args);
             final MapRender map = MapRender.of(mapPath);
-            cliConfig.verificationEngine = scenario -> new UpdatedScenario(scenario, null, scenario.yolo().getYoloDetections().size());
+            cliConfig.verificationEngine = scenario -> new UpdatedScenario(scenario, null, scenario.yolo().getYoloDetections().size(), new ArrayList<>());
             cliConfig.showStats = false;
             String veConfigPath = extractArgumentValue(args, "--veConfig");
             VerificationEngineConfiguration veConfig = new VerificationEngineConfiguration(veConfigPath);

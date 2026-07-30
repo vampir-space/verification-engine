@@ -65,7 +65,8 @@ public class AIErrorCalculator implements VerificationEngine{
                             rawScenario.odometry().getY(),
                             rawScenario.odometry().getTheta(),
                             rawScenario.odometry().getUncertaintyInMeters()),
-                    0);
+                    0,
+                    new ArrayList<>());
         }
         // EGO
         var xyCoords = mapRender.toMapCoord(rawScenario.odometry().getX(), rawScenario.odometry().getY());
@@ -115,6 +116,7 @@ public class AIErrorCalculator implements VerificationEngine{
                         rawScenario.odometry().getY(),
                         rawScenario.odometry().getTheta(),
                         rawScenario.odometry().getUncertaintyInMeters()),
-                0);
+                0,
+                new ArrayList<>());
     }
 }

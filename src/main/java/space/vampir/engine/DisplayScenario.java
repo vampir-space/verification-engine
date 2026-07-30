@@ -9,6 +9,7 @@ import space.vampir.engine.verification.UpdatedVerificationCase;
 import space.vampir.engine.visualization.*;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 public class DisplayScenario {
@@ -50,7 +51,7 @@ public class DisplayScenario {
                 new UpdatedScenario(
                         new Scenario(null,true,scenario.pointPillars(),scenario.yolo()),
                         null,
-                        0),
+                        0, new ArrayList<>()),
                 scenario.odometry()
         );
     }

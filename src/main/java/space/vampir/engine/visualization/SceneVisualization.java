@@ -223,8 +223,10 @@ public class SceneVisualization extends Visualization {
             circle.setX(coord[0]);
             circle.setY(coord[1]);
 
-            circle.setSizeX(gnssOdom.getUncertaintyInMeters()*4);
-            circle.setSizeY(gnssOdom.getUncertaintyInMeters()*4);
+            double circleSize = Math.sqrt(gnssOdom.getUncertaintyInMeters())*2*2*2;
+
+            circle.setSizeX(circleSize);
+            circle.setSizeY(circleSize);
 
             map.addObject(circle);
             map.addObject(gnss);
@@ -259,6 +261,14 @@ public class SceneVisualization extends Visualization {
                 }
                 var o = new ObjectRender(line, 12, 80, source.getX(), source.getY(), source.getTheta() + detection.angle());
                 map.addObject(o);
+            }
+        }
+
+        var associations = verificationCase.updatedScenario().associations();
+        if(associations != null){
+            for(var association : associations){
+                System.out.println(association);
+                System.out.println("----");
             }
         }
 

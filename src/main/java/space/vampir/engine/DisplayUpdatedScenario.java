@@ -11,6 +11,7 @@ import space.vampir.engine.visualization.SceneVisualization;
 
 import java.awt.*;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -41,7 +42,7 @@ public class DisplayUpdatedScenario {
                                                 new Yolo.YoloDetection("car", Math.PI * 0.08, 0)))
                                 ),
                                 new Odometry(0, 47.47859, 19.057058607914573, Math.PI * 1.5,3),
-                                5
+                                5, new ArrayList<>()
                         ),
                         new Odometry(0, 47.47869148915325, 19.057058607914573, Math.PI * 1.5,3)
                 )
