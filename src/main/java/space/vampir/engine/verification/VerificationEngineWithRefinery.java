@@ -254,7 +254,7 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
                         egoPosition.getX(),
                         egoPosition.getY(),
                         theta - yoloDetection.angle(),
-                        rawScenario.odometry().getUncertaintyInMeters(),
+                        originalConfidenceRange(rawScenario.odometry().getUncertaintyInMeters()),
                         configuration.yoloAngleOfView,
                         configuration.yoloRange,
                         ObjectType.Signal);
