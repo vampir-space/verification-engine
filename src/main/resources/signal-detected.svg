@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="20mm"
+   height="40mm"
+   viewBox="0 0 20 40"
+   version="1.1"
+   id="svg1"
+   sodipodi:docname="signal-detected.svg"
+   inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="3.5939236"
+     inkscape:cx="-9.4604125"
+     inkscape:cy="38.259021"
+     inkscape:window-width="1920"
+     inkscape:window-height="1017"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg1" />
+  <defs
+     id="defs1" />
+  <g
+     id="generic_sign"
+     transform="matrix(0.51724138,0,0,0.51724138,4.8275862,5)"
+     style="stroke-width:14.72619998;stroke-dasharray:none;paint-order:fill markers stroke">
+    <circle
+       cx="10"
+       cy="10"
+       r="9"
+       style="fill:#ffffff;stroke:#ff6868;stroke-width:14.72619998;stroke-dasharray:none;paint-order:fill markers stroke"
+       id="circle1" />
+    <line
+       x1="10"
+       y1="29"
+       x2="10"
+       y2="19"
+       style="stroke:#ff6868;stroke-width:14.72619998;stroke-linecap:round;stroke-dasharray:none;paint-order:fill markers stroke"
+       id="line1" />
+  </g>
+</svg>

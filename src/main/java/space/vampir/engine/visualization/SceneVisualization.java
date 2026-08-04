@@ -3,12 +3,15 @@ package space.vampir.engine.visualization;
 import space.vampir.engine.message.Scenario;
 import space.vampir.engine.verification.UpdatedVerificationCase;
 import space.vampir.engine.visualization.controller.KeyBindingManager;
+import tools.refinery.mapconverter.map.MapObject;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionListener;
 import java.net.URL;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class SceneVisualization extends Visualization {
     protected static URL lineImage = SceneVisualization.class.getResource("/line.svg");
@@ -22,16 +25,18 @@ public class SceneVisualization extends Visualization {
     protected static URL gnssveImage = SceneVisualization.class.getResource("/gnssve.svg");
     protected static URL outImage = SceneVisualization.class.getResource("/out.svg");
     protected static URL objectImage = SceneVisualization.class.getResource("/red-square.svg");
+    protected static URL signalDetected = SceneVisualization.class.getResource("/signal-detected.svg");
 
     protected final JFrame frame = new JFrame("Map");
 
     protected MapRender map;
+    protected Map<String, ObjectRender> mapObjects;
     protected final MapPanel mapPanel;
     protected final JComboBox<String> mapSelector;
     protected final JLabel mapSelectorLabel = new JLabel();
     protected final ActionListener mapSelectorActionListener;
 
-    final ObjectRender ego = new ObjectRender(egoImage, ObjectRender.focusName,false, 3, 5, 0, 0, 0);
+    //final ObjectRender ego = new ObjectRender(egoImage, ObjectRender.focusName,false, 3, 5, 0, 0, 0);
     final ObjectRender circle = new ObjectRender(RenderExample.class.getResource("/blue-circle.svg"), 30, 30, 0, 0, 0);
     final ObjectRender gnss = new ObjectRender(gnssImage, 3, 5, 0, 0, 0);
     final ObjectRender ve = new ObjectRender(veImage, 3, 5, 0, 0, 0);
@@ -41,6 +46,11 @@ public class SceneVisualization extends Visualization {
 
     public SceneVisualization(MapRender map, boolean enabled) {
         super(enabled, new Dimension(700, 700));
+
+        this.mapObjects = new HashMap<>();
+        for(var o : map.staticObjects) {
+            this.mapObjects.put(o.getName(),o);
+        }
 
         List<String> maps = MapProvider.getMapConfigs();
         this.map = map == null ? new MapRender(maps.getFirst()) : map;
@@ -136,58 +146,6 @@ public class SceneVisualization extends Visualization {
         return mapPanel;
     }
 
-//    public synchronized void show(Scenario state) {
-//        map.clearObjects();
-////        state.
-//        var odom = state.odometry();
-//        if (odom != null) {
-//            var coord = map.toMapCoord(odom.getX(), odom.getY());
-//
-//            ego.setX(coord[0]);
-//            ego.setY(coord[1]);
-//            ego.setTheta(odom.getTheta());
-//            circle.setX(coord[0]);
-//            circle.setY(coord[1]);
-//
-//            map.addObject(ego);
-//            map.addObject(circle);
-//
-//            map.addObject(new ObjectRender(lineImage, circle.getSizeX(), circle.getSizeY(), ego.getX(), ego.getY(), ego.getTheta()));
-//        }
-//
-//        var yolo = state.yolo();
-//        if (yolo != null) {
-//            for (var detection : yolo.getYoloDetections()) {
-//                final URL line;
-//                if (detection.type().equals("car")) {
-//                    line = lineImage;
-//                } else {
-//                    line = lineImage2;
-//                }
-//
-//                var o = new ObjectRender(line, 12, 80, ego.getX(), ego.getY(), ego.getTheta() + detection.angle());
-//                map.addObject(o);
-//            }
-//        }
-//
-//        var pointPillars = state.pointPillars();
-//        if (pointPillars != null) {
-//            for (var detection : pointPillars.getDetections()) {
-//
-//                var cosT = Math.cos(ego.theta);
-//                var sinT = Math.sin(ego.theta);
-//                var o = new ObjectRender(
-//                        carImage,
-//                        detection.sizeY(),
-//                        detection.sizeX(),
-//                        ego.getX() - detection.posX() * cosT + detection.posY() * sinT,
-//                        ego.getY() + detection.posX() * sinT + detection.posY() * cosT,
-//                        detection.theta() + ego.getTheta());
-//                map.addObject(o);
-//            }
-//        }
-//    }
-
     public synchronized void show(UpdatedVerificationCase verificationCase) {
         map.clearObjects();
 
@@ -267,10 +225,15 @@ public class SceneVisualization extends Visualization {
         var associations = verificationCase.updatedScenario().associations();
         if(associations != null){
             for(var association : associations){
-//                System.out.println(association);
-//                System.out.println("----");
+                var detection = new ObjectRender(
+                        signalDetected,
+                        association+" - Detected", false,
+                        4.0, 8,
+                        this.mapObjects.get(association).getX(),
+                        this.mapObjects.get(association).getY(),
+                        0.0);
 
-
+                map.addObject(detection);
             }
         }
 
