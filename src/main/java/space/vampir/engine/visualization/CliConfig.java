@@ -20,6 +20,7 @@ import java.io.File;
 import java.util.*;
 
 public class CliConfig {
+    public boolean enableVisualization = true;
     public boolean showScene = true;
     public boolean showStats = true;
     // add more views later, e.g.:
@@ -37,6 +38,7 @@ public class CliConfig {
     // Recording and replay options
     public String recordJsonFile = null;
     public String replayJsonFile = null;
+    public String outputEvaluationFile = null;
 
     public long minWaitTime = 1000000000 / 5; // 200ms
     public long maxTimeDifference = 1000000000 / 5; // 200ms
@@ -54,6 +56,7 @@ public class CliConfig {
         for (int i = 0; i < args.length; i++) {
             String arg = args[i];
             switch (arg) {
+                case "--no-visualization" -> config.enableVisualization = false;
                 case "--scene" -> config.showScene = true;
                 case "--no-scene" -> config.showScene = false;
                 case "--stats" -> config.showStats = true;
@@ -72,6 +75,10 @@ public class CliConfig {
                 }
                 case "--replay-json" -> {
                     config.replayJsonFile = getValueForFlag(args, i);
+                    i++;
+                }
+                case "--output-evaluation" -> {
+                    config.outputEvaluationFile = getValueForFlag(args, i);
                     i++;
                 }
                 case "--config" -> {

@@ -4,6 +4,8 @@ import space.vampir.engine.message.Odometry;
 import space.vampir.engine.verification.UpdatedScenario;
 import space.vampir.engine.visualization.MapRender;
 
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -268,21 +270,25 @@ public class ExperimentalEvaluation {
     }
 
     void print() {
-        System.out.print("time");
-        System.out.print(",messageTimeInterval");
-        System.out.print(",isInsideBorder");
-        System.out.print(",detections");
+        print(System.out);
+    }
 
-        System.out.print(",gt-GNSS");
-        System.out.print(",gt-GNSS-fwd");
-        System.out.print(",gt-GNSS-rgt");
-        System.out.print(",gt-VE");
+    void print(PrintStream printStream) {
+        printStream.print("time");
+        printStream.print(",messageTimeInterval");
+        printStream.print(",isInsideBorder");
+        printStream.print(",detections");
 
-        System.out.print(",GNSS-confidence");
-        System.out.print(",VE-confidence");
+        printStream.print(",gt-GNSS");
+        printStream.print(",gt-GNSS-fwd");
+        printStream.print(",gt-GNSS-rgt");
+        printStream.print(",gt-VE");
 
-        System.out.print(",VE-use-donotuse");
-        System.out.println();
+        printStream.print(",GNSS-confidence");
+        printStream.print(",VE-confidence");
+
+        printStream.print(",VE-use-donotuse");
+        printStream.println();
 
         for (long t : timestamps) {
             Odometry gt = reference.get(t);
@@ -305,23 +311,23 @@ public class ExperimentalEvaluation {
 
             var relError = getRelError(gt,gnss);
 
-            //System.out.println(t+","+referenceGNSS+","+referenceVE+","+referenceReliable+","+use+","+detections);
+            //printStream.println(t+","+referenceGNSS+","+referenceVE+","+referenceReliable+","+use+","+detections);
 
-            System.out.print(t);
-            System.out.print("," + ve.scenario().timeInterval());
-            System.out.print("," + ve.scenario().isInsideMapBorder());
-            System.out.print("," + detections);
+            printStream.print(t);
+            printStream.print("," + ve.scenario().timeInterval());
+            printStream.print("," + ve.scenario().isInsideMapBorder());
+            printStream.print("," + detections);
 
-            System.out.print("," + gtGNSS);
-            System.out.print("," + relError[0]);
-            System.out.print("," + relError[1]);
-            System.out.print("," + gtVE);
+            printStream.print("," + gtGNSS);
+            printStream.print("," + relError[0]);
+            printStream.print("," + relError[1]);
+            printStream.print("," + gtVE);
 
-            System.out.print("," + gnss.getUncertaintyInMeters());
-            System.out.print("," + cVE);
+            printStream.print("," + gnss.getUncertaintyInMeters());
+            printStream.print("," + cVE);
 
-            System.out.print("," + use);
-            System.out.println();
+            printStream.print("," + use);
+            printStream.println();
         }
     }
 
