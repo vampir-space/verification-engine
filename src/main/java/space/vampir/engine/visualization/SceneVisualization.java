@@ -267,8 +267,10 @@ public class SceneVisualization extends Visualization {
         var associations = verificationCase.updatedScenario().associations();
         if(associations != null){
             for(var association : associations){
-                System.out.println(association);
-                System.out.println("----");
+//                System.out.println(association);
+//                System.out.println("----");
+
+
             }
         }
 
