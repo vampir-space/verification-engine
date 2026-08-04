@@ -11,14 +11,21 @@ import space.vampir.engine.communication.VerificationCaseProvider.NavSatOdometry
 import space.vampir.engine.communication.VerificationCaseProvider.RealScenarioProvider;
 import space.vampir.engine.communication.scheduler.DriveByTopicScheduler;
 import space.vampir.engine.communication.synchronizer.LatestMessageSynchronizer;
-import space.vampir.engine.verification.*;
+import space.vampir.engine.verification.AIErrorCalculator;
+import space.vampir.engine.verification.UpdatedScenario;
+import space.vampir.engine.verification.VerificationEngine;
+import space.vampir.engine.verification.VerificationEngineConfiguration;
+import space.vampir.engine.verification.VerificationEngineWithRefinery;
 import space.vampir.engine.visualization.CliConfig;
 import space.vampir.engine.visualization.MapRender;
 import space.vampir.engine.visualization.SceneVisualization;
 import tools.refinery.mapconverter.map.MapHandler;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -27,7 +34,7 @@ import java.util.concurrent.CountDownLatch;
 public class ROSReplayer {
 
 //    public static class NoVerificationEngineTestConfiguration { // Visualizer for simulator with simulated noisy gps
-//        public static void main(String[] args) {
+//        static void main(String[] args) {
 //            String mapPath = extractMapPath(args, "/BME_Town_small/BME_Town_small.json");
 //            CliConfig cliConfig = CliConfig.get(args);
 //            cliConfig.verificationEngine = scenario -> new UpdatedScenario(scenario, null);
@@ -42,7 +49,7 @@ public class ROSReplayer {
 //    }
 
 //    public static class NoVerificationEngineDummyNoiseConfiguration { // Visualizer (for simulator?) without noisy gps, with random noise added
-//        public static void main(String[] args) {
+//        static void main(String[] args) {
 //            String mapPath = extractMapPath(args, "/BME_Town_small/BME_Town_small.json");
 //            CliConfig cliConfig = CliConfig.get(args);
 //            cliConfig.verificationEngine = scenario -> new UpdatedScenario(scenario, null);
@@ -57,7 +64,7 @@ public class ROSReplayer {
 //    }
 
     public static class NoVerificationEngineRealConfiguration { // Visualizer for real vehicle
-        public static void main(String[] args) {
+        static void main(String[] args) {
             String mapPath = extractMapPath(args, "/BME_Town_small/BME_Town_small.json");
             CliConfig cliConfig = CliConfig.get(args);
             final MapRender map = MapRender.of(mapPath);
@@ -75,7 +82,7 @@ public class ROSReplayer {
     }
 
 //    public static class DummyVerificationEngineTestConfiguration { // Mock verification engine for simulator with random noise
-//        public static void main(String[] args) {
+//        static void main(String[] args) {
 //            String mapPath = extractMapPath(args, "/BME_Town_small/BME_Town_small.json");
 //            CliConfig cliConfig = CliConfig.get(args);
 //            cliConfig.verificationEngine = new DummyVerificationEngine(2.0, Math.PI / 180);
@@ -89,7 +96,7 @@ public class ROSReplayer {
 //    }
 
     public static class RefineryVerificationEngineRunConfiguration { // With Refinery, for simulator, with simulated noisy gps
-        public static void main(String[] args) throws IOException {
+        static void main(String[] args) throws IOException {
             String mapPath = extractMapPath(args, "/BME_Town_small/BME_Town_small.json");
             String metamodelPath = extractArgumentValue(args, "--metamodel");
             final MapRender map = MapRender.of(mapPath);
@@ -108,7 +115,7 @@ public class ROSReplayer {
     }
 
     public static class RefineryVerificationEngineRealConfiguration { // With Refinery, for real vehicle
-        public static void main(String[] args) throws IOException {
+        static void main(String[] args) throws IOException {
             String mapPath = extractMapPath(args, "/Krisztina/Krisztina.json");
             String metamodelPath = extractArgumentValue(args, "--metamodel");
             final MapRender map = MapRender.of(mapPath);
@@ -129,7 +136,7 @@ public class ROSReplayer {
     }
 
     public static class YoloErrorCalculation{ // YOLO error calculation
-        public static void main(String[] args) throws IOException {
+        static void main(String[] args) throws IOException {
             String mapPath = extractMapPath(args, null);
             String targetId = extractTargetId(args);
             if (mapPath == null || targetId == null) {
@@ -176,12 +183,25 @@ public class ROSReplayer {
                 cliConfig.dropOlderThan);
 
         // Start visualizer first (before receiving/replaying messages)
-        stateReplayer.start();
+        if (cliConfig.enableVisualization) {
+            stateReplayer.start();
+        }
 
         // Check if replay mode or live mode
         if (cliConfig.replayJsonFile != null) {
             replayFromJsonl(recorder, cliConfig.replayJsonFile);
-            experimentalEvaluation.print();
+
+            if (cliConfig.outputEvaluationFile != null) {
+                try (OutputStream outputStream = new FileOutputStream(cliConfig.outputEvaluationFile)) {
+                    experimentalEvaluation.print(new PrintStream(outputStream));
+                } catch (IOException e) {
+                    System.err.println("Could not print to " + cliConfig.outputEvaluationFile);
+                    System.err.println("Error: " + e.getMessage());
+                    experimentalEvaluation.print();
+                }
+            } else {
+                experimentalEvaluation.print();
+            }
 //            experimentalEvaluation.attach(new SaveToCSV(experimentalEvaluation));
 //            experimentalEvaluation.endEvaluation();
         } else {
