@@ -15,22 +15,24 @@ public class VerificationEngineConfiguration {
     public boolean doRoadCutting = false;
     public double roadCutterGranularity = 10;
     public double gnssConfidenceRangeMultiplier = 1;
-    public double yoloRange = 50;
+
+    public double yoloRange = 20;
     public double yoloAngleOfView = 0.01;
     public double yoloMinConfidence = 0.4;
     public double yoloOffsetLongitudinal = 0.0;
     public double yoloOffsetLateral = 0.0;
     public double yoloOffsetAngle = 0.0;
+
     public double gnssOffsetLongitudinal = 2.39;
     public double gnssOffsetLateral = 0.0;
     public double gtOffsetLongitudinal = 0.0;
     public double gtOffsetLateral = 0.0;
 
+
     // Weights
     double odometryPriorWeight = 0.5;
     double locationDetectionWeight = 1.0;
     double yoloDetectionWeight = 1.0;
-
 
     public VerificationEngineConfiguration() {
 

@@ -203,8 +203,13 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
         return !hasNoYolo;
     }
 
+    /**
+     * gnssConfidenceInterpretation
+     * @param gnssConfidence
+     * @return
+     */
     protected double originalConfidenceRange(double gnssConfidence) {
-        return Math.sqrt(gnssConfidence)*2*3;
+        return Math.sqrt(gnssConfidence)*2*3*configuration.gnssConfidenceRangeMultiplier;
     }
 
     protected double confidenceRange(double gnssConfidence, int numberOfAssociations) {
@@ -243,7 +248,8 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
         var theta = Math.PI / 2 - rawScenario.odometry().getTheta();
         Point egoPosition = new Point(xyCoords[0], xyCoords[1]);
 
-        var objectSelection = new ObjectSelection(scope);
+        var objectSelection = new DistanceBasedObjectSelection(scope);
+        //var objectSelection = new AngleBasedObjectSelection(scope);
 
         final List<Yolo.YoloDetection> yoloDetections = rawScenario.yolo() == null ? List.of() : rawScenario.yolo().getYoloDetections();
         for (int i = 0; i < yoloDetections.size(); i++) {
@@ -259,7 +265,7 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
                         configuration.yoloRange,
                         ObjectType.Signal);
 
-                objects2.sort((x, y) -> Double.compare(x.angleDiff(), y.angleDiff()));
+                objects2.sort((x, y) -> Double.compare(x.diff(), y.diff()));
                 var objects3 = new LinkedHashMap<Integer, MapObject>();
                 if (!objects2.isEmpty()) {
                     var r = objects2.getFirst();
