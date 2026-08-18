@@ -18,5 +18,6 @@
   "comment3": "to be configured",
   "odometryPriorWeight": 0.5,
   "locationDetectionWeight": 1.0,
-  "yoloDetectionWeight": 1.0
+  "yoloDetectionWeight": 1.0,
+  "objectDetectionStrategy": 2
 }

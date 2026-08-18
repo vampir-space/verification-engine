@@ -2,6 +2,8 @@ package space.vampir.engine.verification;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.refinery.mapconverter.scope.Scope;
+import tools.refinery.mapconverter.transform.ModelSeedFragment;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -34,6 +36,19 @@ public class VerificationEngineConfiguration {
     double locationDetectionWeight = 1.0;
     double yoloDetectionWeight = 1.0;
 
+    /**
+     * Selects the object detection strategy.
+     * 1 means Angle based object selection.
+     * 2 means distance based object selection.
+     */
+    public int objectDetectionStrategy = 1;
+    ObjectSelection createObjectSelection(Scope<ModelSeedFragment> scope) {
+        switch (objectDetectionStrategy){
+            case 1: return new AngleBasedObjectSelection(scope);
+            case 2: return new DistanceBasedObjectSelection(scope);
+            default: throw new IllegalArgumentException("Invalid object detection strategy");
+        }
+    }
     public VerificationEngineConfiguration() {
 
     }
@@ -61,6 +76,7 @@ public class VerificationEngineConfiguration {
             odometryPriorWeight = node.path("odometryPriorWeight").asDouble(0.5);
             locationDetectionWeight = node.path("locationDetectionWeight").asDouble(1.0);
             yoloDetectionWeight = node.path("yoloDetectionWeight").asDouble(1.0);
+            objectDetectionStrategy = node.path("objectDetectionStrategy").asInt(objectDetectionStrategy);
         }
     }
 
