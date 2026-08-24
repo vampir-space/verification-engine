@@ -19,5 +19,6 @@
   "odometryPriorWeight": 0.5,
   "locationDetectionWeight": 1.0,
   "yoloDetectionWeight": 1.0,
-  "objectDetectionStrategy": 2
+  "objectDetectionStrategy": 2,
+  "objectTypeStrategy": 1
 }

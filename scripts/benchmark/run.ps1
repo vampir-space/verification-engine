@@ -17,12 +17,30 @@ New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 
 $Params = @(
     "yoloRange",
+    "yoloAngleOfView"
+    "yoloMinConfidence"
+    "gnssConfidenceRangeMultiplier"
+
+    "odometryPriorWeight"
+    "locationDetectionWeight"
     "yoloDetectionWeight"
+
+    "objectDetectionStrategy"
+    "objectTypeStrategy"
 )
 
 $Values = @{
-    yoloRange = @(50)
-    yoloDetectionWeight = @(1.0)
+    yoloRange = @(15,17.5,20)
+    yoloAngleOfView = @(0.01)
+    yoloMinConfidence = @(0.35,0.4,0.45)
+    gnssConfidenceRangeMultiplier = @(0.5,0.75,1.0)
+
+    odometryPriorWeight = @(0.5)
+    locationDetectionWeight = @(1.0)
+    yoloDetectionWeight = @(1.0,2.0,5.0)
+
+    objectDetectionStrategy = @(1,2)
+    objectTypeStrategy = @(1,2)
 }
 
 # -----------------------------------------------------------------------------
@@ -40,7 +58,7 @@ $ExperimentCmd = @(
 
 $ExperimentCmdArgs = @(
     "--map", "/Krisztina/Krisztina.json",
-    "--replay-json", "recording/json/rosbag2_2026_07_14-12_55_52_withYOLO.jsonl",
+    "--replay-json", "recording/json/measurement.jsonl",
     "--no-visualization"
 )
 

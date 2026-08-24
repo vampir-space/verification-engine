@@ -264,7 +264,23 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
                         configuration.yoloRange,
                         ObjectType.Signal);
 
-                objects2.sort((x, y) -> Double.compare(x.diff(), y.diff()));
+                if(configuration.objectTypeStrategy==1) {
+                    objects2.removeIf(x->!detectionCompatible(yoloDetection,x.mapObject()));
+                } else if(configuration.objectTypeStrategy==2) {
+                    objects2.forEach(x->x.setDetectionCompatible(detectionCompatible(yoloDetection,x.mapObject())));
+                } else {
+                    throw new IllegalArgumentException("Invalid objectTypeStrategy");
+                }
+
+                objects2.sort((x, y) -> {
+                    if(x.detectionCompatible() && !y.detectionCompatible()) {
+                        return -1;
+                    } else {
+                        return Double.compare(x.diff(), y.diff());
+                    }
+                });
+
+
                 var objects3 = new LinkedHashMap<Integer, MapObject>();
                 if (!objects2.isEmpty()) {
                     var r = objects2.getFirst();
@@ -281,5 +297,25 @@ public class VerificationEngineWithRefinery implements VerificationEngine {
             }
         }
         return scope;
+    }
+
+    protected boolean detectionCompatible(Yolo.YoloDetection detection, MapObject object) {
+        if(detection.type() == null) {
+            return true;
+        } else if(objectTypeUnknown(object)) {
+            return true;
+        } else {
+            boolean result = object.getClassificationIds().contains(detection.type());
+            return result;
+        }
+    }
+    protected boolean objectTypeUnknown(MapObject object) {
+        if(object.getClassificationIds().isEmpty()) {
+            return true;
+        } else if (object.getClassificationIds().contains("-1")) {
+            return true;
+        } else {
+            return false;
+        }
     }
 }

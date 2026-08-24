@@ -24,6 +24,11 @@ public class VerificationEngineConfiguration {
     public double yoloOffsetLongitudinal = 0.0;
     public double yoloOffsetLateral = 0.0;
     public double yoloOffsetAngle = 0.0;
+    /**
+     * 1-types must be compatible
+     * 2-type compatibility is a preference, but not necessary
+     */
+    public int objectTypeStrategy = 1;
 
     public double gnssOffsetLongitudinal = 2.39;
     public double gnssOffsetLateral = 0.0;
@@ -35,13 +40,14 @@ public class VerificationEngineConfiguration {
     double odometryPriorWeight = 0.5;
     double locationDetectionWeight = 1.0;
     double yoloDetectionWeight = 1.0;
-
     /**
      * Selects the object detection strategy.
      * 1 means Angle based object selection.
      * 2 means distance based object selection.
      */
     public int objectDetectionStrategy = 1;
+
+
     ObjectSelection createObjectSelection(Scope<ModelSeedFragment> scope) {
         switch (objectDetectionStrategy){
             case 1: return new AngleBasedObjectSelection(scope);
@@ -67,10 +73,12 @@ public class VerificationEngineConfiguration {
             yoloOffsetLongitudinal =  node.path("yoloOffsetLongitudinal").asDouble(yoloOffsetLongitudinal);
             yoloOffsetLateral =  node.path("yoloOffsetLateral").asDouble(yoloOffsetLateral);
             yoloOffsetAngle = node.path("yoloOffsetAngle").asDouble(yoloOffsetAngle);
+            objectTypeStrategy = node.path("objectTypeStrategy").asInt(objectTypeStrategy);
             gnssOffsetLongitudinal = node.path("gnssOffsetLongitudinal").asDouble(gnssOffsetLongitudinal);
             gnssOffsetLateral = node.path("gnssOffsetLateral").asDouble(gnssOffsetLateral);
             gtOffsetLongitudinal = node.path("gtOffsetLongitudinal").asDouble(gtOffsetLongitudinal);
             gtOffsetLateral = node.path("gtOffsetLateral").asDouble(gtOffsetLateral);
+
 
             // Weights
             odometryPriorWeight = node.path("odometryPriorWeight").asDouble(0.5);
