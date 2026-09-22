@@ -30,7 +30,7 @@ public class VerificationEngineConfiguration {
      */
     public int objectTypeStrategy = 1;
 
-    public double gnssOffsetLongitudinal = 2.39;
+    public double gnssOffsetLongitudinal = 0.0;
     public double gnssOffsetLateral = 0.0;
     public double gtOffsetLongitudinal = 0.0;
     public double gtOffsetLateral = 0.0;
