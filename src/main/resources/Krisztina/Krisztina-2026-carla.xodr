@@ -528,11 +528,6 @@
                 </userData>
             </laneSection>
         </lanes>
-        <signals>
-            <signal id="603" name="Sign_megállni tilos" s="17.628948" t="7.497104" zOffset="4.648987" type="58,59" subtype="-1" orientation="+" dynamic="no" hOffset="0.285326">
-                <positionInertial x="-73.571000" y="-4.464000" z="7.900000" hdg="0.285326" pitch="0.0" roll="0.0" />
-            </signal>
-        </signals>
     </road>
     <road name="Road 4" length="4.1464157159080628e+0" id="4" junction="-1">
         <link>
@@ -4622,13 +4617,13 @@
             <signal id="562" name="Sign_elsőbbségadás kötelező" s="10.621824" t="9.183817" zOffset="4.826272" type="36" subtype="-1" orientation="+" dynamic="no" hOffset="-0.659163">
                 <positionInertial x="43.085000" y="-2.942000" z="5.400000" hdg="-0.659163" pitch="0.0" roll="0.0" />
             </signal>
-            <signal id="563" name="Sign_kerékpárút" s="10.722084" t="3.604924" zOffset="4.126775" type="62,64,58,68,112,140" subtype="-1" orientation="+" dynamic="no" hOffset="-0.659364">
+            <signal id="563" name="Sign_30" s="10.722084" t="3.604924" zOffset="4.126775" type="44,51,53,54,57" subtype="-1" orientation="+" dynamic="no" hOffset="-0.659364">
                 <positionInertial x="39.748000" y="-7.414000" z="4.700000" hdg="-0.659364" pitch="0.0" roll="0.0" />
             </signal>
             <signal id="591" name="Sign_kerékpárút" s="3.487574" t="-7.349154" zOffset="3.802736" type="62,64,58,68,112,140" subtype="-1" orientation="+" dynamic="no" hOffset="-0.644894">
                 <positionInertial x="27.372000" y="-11.746000" z="4.400000" hdg="-0.644894" pitch="0.0" roll="0.0" />
             </signal>
-            <signal id="592" name="Sign_kerékpárút" s="22.743948" t="-7.830989" zOffset="3.821540" type="62,64,58,68,112,140" subtype="-1" orientation="+" dynamic="no" hOffset="-0.677581">
+            <signal id="592" name="Sign_főútvonal" s="22.743948" t="-7.830989" zOffset="3.821540" type="118" subtype="-1" orientation="+" dynamic="no" hOffset="-0.677581">
                 <positionInertial x="42.048000" y="-23.836000" z="4.300000" hdg="-0.677581" pitch="0.0" roll="0.0" />
             </signal>
             <signal id="593" name="Sign_50" s="49.389821" t="-7.784059" zOffset="3.887353" type="44,51,53,54,57" subtype="-1" orientation="+" dynamic="no" hOffset="-0.677581">
@@ -6123,13 +6118,7 @@
             <signal id="570" name="Sign_kötelező haladási irány (egyenesen, jobbra)" s="12.905179" t="0.973032" zOffset="3.747954" type="71,70" subtype="-1" orientation="+" dynamic="no" hOffset="5.595646">
                 <positionInertial x="-35.285000" y="44.706000" z="4.430000" hdg="5.595646" pitch="0.0" roll="0.0" />
             </signal>
-            <signal id="604" name="Sign_kötelező haladási irány (egyenesen, jobbra)" s="4.397823" t="1.211196" zOffset="2.500000" type="71,70" subtype="-1" orientation="+" dynamic="no" hOffset="4.005634">
-                <positionInertial x="-34.917000" y="50.688000" z="3.200000" hdg="4.005634" pitch="0.0" roll="0.0" />
-            </signal>
-            <signal id="605" name="Sign_kötelező haladási irány (egyenesen)" s="4.397823" t="1.211196" zOffset="3.500000" type="67" subtype="-1" orientation="+" dynamic="no" hOffset="4.005634">
-                <positionInertial x="-34.917000" y="50.688000" z="4.200000" hdg="4.005634" pitch="0.0" roll="0.0" />
-            </signal>
-            <signal id="606" name="Sign_elsőbbségadás kötelező,36" s="4.397823" t="1.211196" zOffset="4.500000" type="" subtype="-1" orientation="+" dynamic="no" hOffset="4.005634">
+            <signal id="604" name="Sign_elsőbbségadás kötelező" s="4.397823" t="1.211196" zOffset="4.500000" type="36" subtype="-1" orientation="+" dynamic="no" hOffset="4.005634">
                 <positionInertial x="-34.917000" y="50.688000" z="5.200000" hdg="4.005634" pitch="0.0" roll="0.0" />
             </signal>
         </signals>
@@ -6457,7 +6446,7 @@
             <signal id="572" name="Sign_30" s="23.022533" t="-0.540468" zOffset="3.629680" type="44,51,53,54,57" subtype="-1" orientation="+" dynamic="no" hOffset="2.621437">
                 <positionInertial x="-54.323000" y="55.054000" z="4.500000" hdg="2.621437" pitch="0.0" roll="0.0" />
             </signal>
-            <signal id="573" name="Sign_elsőbbségadás kötelező" s="23.022533" t="-0.540468" zOffset="4.629680" type="36" subtype="-1" orientation="+" dynamic="no" hOffset="2.621437">
+            <signal id="573" name="Sign_stop" s="23.022533" t="-0.540468" zOffset="4.629680" type="42,61" subtype="-1" orientation="+" dynamic="no" hOffset="2.621437">
                 <positionInertial x="-54.323000" y="55.054000" z="5.500000" hdg="2.621437" pitch="0.0" roll="0.0" />
             </signal>
         </signals>
@@ -14914,12 +14903,6 @@
             <signal id="590" name="Sign_kötelező haladási irány (egyenesen)" s="24.716314" t="-0.531010" zOffset="4.200000" type="67" subtype="-1" orientation="+" dynamic="no" hOffset="-0.349448">
                 <positionInertial x="6.486000" y="2.757000" z="4.800000" hdg="-0.349448" pitch="0.0" roll="0.0" />
             </signal>
-            <signal id="594" name="Sign_kerékpárút" s="11.715890" t="-0.764799" zOffset="2.273196" type="62,64,58,68,112,140" subtype="-1" orientation="+" dynamic="no" hOffset="0.285326">
-                <positionInertial x="-5.675000" y="0.068000" z="2.900000" hdg="0.285326" pitch="0.0" roll="0.0" />
-            </signal>
-            <signal id="595" name="Sign_kötelező haladási irány (egyenesen, jobbra)" s="11.715890" t="-0.764799" zOffset="4.573196" type="71,70" subtype="-1" orientation="+" dynamic="no" hOffset="0.285326">
-                <positionInertial x="-5.675000" y="0.068000" z="5.200000" hdg="0.285326" pitch="0.0" roll="0.0" />
-            </signal>
         </signals>
     </road>
     <road name="Road 204" length="5.0360461060340938e+1" id="204" junction="176">
@@ -15663,7 +15646,7 @@
             <signal id="564" name="Sign_kötelező haladási irány (egyenesen)" s="15.878494" t="1.158944" zOffset="4.200000" type="67" subtype="-1" orientation="+" dynamic="no" hOffset="5.647235">
                 <positionInertial x="32.475000" y="5.785000" z="4.800000" hdg="5.647235" pitch="0.0" roll="0.0" />
             </signal>
-            <signal id="596" name="Sign_kötelező haladási irány (egyenesen, jobbra)" s="3.949860" t="0.581862" zOffset="4.219016" type="71,70" subtype="-1" orientation="+" dynamic="no" hOffset="3.414851">
+            <signal id="596" name="Sign_stop" s="3.949860" t="0.581862" zOffset="4.219016" type="42,61" subtype="-1" orientation="+" dynamic="no" hOffset="3.414851">
                 <positionInertial x="32.701000" y="11.269000" z="4.600000" hdg="3.414851" pitch="0.0" roll="0.0" />
             </signal>
         </signals>
@@ -27406,23 +27389,6 @@
                 </userData>
             </laneSection>
         </lanes>
-        <signals>
-            <signal id="598" name="Sign_kötelező haladási irány (egyenesen)" s="3.967304" t="-4.301148" zOffset="2.904540" type="67" subtype="-1" orientation="+" dynamic="no" hOffset="4.198683">
-                <positionInertial x="-33.379000" y="11.260000" z="4.000000" hdg="4.198683" pitch="0.0" roll="0.0" />
-            </signal>
-            <signal id="599" name="Sign_elsőbbségadás kötelező" s="3.967304" t="-4.301148" zOffset="3.904540" type="36" subtype="-1" orientation="+" dynamic="no" hOffset="4.198683">
-                <positionInertial x="-33.379000" y="11.260000" z="5.000000" hdg="4.198683" pitch="0.0" roll="0.0" />
-            </signal>
-            <signal id="600" name="Sign_kötelező haladási irány (egyenesen, jobbra)" s="14.102586" t="-4.246341" zOffset="2.308864" type="71,70" subtype="-1" orientation="+" dynamic="no" hOffset="3.629692">
-                <positionInertial x="-39.344000" y="6.564000" z="3.900000" hdg="3.629692" pitch="0.0" roll="0.0" />
-            </signal>
-            <signal id="601" name="Sign_megállni tilos" s="14.102586" t="-4.246341" zOffset="3.308864" type="58,59" subtype="-1" orientation="+" dynamic="no" hOffset="3.629692">
-                <positionInertial x="-39.344000" y="6.564000" z="4.900000" hdg="3.629692" pitch="0.0" roll="0.0" />
-            </signal>
-            <signal id="602" name="Sign_főútvonal" s="14.102586" t="-4.246341" zOffset="4.308864" type="118" subtype="-1" orientation="+" dynamic="no" hOffset="3.629692">
-                <positionInertial x="-39.344000" y="6.564000" z="5.900000" hdg="3.629692" pitch="0.0" roll="0.0" />
-            </signal>
-        </signals>
     </road>
     <road name="Road 395" length="9.8974917878559694e+0" id="395" junction="386">
         <link>
